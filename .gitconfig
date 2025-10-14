@@ -1,0 +1,13 @@
+[init]
+	defaultBranch = master
+[credential "https://github.com"]
+	helper = 
+	helper = !/opt/homebrew/bin/gh auth git-credential
+[credential "https://gist.github.com"]
+	helper = 
+  helper = !/opt/homebrew/bin/gh auth git-credential
+[user]
+	name = st-eez
+	email = stevedimakos97@gmail.com
+[includeIf "gitdir:/Users/stevedimakos/Projects/Dumak/"] 
+  path = /Users/stevedimakos/.gitconfig-dumak
