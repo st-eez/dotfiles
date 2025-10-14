@@ -1,4 +1,9 @@
-# 💤 LazyVim
+          __                        
+  _______/  |_  ____   ____ ________
+ /  ___/\   __\/ __ \_/ __ \\___   /
+ \___ \  |  | \  ___/\  ___/ /    / 
+/____  > |__|  \___  >\___  >_____ \
+     \/            \/     \/      \/
 
-A starter template for [LazyVim](https://github.com/LazyVim/LazyVim).
-Refer to the [documentation](https://lazyvim.github.io/installation) to get started.
+Steez's NVIM Setup
+
