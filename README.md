@@ -1,10 +1,10 @@
-```          __                        
+                       
   _______/  |_  ____   ____ ________
  /  ___/\   __\/ __ \_/ __ \\___   /
  \___ \  |  | \  ___/\  ___/ /    / 
 /____  > |__|  \___  >\___  >_____ \
      \/            \/     \/      \/
-```
+
 # st-eez dotfiles
 
 Fully reproducible macOS workstation setup: shell, editor, terminal, apps, and defaults that stay in sync across machines.
