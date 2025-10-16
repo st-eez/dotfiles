@@ -23,7 +23,7 @@ default=(
   padding_left=5
   padding_right=5
   icon.font="MesloLGS NF:Bold:17.0"
-  label.font="MesloLGS NF:Bold:14.0"
+  label.font="MesloLGS NF:Regular:14.0"
   icon.color=0xffffffff
   label.color=0xffffffff
   icon.padding_left=4
@@ -79,7 +79,7 @@ sketchybar --add item chevron left \
 # https://felixkratz.github.io/SketchyBar/config/events
 
 sketchybar --add item clock right \
-           --set clock update_freq=10 icon=  script="$PLUGIN_DIR/clock.sh" \
+           --set clock update_freq=10 icon.drawing=off script="$PLUGIN_DIR/clock.sh" \
            --add item volume right \
            --set volume script="$PLUGIN_DIR/volume.sh" \
            --subscribe volume volume_change \
