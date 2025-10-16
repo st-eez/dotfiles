@@ -67,6 +67,7 @@ During the run you will see:
 - [`mac_setup.md`](mac_setup.md) – extended narrative describing each macOS app, tweak, and menu bar tool.
 - [`zsh/`](zsh) – `oh-my-zsh` configuration, prompt (`.p10k.zsh`), and login shell settings.
 - [`ghostty/config`](ghostty/config) – Ghostty terminal theme (TokyoNight Night) and window preferences.
+- [`sketchybar/`](sketchybar) – SketchyBar configuration plus the helper scripts used by the menu bar items.
 - [`nvim/`](nvim) – LazyVim-based Neovim configuration plus pinned plugin versions and formatting rules.
 
 ---
@@ -103,6 +104,12 @@ During the run you will see:
 
 - Run `brew bundle --file Brewfile` to install everything from productivity apps (Raycast, Obsidian) to window managers (Rectangle, JankyBorders).
 - Cross-reference [`mac_setup.md`](mac_setup.md) for context on why each app is included and how it is configured.
+
+### Rectangle + SketchyBar
+
+- SketchyBar lives in [`sketchybar/sketchybarrc`](sketchybar/sketchybarrc) with plugin scripts under [`sketchybar/plugins`](sketchybar/plugins); the installer symlinks the whole directory into `~/.config/sketchybar`.
+- Rectangle margins keep tiled windows clear of the custom bar: `defaults write com.knollsoft.Rectangle screenEdgeGapTop -int 40` for external displays, and `defaults write com.knollsoft.Rectangle screenEdgeGapTopNotch -int 18` on the notched MacBook panel (adjust the numbers if the bar height changes).
+- Revert either tweak with `defaults delete com.knollsoft.Rectangle screenEdgeGapTop` and/or `defaults delete com.knollsoft.Rectangle screenEdgeGapTopNotch`.
 
 ---
 
