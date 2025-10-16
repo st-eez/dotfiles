@@ -58,7 +58,7 @@ print_banner() {
   printf '%b%s%b\n' "$green_bold" ' \___ \  |  | \  ___/\  ___/ /    / ' "$reset"
   printf '%b%s%b\n' "$green_bold" '/____  > |__|  \___  >\___  >_____ \' "$reset"
   printf '%b%s%b\n' "$green_bold" '     \/            \/     \/      \/' "$reset"
-  printf "%b%s%b\n\n" "$green" "       steez terminal bootstrap" "$reset"
+  printf "%b%s%b\n\n" "$green" "       steez macos util" "$reset"
 }
 
 run_step() {
@@ -421,8 +421,8 @@ parse_args() {
 }
 
 show_menu() {
-  local options=("Steez's Ghostty config" "Cancel / Exit")
-  local keys=("steez-ghostty" "exit")
+  local options=("Steez macOS util" "Cancel / Exit")
+  local keys=("steez-macos-util" "exit")
 
   if [[ ! -t 0 ]]; then
     PROFILE_KEY="${keys[0]}"
@@ -497,20 +497,24 @@ finish_prompt() {
   local bold="\033[1m"
   local reset="\033[0m"
   printf '%b%s%b\n\n' "$green" "==============================================" "$reset"
-  printf '%s\n' "[OK] Setup complete for ${PROFILE_LABEL}."
-  printf '%b%s%b\n\n' "$green" "Welcome to the Ghosteez Terminal. Spin up Ghostty when you’re ready to dive in." "$reset"
+  printf "%b[OK]%b Steez macOS util wrapped your terminal stack.\n" "$bold" "$reset"
+  printf "%s\n\n" "Shell, Ghostty, and Neovim are in sync; the upcoming app and automation profiles slide in from here."
 
-  printf '%bKey files to customize%b\n' "$bold" "$reset"
-  printf '  %b%-15s%b → %s\n' "$green" "Shell config" "$reset" "~/.dotfiles/zsh/.zshrc"
-  printf '  %b%-15s%b → %s\n' "$green" "Alias helpers" "$reset" "~/.dotfiles/zsh/.oh-my-zsh/custom/aliases.zsh"
-  printf '      %-10s %s\n' "fcd" "(fzf pick → cd into directory)"
-  printf '      %-10s %s\n' "fnv" "(fzf pick → open in Neovim)"
-  printf '  %b%-15s%b → %s\n' "$green" "Neovim setup" "$reset" "~/.dotfiles/nvim/"
-  printf '  %b%-15s%b → %s\n' "$green" "Ghostty theme" "$reset" "~/.dotfiles/ghostty/config"
-  printf '\n'
-  printf '%s\n' "Edit files directly under ~/.dotfiles, then run \`exec zsh\` or relaunch the terminal."
-  printf '%s\n' "Neovim (\`nvim\`) is ready—first launch will sync LazyVim plugins automatically."
-  printf '\n'
+  printf "%bWhere everything lives%b\n" "$bold" "$reset"
+  printf "  %b>%b %-14s %s\n" "$green" "$reset" "Shell config" "~/.dotfiles/zsh/.zshrc"
+  printf "  %b>%b %-14s %s\n" "$green" "$reset" "Alias helpers" "~/.dotfiles/zsh/.oh-my-zsh/custom/aliases.zsh"
+  printf "            fcd -> pick & cd, fnv -> pick & open in nvim\n"
+  printf "  %b>%b %-14s %s\n" "$green" "$reset" "Neovim setup" "~/.dotfiles/nvim/"
+  printf "  %b>%b %-14s %s\n\n" "$green" "$reset" "Ghostty theme" "~/.dotfiles/ghostty/config"
+
+  printf "%bQuick wins%b\n" "$bold" "$reset"
+  printf "  %b>%b %-14s %s\n" "$green" "$reset" "Launch Ghostty" "Say yes when prompted above (or run open -a Ghostty)"
+  printf "  %b>%b %-14s %s\n" "$green" "$reset" "Reload shell" "exec zsh      # run this inside Ghostty so the powerlevel10k wizard appears"
+  printf "  %b>%b %-14s %s\n\n" "$green" "$reset" "First nvim" "nvim        # LazyVim grabs plugins on launch"
+
+  printf "%bKeep in mind%b\n" "$bold" "$reset"
+  printf "  %b>%b %s\n" "$green" "$reset" "Work inside ~/.dotfiles so the links keep pointing home."
+  printf "  %b>%b %s\n\n" "$green" "$reset" "Rerun Steez macOS util whenever you want a clean sweep."
 
   # offer to launch Ghostty if available
   if command -v ghostty >/dev/null 2>&1 || [[ -d "/Applications/Ghostty.app" ]]; then
@@ -571,7 +575,7 @@ main() {
 
   confirm_execution
   case "$PROFILE_KEY" in
-    steez-ghostty)
+    steez-macos-util)
       preflight
       backup_existing_files
       create_symlinks

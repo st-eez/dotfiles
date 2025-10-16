@@ -35,6 +35,8 @@ Tracking progress and decisions while building an automated installer for the do
 - Extras added: interactive confirmation (skip with `-y/--yes`), `--verbose` flag, green “steez” ASCII banner on start, post-run quickstart summary + Ghostty launch prompt (skips in dry-run).
 - Repo status: changes committed as `Add Ghosteez installer with interactive menu` on `main` and pushed to GitHub.
 - Extras added: interactive confirmation (skip with `-y/--yes`), `--verbose` flag, post-run quickstart summary + Ghostty launch prompt (skips in dry-run).
+- _Naming_: Banner/menu now introduce the tool as “Steez macOS util” to reflect upcoming multi-app automation work.
+- _Finish prompt polish_: Conversational wrap-up now nudges Ghostty launch (say yes to the prompt or run `open -a Ghostty`) before `exec zsh`, then P10K and LazyVim steps so the order is crystal clear post-install.
 
 ## Future Ideas
 - Add interactive menus for optional brew bundles (Raycast, Rectangle, JankyBorders, AutoRaise, etc.).
