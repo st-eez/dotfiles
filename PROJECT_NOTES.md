@@ -19,8 +19,8 @@ Tracking progress and decisions while building an automated installer for the do
 3. Preflight + base installs (CLT, Homebrew, oh-my-zsh + plugins/theme, essential brew installs for Ghostty/Neovim stack). ✅
 4. Back up existing dotfiles (timestamped folders like `~/.dotfiles_backup/YYYY.MM.DD.HH.MM.SS`). ✅
 5. Symlink tracked configs (Zsh, Ghostty, Neovim) into target home. ✅
-6. Terminal configuration & menu foundation (macOS tweaks deferred to future version).
-7. Verification summary and future hooks.
+6. Terminal configuration & menu foundation (macOS tweaks deferred to future version). ✅
+7. Verification summary and future hooks (add end-of-run report + optional tests).
 8. (Optional future) Restore routine for `.dotfiles_backup/<timestamp>` folders.
 
 ## Session Log
@@ -29,10 +29,12 @@ Tracking progress and decisions while building an automated installer for the do
 - _Step 3 complete_: Added preflight logic for Xcode CLT, Homebrew installation + shellenv, Oh My Zsh (and plugins), and essential brew installs (neovim, fzf, ripgrep, ghostty); dry-run still supports sandboxing.
 - _Step 4 complete_: Added timestamped backup routine mirroring atomantic (~/.dotfiles_backup/<timestamp>) for Zsh, Ghostty, and Neovim files prior to linking.
 - _Step 5 complete_: Symlink routine now links zsh, ghostty, and nvim paths back to the repo, handling dry-run removal/logging.
-- _Step 6 note_: Decided to leave Raycast/Rectangle/JankyBorders/AutoRaise and other tweaks for a future version; current script focuses purely on terminal stack.
-- Added features: interactive confirmation (skip with `-y/--yes`), `--verbose` flag, and green “steez” ASCII banner on start.
-- Menu upgraded: arrow-key TUI replaces numbered prompt (highlights selection, includes explicit “Cancel / Exit”, and falls back to default selection when non-interactive).
-- Post-run prompt: after Ghostty profile completes, installer replays the banner, shows a quickstart summary (important files, aliases), and offers to launch Ghostty (skips in dry-run or when app missing).
+- _Step 6 complete_: Added interactive menu (arrow-key TUI with “Cancel / Exit”), banner restyle, polished wrap-up copy, and Ghostty launch prompt.
+- _Step 6 note_: Non-terminal tweaks (Raycast, Rectangle, JankyBorders, AutoRaise, etc.) are postponed to a later version.
+- _Step 7 todo_: Implement post-run verification summary (show backup folder, symlink targets), optionally add automated checks/tests before exit.
+- Extras added: interactive confirmation (skip with `-y/--yes`), `--verbose` flag, green “steez” ASCII banner on start, post-run quickstart summary + Ghostty launch prompt (skips in dry-run).
+- Repo status: changes committed as `Add Ghosteez installer with interactive menu` on `main` and pushed to GitHub.
+- Extras added: interactive confirmation (skip with `-y/--yes`), `--verbose` flag, post-run quickstart summary + Ghostty launch prompt (skips in dry-run).
 
 ## Future Ideas
 - Add interactive menus for optional brew bundles (Raycast, Rectangle, JankyBorders, AutoRaise, etc.).
@@ -43,3 +45,8 @@ Tracking progress and decisions while building an automated installer for the do
   - Harden `ensure_git_clone` with explicit success checks.
   - Support richer end-of-run summaries.
   - Improve handling for pre-existing symlinks pointing outside the repo.
+
+## Next Session Starting Points
+- Implement Step 7 verification summary (print backup path, symlink map, maybe prompt to run smoke checks).
+- Consider a restore helper stub and decide how menu will grow for future profiles (VS Code, Chromium theme).
+- Revisit verbose logging (`verb` helper currently unused).
