@@ -16,78 +16,48 @@ Fully reproducible macOS workstation setup: shell, editor, terminal, apps, and d
 
 All commands assume macOS 13+ with the default `zsh` shell. Substitute your preferred paths if you keep dotfiles somewhere other than `~/dotfiles`.
 
-### Step 0 – Confirm prerequisites
-
-- Install the Xcode command line tools if they are missing:
-
-  ```bash
-  xcode-select --install
-  ```
-
-- Install [Homebrew](https://brew.sh/) when it is not already available:
-
-  ```bash
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-  ```
-
-### Step 1 – Install shell baseline
+### Step 0 – Clone the repository
 
 ```bash
-export RUNZSH=no
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-git clone --depth=1 https://github.com/romkatv/powerlevel10k ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k
-git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
-git clone https://github.com/zsh-users/zsh-syntax-highlighting ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
+git clone https://github.com/st-eez/dotfiles.git ~/dotfiles
+cd ~/dotfiles
 ```
 
-### Step 2 – Clone the repository
+### Step 1 – Preview the install (optional but recommended)
+
+See everything the installer will do—no changes are made.
 
 ```bash
-export DOTFILES_DIR=$HOME/dotfiles   # change this if you prefer another location
-git clone https://github.com/st-eez/dotfiles.git "$DOTFILES_DIR"
-cd "$DOTFILES_DIR"
+./scripts/install.sh --dry-run --verbose
 ```
 
-### Step 3 – Back up any existing configs (skip if this is a fresh machine)
+### Step 2 – Run Steez macOS util
+
+The installer handles prerequisites (Xcode CLT prompt, Homebrew, Oh My Zsh + plugins), backs up existing configs, and links the repo-managed files into place.
 
 ```bash
-for file in .zshrc .zprofile .p10k.zsh; do
-  [ -e "$HOME/$file" ] && mv "$HOME/$file" "$HOME/${file}.backup.$(date +%Y%m%d%H%M%S)"
-done
+# standard run (interactive)
+./scripts/install.sh
+
+# skip prompts if you already reviewed the dry-run output
+./scripts/install.sh --yes
 ```
 
-### Step 4 – Symlink the tracked files into `$HOME`
+During the run you will see:
 
-```bash
-ln -sfn "$DOTFILES_DIR/zsh/.zshrc" ~/.zshrc
-ln -sfn "$DOTFILES_DIR/zsh/.zprofile" ~/.zprofile
-ln -sfn "$DOTFILES_DIR/zsh/.p10k.zsh" ~/.p10k.zsh
-mkdir -p ~/.config/ghostty
-ln -sfn "$DOTFILES_DIR/ghostty/config" ~/.config/ghostty/config
-```
-
-Use `ln -sfn` so re-running the command updates the links without prompting.
-
-### Step 5 – Install CLI tools, casks, and VS Code extensions
-
-```bash
-brew bundle --file "$DOTFILES_DIR/Brewfile"
-```
-
-### Step 6 – Reload and configure
-
-```bash
-exec zsh
-p10k configure   # optional: customize the prompt if you have not done so already
-```
+- **Structure validation** – warns early if expected files are missing from the repo.
+- **Backups** – creates `~/.dotfiles_backup/<timestamp>` before touching existing files.
+- **Post-run summary** – prints the backup path and the status of each symlink so you can verify results at a glance.
+- **Ghostty launch** – optionally opens Ghostty so the powerlevel10k wizard greets you in the new terminal session. Run `exec zsh` inside Ghostty to apply the prompt.
 
 ---
 
 ## Verify the setup
 
-- `ls -l ~/.zshrc ~/.zprofile ~/.p10k.zsh ~/.config/ghostty/config` should all point back to the repo.
-- `which nvim`, `which fzf`, `which gh` should resolve to Homebrew paths after `brew bundle`.
-- `git status` inside `$DOTFILES_DIR` should show a clean tree once you are satisfied with the install.
+- Read the “Verification” section the installer prints—every entry should show `linked → dotfiles/...`.
+- The backup folder should exist (in dry-run it shows “(preview)” so you know where it would land).
+- `which nvim`, `which fzf`, `which rg` should resolve to Homebrew paths once the run finishes.
+- `git status` inside the repo should be clean; any local edits belong under `~/dotfiles` and the symlinks will pick them up immediately.
 
 ---
 
@@ -141,21 +111,22 @@ p10k configure   # optional: customize the prompt if you have not done so alread
 1. Pull the latest changes:
 
    ```bash
-   cd "$DOTFILES_DIR"
+   cd ~/dotfiles
    git pull
    ```
 
 2. Refresh Homebrew packages:
 
    ```bash
+   cd ~/dotfiles
    brew update
-   brew bundle --file "$DOTFILES_DIR/Brewfile"
+    brew bundle --file Brewfile
    ```
 
 3. Re-link configs if you add new files:
 
    ```bash
-   ln -sfn "$DOTFILES_DIR/<relative-path>" ~/target
+   ln -sfn ~/dotfiles/<relative-path> ~/target
    ```
 
 4. Audit for unused brew entries periodically:
@@ -168,10 +139,10 @@ p10k configure   # optional: customize the prompt if you have not done so alread
 
 ## Troubleshooting
 
-- **Symlinks missing?** Re-run the commands from Step 4 and confirm with `ls -l`.
+- **Symlinks missing?** Re-run `./scripts/install.sh --dry-run --verbose` to preview, then `./scripts/install.sh` to fix.
 - **Prompt looks wrong?** Execute `p10k configure` to rebuild the theme.
-- **Brew install failed?** Ensure the taps in `Brewfile` are reachable, then rerun `brew bundle`.
-- **Need to reset to defaults?** Restore from the backups created in Step 3 or remove the symlink and recreate it.
+- **Brew install failed?** The installer now surfaces curl errors; rerun once network connectivity is solid.
+- **Need to reset to defaults?** Use the backup directory reported in the verification summary or restore from `~/.dotfiles_backup/<timestamp>`.
 
 ---
 

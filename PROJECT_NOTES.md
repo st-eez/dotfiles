@@ -31,12 +31,15 @@ Tracking progress and decisions while building an automated installer for the do
 - _Step 5 complete_: Symlink routine now links zsh, ghostty, and nvim paths back to the repo, handling dry-run removal/logging.
 - _Step 6 complete_: Added interactive menu (arrow-key TUI with “Cancel / Exit”), banner restyle, polished wrap-up copy, and Ghostty launch prompt.
 - _Step 6 note_: Non-terminal tweaks (Raycast, Rectangle, JankyBorders, AutoRaise, etc.) are postponed to a later version.
-- _Step 7 todo_: Implement post-run verification summary (show backup folder, symlink targets), optionally add automated checks/tests before exit.
+- _Step 7 progress_: Added post-run verification summary (backup path + symlink status table); still considering automated checks/tests before exit.
 - Extras added: interactive confirmation (skip with `-y/--yes`), `--verbose` flag, green “steez” ASCII banner on start, post-run quickstart summary + Ghostty launch prompt (skips in dry-run).
 - Repo status: changes committed as `Add Ghosteez installer with interactive menu` on `main` and pushed to GitHub.
 - Extras added: interactive confirmation (skip with `-y/--yes`), `--verbose` flag, post-run quickstart summary + Ghostty launch prompt (skips in dry-run).
 - _Naming_: Banner/menu now introduce the tool as “Steez macOS util” to reflect upcoming multi-app automation work.
-- _Finish prompt polish_: Conversational wrap-up now nudges Ghostty launch (say yes to the prompt or run `open -a Ghostty`) before `exec zsh`, then P10K and LazyVim steps so the order is crystal clear post-install.
+- _Finish prompt polish_: Conversational wrap-up now nudges Ghostty launch (accept the prompt or run `open -a Ghostty`) before `exec zsh`, then P10K and LazyVim steps so the order is crystal clear post-install.
+- _Structure hardening_: Centralized symlink mappings, added dotfiles structure validation, removed `eval` in the menu (new helpers), wrapped network installs in `curl_safe`, tightened `git clone` failures, and extracted the Ghostty launcher helper.
+- _Docs refresh_: README now leads with Steez macOS util (dry-run preview, verification summary, maintenance flow) so manual steps stay in sync with the installer.
+- _To revisit (TBD)_: Keep simple `readlink` usage unless a macOS bug surfaces; consider further Ghostty prompt polish after verification summary work lands.
 
 ## Future Ideas
 - Add interactive menus for optional brew bundles (Raycast, Rectangle, JankyBorders, AutoRaise, etc.).

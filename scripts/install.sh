@@ -12,8 +12,26 @@ PROFILE_LABEL=""
 TARGET_HOME="${HOME}"
 DOTFILES_DIR="${DEFAULT_DOTFILES_DIR}"
 BREW_BIN=""
+LAST_BACKUP_DIR=""
+# Essential Homebrew formulae
+# - neovim: Terminal-based editor configured in dotfiles/nvim
+# - fzf: Fuzzy finder (used by shell aliases and Neovim pickers)
+# - ripgrep: Fast text search leveraged by shell and Neovim
 ESSENTIAL_FORMULAE=(neovim fzf ripgrep)
+
+# Essential Homebrew casks
+# - ghostty: GPU-accelerated terminal emulator configured under ghostty/config
 ESSENTIAL_CASKS=(ghostty)
+
+# Symlink configuration: source path (relative to DOTFILES_DIR) | target path (relative to TARGET_HOME)
+declare -a SYMLINK_MAPPINGS=(
+  "zsh/.zshrc|.zshrc"
+  "zsh/.zprofile|.zprofile"
+  "zsh/.p10k.zsh|.p10k.zsh"
+  "zsh/.oh-my-zsh/custom/aliases.zsh|.oh-my-zsh/custom/aliases.zsh"
+  "ghostty/config|.config/ghostty/config"
+  "nvim|.config/nvim"
+)
 
 log() {
   local level="$1"; shift
@@ -100,6 +118,25 @@ ensure_dir() {
   fi
 }
 
+curl_safe() {
+  local url="$1"
+  local description="${2:-content}"
+  local __result_var="${3:-}"
+  local output
+
+  [[ -n "$__result_var" ]] || die "curl_safe requires a variable name for output storage"
+
+  action "Downloading ${description}..."
+  if output="$(curl -fsSL "$url" 2>&1)"; then
+    printf -v "$__result_var" '%s' "$output"
+    return 0
+  fi
+
+  error "Failed to download ${description} from ${url}"
+  verb "curl error: ${output}"
+  return 1
+}
+
 ensure_xcode_clt() {
   if xcode-select --print-path >/dev/null 2>&1; then
     ok "Xcode Command Line Tools already installed."
@@ -140,10 +177,15 @@ ensure_homebrew() {
       log "DRY" "Install Homebrew via official script"
       BREW_BIN="/opt/homebrew/bin/brew"
     else
-      action "Installing Homebrew"
-      /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-      detect_brew_bin || die "Homebrew installation completed but brew not found in PATH."
-      ok "Homebrew installed at ${BREW_BIN}"
+      local install_script
+      if curl_safe "https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh" "Homebrew installer" install_script; then
+        action "Installing Homebrew"
+        /bin/bash -c "$install_script" || die "Homebrew installation script failed"
+        detect_brew_bin || die "Homebrew installation completed but brew not found in PATH."
+        ok "Homebrew installed at ${BREW_BIN}"
+      else
+        die "Could not download the Homebrew installer"
+      fi
     fi
   fi
 
@@ -216,10 +258,14 @@ ensure_ohmyzsh() {
   if "$DRY_RUN"; then
     log "DRY" "Install Oh My Zsh into ${omz_dir}"
   else
-    action "Installing Oh My Zsh"
-    RUNZSH=no CHSH=no KEEP_ZSHRC=yes \
-      /bin/sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-    ok "Oh My Zsh installed"
+    local omz_script
+    if curl_safe "https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh" "Oh My Zsh installer" omz_script; then
+      action "Installing Oh My Zsh"
+      RUNZSH=no CHSH=no KEEP_ZSHRC=yes /bin/sh -c "$omz_script" || die "Oh My Zsh installation failed"
+      ok "Oh My Zsh installed"
+    else
+      die "Could not download the Oh My Zsh installer"
+    fi
   fi
 }
 
@@ -238,7 +284,7 @@ ensure_git_clone() {
     log "DRY" "git clone $repo \"$dest\""
   else
     action "Cloning $name"
-    git clone --depth=1 "$repo" "$dest"
+    git clone --depth=1 "$repo" "$dest" || die "Failed to clone $name from $repo"
     ok "$name installed"
   fi
 }
@@ -249,6 +295,78 @@ ensure_ohmyzsh_assets() {
   ensure_git_clone "${zsh_custom}/themes/powerlevel10k" "https://github.com/romkatv/powerlevel10k.git" "powerlevel10k theme"
   ensure_git_clone "${zsh_custom}/plugins/zsh-autosuggestions" "https://github.com/zsh-users/zsh-autosuggestions.git" "zsh-autosuggestions plugin"
   ensure_git_clone "${zsh_custom}/plugins/zsh-syntax-highlighting" "https://github.com/zsh-users/zsh-syntax-highlighting.git" "zsh-syntax-highlighting plugin"
+}
+
+launch_ghostty() {
+  if "$DRY_RUN"; then
+    log "DRY" "Would prompt user to launch Ghostty"
+    return
+  fi
+
+  printf "Launch Ghostty now? [y/N] "
+  read -r response
+  if [[ ! "$response" =~ ^([yY]|[yY][eE][sS])$ ]]; then
+    action "Skipped launching Ghostty"
+    return
+  fi
+
+  if command -v open >/dev/null 2>&1; then
+    if open -a Ghostty >/dev/null 2>&1; then
+      ok "Ghostty launched"
+      return
+    fi
+  fi
+
+  if command -v ghostty >/dev/null 2>&1; then
+    ghostty >/dev/null 2>&1 &
+    ok "Ghostty launched"
+    return
+  fi
+
+  warn "Ghostty not found in PATH or Applications"
+}
+
+print_verification_summary() {
+  local green="\033[0;32m"
+  local bold="\033[1m"
+  local reset="\033[0m"
+  printf "%bVerification%b\n" "$bold" "$reset"
+
+  local backup_display="${LAST_BACKUP_DIR:-unknown}"
+  if "$DRY_RUN"; then
+    printf "  %b>%b %-14s %s\n" "$green" "$reset" "Backup folder" "${backup_display} (preview)"
+  else
+    printf "  %b>%b %-14s %s\n" "$green" "$reset" "Backup folder" "$backup_display"
+  fi
+
+  local entry source_rel source_abs target_rel target status dest
+  for entry in "${SYMLINK_MAPPINGS[@]}"; do
+    source_rel="${entry%%|*}"
+    source_abs="${DOTFILES_DIR}/${source_rel}"
+    target_rel="${entry#*|}"
+    target="${TARGET_HOME}/${target_rel}"
+
+    if "$DRY_RUN"; then
+      status="would link → dotfiles/${source_rel}"
+    else
+      if [[ -L "$target" ]]; then
+        dest="$(readlink "$target")"
+        if [[ "$dest" == "$source_abs" ]]; then
+          status="linked → dotfiles/${source_rel}"
+        else
+          status="points to ${dest} (expected dotfiles/${source_rel})"
+        fi
+      elif [[ -e "$target" ]]; then
+        status="present but not a symlink (inspect manually)"
+      else
+        status="missing (expected link to dotfiles/${source_rel})"
+      fi
+    fi
+
+    printf "  %b>%b %-14s %s\n" "$green" "$reset" "$target_rel" "$status"
+  done
+
+  printf '\n'
 }
 
 should_backup() {
@@ -279,14 +397,12 @@ backup_existing_files() {
     ensure_dir "$backup_dir"
   fi
 
-  local paths=(
-    "${TARGET_HOME}/.zshrc"
-    "${TARGET_HOME}/.zprofile"
-    "${TARGET_HOME}/.p10k.zsh"
-    "${TARGET_HOME}/.oh-my-zsh/custom/aliases.zsh"
-    "${TARGET_HOME}/.config/ghostty/config"
-    "${TARGET_HOME}/.config/nvim"
-  )
+  local paths=()
+  local mapping target_rel
+  for mapping in "${SYMLINK_MAPPINGS[@]}"; do
+    target_rel="${mapping#*|}"
+    paths+=("${TARGET_HOME}/${target_rel}")
+  done
 
   local path rel_path
   for path in "${paths[@]}"; do
@@ -313,9 +429,9 @@ backup_existing_files() {
   done
 
   if ! "$DRY_RUN"; then
-    export LAST_BACKUP_DIR="$backup_dir"
+    LAST_BACKUP_DIR="$backup_dir"
   else
-    export LAST_BACKUP_DIR="(dry-run)"
+    LAST_BACKUP_DIR="(dry-run)"
   fi
 }
 
@@ -357,19 +473,10 @@ create_symlink() {
 
 create_symlinks() {
   bot "Creating symlinks"
-  local mappings=(
-    "$DOTFILES_DIR/zsh/.zshrc|$TARGET_HOME/.zshrc"
-    "$DOTFILES_DIR/zsh/.zprofile|$TARGET_HOME/.zprofile"
-    "$DOTFILES_DIR/zsh/.p10k.zsh|$TARGET_HOME/.p10k.zsh"
-    "$DOTFILES_DIR/zsh/.oh-my-zsh/custom/aliases.zsh|$TARGET_HOME/.oh-my-zsh/custom/aliases.zsh"
-    "$DOTFILES_DIR/ghostty/config|$TARGET_HOME/.config/ghostty/config"
-    "$DOTFILES_DIR/nvim|$TARGET_HOME/.config/nvim"
-  )
-
   local entry source target
-  for entry in "${mappings[@]}"; do
-    source="${entry%%|*}"
-    target="${entry#*|}"
+  for entry in "${SYMLINK_MAPPINGS[@]}"; do
+    source="${DOTFILES_DIR}/${entry%%|*}"
+    target="${TARGET_HOME}/${entry#*|}"
     create_symlink "$source" "$target"
   done
 }
@@ -420,6 +527,26 @@ parse_args() {
 
 }
 
+init_terminal_features() {
+  if command -v tput >/dev/null 2>&1; then
+    bold="$(tput bold 2>/dev/null || printf '\033[1m')"
+    reset="$(tput sgr0 2>/dev/null || printf '\033[0m')"
+    highlight="$(tput rev 2>/dev/null || printf '\033[7m')"
+  else
+    bold=$'\033[1m'
+    reset=$'\033[0m'
+    highlight=$'\033[7m'
+  fi
+}
+
+clear_screen() {
+  if command -v tput >/dev/null 2>&1; then
+    tput clear 2>/dev/null || printf '\033[H\033[2J'
+  else
+    printf '\033[H\033[2J'
+  fi
+}
+
 show_menu() {
   local options=("Steez macOS util" "Cancel / Exit")
   local keys=("steez-macos-util" "exit")
@@ -434,19 +561,7 @@ show_menu() {
   local index=0
   local prompt="Use ↑/↓ to choose, Enter to confirm, q to quit."
   local esc=$'\033'
-  local bold reset clear_cmd highlight
-
-  if command -v tput >/dev/null 2>&1; then
-    bold="$(tput bold 2>/dev/null || printf '\033[1m')"
-    reset="$(tput sgr0 2>/dev/null || printf '\033[0m')"
-    clear_cmd="tput clear"
-    highlight="$(tput rev 2>/dev/null || printf '\033[7m')"
-  else
-    bold=$'\033[1m'
-    reset=$'\033[0m'
-    clear_cmd="printf '\033[H\033[2J'"
-    highlight=$'\033[7m'
-  fi
+  init_terminal_features
 
   draw_menu() {
     printf '%s\n\n' "$prompt"
@@ -461,7 +576,7 @@ show_menu() {
   }
 
   while [[ -z "$PROFILE_KEY" ]]; do
-    eval "$clear_cmd"
+    clear_screen
     print_banner
     draw_menu
 
@@ -483,7 +598,7 @@ show_menu() {
     fi
   done
 
-  eval "$clear_cmd"
+  clear_screen
   print_banner
 
   if [[ "$PROFILE_KEY" == "exit" ]]; then
@@ -499,6 +614,8 @@ finish_prompt() {
   printf '%b%s%b\n\n' "$green" "==============================================" "$reset"
   printf "%b[OK]%b Steez macOS util wrapped your terminal stack.\n" "$bold" "$reset"
   printf "%s\n\n" "Shell, Ghostty, and Neovim are in sync; the upcoming app and automation profiles slide in from here."
+
+  print_verification_summary
 
   printf "%bWhere everything lives%b\n" "$bold" "$reset"
   printf "  %b>%b %-14s %s\n" "$green" "$reset" "Shell config" "~/.dotfiles/zsh/.zshrc"
@@ -518,29 +635,7 @@ finish_prompt() {
 
   # offer to launch Ghostty if available
   if command -v ghostty >/dev/null 2>&1 || [[ -d "/Applications/Ghostty.app" ]]; then
-    if "$DRY_RUN"; then
-      log "DRY" "Prompt user to launch Ghostty now."
-      log "DRY" "Would run: open -a Ghostty (fallback to ghostty CLI)"
-      return
-    fi
-
-    printf "Launch Ghostty now? [y/N] "
-    read -r launch_response
-    if [[ "$launch_response" =~ ^([yY]|[yY][eE][sS])$ ]]; then
-      if command -v open >/dev/null 2>&1; then
-        if ! open -a Ghostty >/dev/null 2>&1; then
-          command -v ghostty >/dev/null 2>&1 && ghostty >/dev/null 2>&1 &
-        fi
-        ok "Ghostty launched."
-      elif command -v ghostty >/dev/null 2>&1; then
-        ghostty >/dev/null 2>&1 &
-        ok "Ghostty launched."
-      else
-        warn "Ghostty application not found in PATH."
-      fi
-    else
-      action "Skipped launching Ghostty."
-    fi
+    launch_ghostty
   else
     action "Ghostty not found; skipping launch prompt."
   fi
@@ -549,6 +644,26 @@ finish_prompt() {
 validate_paths() {
   [[ -d "$DOTFILES_DIR" ]] || die "Dotfiles directory not found: $DOTFILES_DIR"
   [[ -d "$TARGET_HOME" ]] || die "Home directory not found: $TARGET_HOME"
+}
+
+validate_dotfiles_structure() {
+  bot "Validating dotfiles directory structure"
+  local missing=0
+  local entry rel_source abs_source
+  for entry in "${SYMLINK_MAPPINGS[@]}"; do
+    rel_source="${entry%%|*}"
+    abs_source="${DOTFILES_DIR}/${rel_source}"
+    if [[ -e "$abs_source" ]]; then
+      ok "Found ${rel_source}"
+    else
+      error "Missing expected path: ${abs_source}"
+      missing=1
+    fi
+  done
+
+  if (( missing != 0 )); then
+    die "Dotfiles structure incomplete. Resolve the missing paths above."
+  fi
 }
 
 confirm_execution() {
@@ -566,6 +681,7 @@ main() {
   parse_args "$@"
   show_menu
   validate_paths
+  validate_dotfiles_structure
   bot "Installer starting"
   log "INFO" "Dry run: $DRY_RUN"
   log "INFO" "Verbose: $VERBOSE"
