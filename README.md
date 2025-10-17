@@ -108,7 +108,7 @@ During the run you will see:
 ### Rectangle + SketchyBar
 
 - SketchyBar lives in [`sketchybar/sketchybarrc`](sketchybar/sketchybarrc) with plugin scripts under [`sketchybar/plugins`](sketchybar/plugins); the installer symlinks the whole directory into `~/.config/sketchybar`.
-- Rectangle margins keep tiled windows clear of the custom bar: `defaults write com.knollsoft.Rectangle screenEdgeGapTop -int 40` for external displays, and `defaults write com.knollsoft.Rectangle screenEdgeGapTopNotch -int 18` on the notched MacBook panel (adjust the numbers if the bar height changes).
+- Rectangle margins keep tiled windows clear of the custom bar: `defaults write com.knollsoft.Rectangle screenEdgeGapTop -int 30` for external displays, and `defaults write com.knollsoft.Rectangle screenEdgeGapTopNotch -int 8` on the notched MacBook panel (adjust the numbers if the bar height changes).
 - Revert either tweak with `defaults delete com.knollsoft.Rectangle screenEdgeGapTop` and/or `defaults delete com.knollsoft.Rectangle screenEdgeGapTopNotch`.
 
 ---
