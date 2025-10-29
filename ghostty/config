@@ -1,0 +1,5 @@
+theme = TokyoNight Night
+background-opacity = 1
+font-family = JetBrainsMono Nerd Font
+font-size = 20
+keybind = shift+enter=text:\n
