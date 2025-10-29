@@ -67,7 +67,10 @@ During the run you will see:
 - [`mac_setup.md`](mac_setup.md) – extended narrative describing each macOS app, tweak, and menu bar tool.
 - [`zsh/`](zsh) – `oh-my-zsh` configuration, prompt (`.p10k.zsh`), and login shell settings.
 - [`ghostty/config`](ghostty/config) – Ghostty terminal theme (TokyoNight Night) and window preferences.
-- [`sketchybar/`](sketchybar) – SketchyBar configuration plus the helper scripts used by the menu bar items.
+- [`aerospace/`](aerospace) – AeroSpace tiling window manager configuration with environment-specific variants (home, office, laptop).
+- [`borders/`](borders) – JankyBorders configuration for window visual customization.
+- [`karabiner/`](karabiner) – Karabiner-Elements keyboard remapping and shortcut customization.
+- [`sketchybar/`](sketchybar) – SketchyBar configuration plus helper scripts and AeroSpace integration plugins.
 - [`nvim/`](nvim) – LazyVim-based Neovim configuration plus pinned plugin versions and formatting rules.
 
 ---
@@ -102,14 +105,14 @@ During the run you will see:
 
 ### Applications
 
-- Run `brew bundle --file Brewfile` to install everything from productivity apps (Raycast, Obsidian) to window managers (Rectangle, JankyBorders).
+- Run `brew bundle --file Brewfile` to install everything from productivity apps (Raycast, Obsidian) to window managers (AeroSpace, JankyBorders).
 - Cross-reference [`mac_setup.md`](mac_setup.md) for context on why each app is included and how it is configured.
 
-### Rectangle + SketchyBar
+### AeroSpace + SketchyBar
 
-- SketchyBar lives in [`sketchybar/sketchybarrc`](sketchybar/sketchybarrc) with plugin scripts under [`sketchybar/plugins`](sketchybar/plugins); the installer symlinks the whole directory into `~/.config/sketchybar`.
-- Rectangle margins keep tiled windows clear of the custom bar: `defaults write com.knollsoft.Rectangle screenEdgeGapTop -int 30` for external displays, and `defaults write com.knollsoft.Rectangle screenEdgeGapTopNotch -int 8` on the notched MacBook panel (adjust the numbers if the bar height changes).
-- Revert either tweak with `defaults delete com.knollsoft.Rectangle screenEdgeGapTop` and/or `defaults delete com.knollsoft.Rectangle screenEdgeGapTopNotch`.
+- AeroSpace configuration lives in [`aerospace/`](aerospace) with environment-specific variants for different monitor setups (home, office, laptop).
+- SketchyBar integrates with AeroSpace through [`sketchybar/plugins/aerospace.sh`](sketchybar/plugins/aerospace.sh) to display workspace information.
+- SketchyBar config lives in [`sketchybar/sketchybarrc`](sketchybar/sketchybarrc) with plugin scripts under [`sketchybar/plugins`](sketchybar/plugins); the installer symlinks the whole directory into `~/.config/sketchybar`.
 
 ---
 
@@ -160,13 +163,6 @@ Keep sensitive data out of the repo by creating local overrides:
 1. `~/.gitconfig_local` – Git user/email and signing details.
 2. `~/.shell_env_local` – tokens, API keys, VPN credentials, or other secrets.
 3. Any additional per-machine app configuration (password managers, VPN profiles) should remain untracked.
-
----
-
-## Automation options
-
-- Want everything scripted? Consider [Dotbot](https://github.com/anishathalye/dotbot) or [GNU Stow](https://www.gnu.org/software/stow/) to manage symlinks and post-install hooks.
-- Whichever tool you pick, point it at the same directory structure used in this repository so you maintain one source of truth.
 
 ---
 
