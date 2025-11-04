@@ -2,16 +2,18 @@
 
 - BetterTouchTool – gesture and shortcut automation.
 - BetterDisplay – external display scaling tweaks.
-- Rectangle – keyboard window snapping.
+- Aerospace – tiling window manager with keyboard controls.
+- Rectangle – keyboard window snapping (backup).
 - Raycast – quick launcher and workflow hub.
 - AutoRaise - Center Cursor on active window when switching.
-- Hyperkey – turns Caps Lock into Hyper modifier.
+- Karabiner Elements – keyboard customization (Caps Lock → Hyper modifier).
 - Ghostty – primary terminal (TokyoNight theme, 20pt font).
 - TinkerTool – extra macOS UI/system toggles.
 
 ## Non-App Configs
 
-- JankyBorders – Homebrew borders; config at ~/.config/ borders/bordersrc.
+- JankyBorders – Homebrew borders; config at ~/.config/borders/bordersrc.
+- SketchyBar – custom macOS menu bar; config at ~/.config/sketchybar/.
 - LazyVim/Neovim – ~/.config/nvim/ (lazy.nvim bootstrap, Treesitter setup).
 - Shell – ~/.zshrc, ~/.p10k.zsh, ~/.oh-my-zsh/ (prompt, plugins, aliases; rotate stored secrets).
 - btop – ~/.config/btop/btop.conf (resource monitor layout/theme).
