@@ -101,6 +101,7 @@ cp ~/dotfiles/git/.gitconfig.template ~/.gitconfig
 - [`tmux/`](tmux) – tmux terminal multiplexer configuration.
 - [`git/`](git) – Git configuration template (`.gitconfig.template`) with setup instructions.
 - [`ghostty/config`](ghostty/config) – Ghostty terminal theme (TokyoNight Night) and window preferences.
+- [`raycast/`](raycast) – Raycast configuration and custom extensions (includes AeroSpace keybindings extension).
 - [`aerospace/`](aerospace) – AeroSpace tiling window manager configuration with environment-specific variants (home, office, laptop).
 - [`borders/`](borders) – JankyBorders configuration for window visual customization.
 - [`karabiner/`](karabiner) – Karabiner-Elements keyboard remapping and shortcut customization.
