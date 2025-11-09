@@ -50,6 +50,38 @@ During the run you will see:
 - **Post-run summary** – prints the backup path and the status of each symlink so you can verify results at a glance.
 - **Ghostty launch** – optionally opens Ghostty so the powerlevel10k wizard greets you in the new terminal session. Run `exec zsh` inside Ghostty to apply the prompt.
 
+### Manual symlink setup (alternative)
+
+If you prefer to create symlinks manually without using the install script:
+
+```bash
+# Backup existing dotfiles (recommended)
+BACKUP_DIR=~/dotfiles_backup_$(date +%Y%m%d_%H%M%S)
+mkdir -p "$BACKUP_DIR/.config"
+cp ~/.zshrc ~/.zprofile ~/.p10k.zsh ~/.tmux.conf "$BACKUP_DIR/" 2>/dev/null
+cp -r ~/.config/{aerospace,ghostty,karabiner,sketchybar,nvim,borders} "$BACKUP_DIR/.config/" 2>/dev/null
+
+# Remove existing dotfiles
+rm ~/.zshrc ~/.zprofile ~/.p10k.zsh ~/.tmux.conf
+rm -rf ~/.config/{aerospace,ghostty,karabiner,sketchybar,nvim,borders}
+
+# Create symlinks
+ln -s ~/dotfiles/zsh/.zshrc ~/.zshrc
+ln -s ~/dotfiles/zsh/.zprofile ~/.zprofile
+ln -s ~/dotfiles/zsh/.p10k.zsh ~/.p10k.zsh
+ln -s ~/dotfiles/tmux/.tmux.conf ~/.tmux.conf
+ln -s ~/dotfiles/aerospace ~/.config/aerospace
+ln -s ~/dotfiles/ghostty ~/.config/ghostty
+ln -s ~/dotfiles/karabiner ~/.config/karabiner
+ln -s ~/dotfiles/sketchybar ~/.config/sketchybar
+ln -s ~/dotfiles/nvim ~/.config/nvim
+ln -s ~/dotfiles/borders ~/.config/borders
+
+# Set up git config (see git/README.md for details)
+cp ~/dotfiles/git/.gitconfig.template ~/.gitconfig
+# Edit ~/.gitconfig to replace placeholders with your information
+```
+
 ---
 
 ## Verify the setup
@@ -66,6 +98,8 @@ During the run you will see:
 - [`Brewfile`](Brewfile) – authoritative list of Homebrew taps, formulae, casks, and VS Code extensions.
 - [`mac_setup.md`](mac_setup.md) – extended narrative describing each macOS app, tweak, and menu bar tool.
 - [`zsh/`](zsh) – `oh-my-zsh` configuration, prompt (`.p10k.zsh`), and login shell settings.
+- [`tmux/`](tmux) – tmux terminal multiplexer configuration.
+- [`git/`](git) – Git configuration template (`.gitconfig.template`) with setup instructions.
 - [`ghostty/config`](ghostty/config) – Ghostty terminal theme (TokyoNight Night) and window preferences.
 - [`aerospace/`](aerospace) – AeroSpace tiling window manager configuration with environment-specific variants (home, office, laptop).
 - [`borders/`](borders) – JankyBorders configuration for window visual customization.
