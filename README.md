@@ -16,43 +16,14 @@ Fully reproducible macOS workstation setup: shell, editor, terminal, apps, and d
 
 All commands assume macOS 13+ with the default `zsh` shell. Substitute your preferred paths if you keep dotfiles somewhere other than `~/dotfiles`.
 
-### Step 0 – Clone the repository
+### Clone the repository
 
 ```bash
 git clone https://github.com/st-eez/dotfiles.git ~/dotfiles
 cd ~/dotfiles
 ```
 
-### Step 1 – Preview the install (optional but recommended)
-
-See everything the installer will do—no changes are made.
-
-```bash
-./scripts/install.sh --dry-run --verbose
-```
-
-### Step 2 – Run Steez macOS util
-
-The installer handles prerequisites (Xcode CLT prompt, Homebrew, Oh My Zsh + plugins), backs up existing configs, and links the repo-managed files into place.
-
-```bash
-# standard run (interactive)
-./scripts/install.sh
-
-# skip prompts if you already reviewed the dry-run output
-./scripts/install.sh --yes
-```
-
-During the run you will see:
-
-- **Structure validation** – warns early if expected files are missing from the repo.
-- **Backups** – creates `~/.dotfiles_backup/<timestamp>` before touching existing files.
-- **Post-run summary** – prints the backup path and the status of each symlink so you can verify results at a glance.
-- **Ghostty launch** – optionally opens Ghostty so the powerlevel10k wizard greets you in the new terminal session. Run `exec zsh` inside Ghostty to apply the prompt.
-
-### Manual symlink setup (alternative)
-
-If you prefer to create symlinks manually without using the install script:
+### Setup
 
 ```bash
 # Backup existing dotfiles (recommended)
@@ -86,10 +57,8 @@ cp ~/dotfiles/git/.gitconfig.template ~/.gitconfig
 
 ## Verify the setup
 
-- Read the “Verification” section the installer prints—every entry should show `linked → dotfiles/...`.
-- The backup folder should exist (in dry-run it shows “(preview)” so you know where it would land).
-- `which nvim`, `which fzf`, `which rg` should resolve to Homebrew paths once the run finishes.
-- `git status` inside the repo should be clean; any local edits belong under `~/dotfiles` and the symlinks will pick them up immediately.
+- `which nvim`, `which fzf`, `which rg` should resolve to Homebrew paths
+- `git status` inside the repo should be clean; any local edits belong under `~/dotfiles` and the symlinks will pick them up immediately
 
 ---
 
@@ -101,12 +70,13 @@ cp ~/dotfiles/git/.gitconfig.template ~/.gitconfig
 - [`tmux/`](tmux) – tmux terminal multiplexer configuration.
 - [`git/`](git) – Git configuration template (`.gitconfig.template`) with setup instructions.
 - [`ghostty/config`](ghostty/config) – Ghostty terminal theme (TokyoNight Night) and window preferences.
-- [`raycast/`](raycast) – Raycast configuration and custom extensions (includes AeroSpace keybindings extension).
+- [`raycast/`](raycast) – Raycast configuration and custom keybinds extension (AeroSpace workspace bindings, application shortcuts).
 - [`aerospace/`](aerospace) – AeroSpace tiling window manager configuration with environment-specific variants (home, office, laptop).
 - [`borders/`](borders) – JankyBorders configuration for window visual customization.
 - [`karabiner/`](karabiner) – Karabiner-Elements keyboard remapping and shortcut customization.
 - [`sketchybar/`](sketchybar) – SketchyBar configuration plus helper scripts and AeroSpace integration plugins.
 - [`nvim/`](nvim) – LazyVim-based Neovim configuration plus pinned plugin versions and formatting rules.
+- [`scripts/`](scripts) – Installation utilities (WIP).
 
 ---
 
@@ -147,7 +117,7 @@ cp ~/dotfiles/git/.gitconfig.template ~/.gitconfig
 
 - AeroSpace configuration lives in [`aerospace/`](aerospace) with environment-specific variants for different monitor setups (home, office, laptop).
 - SketchyBar integrates with AeroSpace through [`sketchybar/plugins/aerospace.sh`](sketchybar/plugins/aerospace.sh) to display workspace information.
-- SketchyBar config lives in [`sketchybar/sketchybarrc`](sketchybar/sketchybarrc) with plugin scripts under [`sketchybar/plugins`](sketchybar/plugins); the installer symlinks the whole directory into `~/.config/sketchybar`.
+- SketchyBar config lives in [`sketchybar/sketchybarrc`](sketchybar/sketchybarrc) with plugin scripts under [`sketchybar/plugins`](sketchybar/plugins).
 
 ---
 
@@ -184,10 +154,8 @@ cp ~/dotfiles/git/.gitconfig.template ~/.gitconfig
 
 ## Troubleshooting
 
-- **Symlinks missing?** Re-run `./scripts/install.sh --dry-run --verbose` to preview, then `./scripts/install.sh` to fix.
 - **Prompt looks wrong?** Execute `p10k configure` to rebuild the theme.
-- **Brew install failed?** The installer now surfaces curl errors; rerun once network connectivity is solid.
-- **Need to reset to defaults?** Use the backup directory reported in the verification summary or restore from `~/.dotfiles_backup/<timestamp>`.
+- **Brew install failed?** Rerun once network connectivity is solid.
 
 ---
 
