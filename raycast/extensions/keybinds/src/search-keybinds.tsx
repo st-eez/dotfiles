@@ -1,4 +1,5 @@
 import { List } from "@raycast/api";
+import { useState } from "react";
 
 type ShortcutEntry = {
   binding: string;
@@ -7,6 +8,7 @@ type ShortcutEntry = {
 
 type ShortcutSection = {
   title: string;
+  platform?: string;
   entries: ShortcutEntry[];
 };
 
@@ -21,24 +23,62 @@ const KEY_LABELS: Record<string, string> = {
   alt: "OPT",
 };
 
-const formatKeybinding = (binding: string) =>
+const formatKeybinding = (binding: string) => {
+  const tokens: string[] = [];
+
   binding
-    .split("-")
-    .map((part) => ARROWS[part] ?? KEY_LABELS[part] ?? part.toUpperCase())
+    .trim()
+    .split(/\s+/)
+    .forEach((chunk) => {
+      chunk.split("-").forEach((segment) => {
+        if (!segment) {
+          return;
+        }
+
+        if (segment.includes("+") && !segment.startsWith(":") && !segment.startsWith('"')) {
+          segment.split("+").forEach((part) => {
+            if (part) {
+              tokens.push(part);
+            }
+          });
+        } else {
+          tokens.push(segment);
+        }
+      });
+    });
+
+  return tokens
+    .map((part) => {
+      const normalized = part.toLowerCase();
+      return ARROWS[normalized] ?? KEY_LABELS[normalized] ?? part.toUpperCase();
+    })
     .join(" + ");
+};
 
 const keywords = (section: ShortcutSection, entry: ShortcutEntry) => {
   const textTokens = entry.description
     .toLowerCase()
     .split(/[^a-z0-9+]+/)
     .filter(Boolean);
+  const sectionTokens = section.title
+    .toLowerCase()
+    .split(/[^a-z0-9+]+/)
+    .filter(Boolean);
 
-  return [entry.description, section.title, entry.binding, entry.binding.replace(/-/g, " "), ...textTokens];
+  return [
+    entry.description,
+    section.title,
+    entry.binding,
+    entry.binding.replace(/-/g, " "),
+    ...textTokens,
+    ...sectionTokens,
+  ];
 };
 
 const AEROSPACE_SECTIONS: ShortcutSection[] = [
   {
-    title: "Window Navigation",
+    platform: "Aerospace",
+    title: "Aerospace - Window Navigation",
     entries: [
       { binding: "ctrl-left", description: "Move focus left" },
       { binding: "ctrl-right", description: "Move focus right" },
@@ -52,7 +92,7 @@ const AEROSPACE_SECTIONS: ShortcutSection[] = [
   },
   {
     platform: "Aerospace",
-    title: "Jump to Workspace",
+    title: "Aerospace - Jump to Workspace",
     entries: [
       { binding: "ctrl-1", description: "Jump to workspace 1" },
       { binding: "ctrl-2", description: "Jump to workspace 2" },
@@ -67,7 +107,7 @@ const AEROSPACE_SECTIONS: ShortcutSection[] = [
   },
   {
     platform: "Aerospace",
-    title: "Move Window to Workspace (Follow)",
+    title: "Aerospace - Move Window to Workspace (Follow)",
     entries: [
       { binding: "ctrl-shift-1", description: "Move window to workspace 1 and follow" },
       { binding: "ctrl-shift-2", description: "Move window to workspace 2 and follow" },
@@ -82,7 +122,7 @@ const AEROSPACE_SECTIONS: ShortcutSection[] = [
   },
   {
     platform: "Aerospace",
-    title: "Move Window to Workspace (No Follow)",
+    title: "Aerospace - Move Window to Workspace (No Follow)",
     entries: [
       { binding: "ctrl-shift-alt-1", description: "Move window to workspace 1 without following" },
       { binding: "ctrl-shift-alt-2", description: "Move window to workspace 2 without following" },
@@ -97,7 +137,7 @@ const AEROSPACE_SECTIONS: ShortcutSection[] = [
   },
   {
     platform: "Aerospace",
-    title: "Workspace Cycling",
+    title: "Aerospace - Workspace Cycling",
     entries: [
       { binding: "ctrl-tab", description: "Next workspace" },
       { binding: "ctrl-shift-tab", description: "Previous workspace" },
@@ -106,7 +146,7 @@ const AEROSPACE_SECTIONS: ShortcutSection[] = [
   },
   {
     platform: "Aerospace",
-    title: "Window Controls",
+    title: "Aerospace - Window Controls",
     entries: [
       { binding: "ctrl-t", description: "Toggle floating/tiling mode" },
       { binding: "ctrl-f", description: "Toggle fullscreen" },
@@ -115,7 +155,7 @@ const AEROSPACE_SECTIONS: ShortcutSection[] = [
   },
   {
     platform: "Aerospace",
-    title: "Resize Windows",
+    title: "Aerospace - Resize Windows",
     entries: [
       { binding: "ctrl-equal", description: "Resize window +100" },
       { binding: "ctrl-minus", description: "Resize window -100" },
@@ -125,7 +165,7 @@ const AEROSPACE_SECTIONS: ShortcutSection[] = [
   },
   {
     platform: "Aerospace",
-    title: "Layout Management",
+    title: "Aerospace - Layout Management",
     entries: [
       { binding: "ctrl-alt-shift-0", description: "Flatten workspace tree" },
       { binding: "ctrl-alt-shift-left", description: "Join window with left" },
@@ -136,7 +176,7 @@ const AEROSPACE_SECTIONS: ShortcutSection[] = [
   },
   {
     platform: "Aerospace",
-    title: "Monitor Controls",
+    title: "Aerospace - Monitor Controls",
     entries: [
       { binding: "ctrl-alt-cmd-left", description: "Move window to left monitor" },
       { binding: "ctrl-alt-cmd-right", description: "Move window to right monitor" },
@@ -149,7 +189,7 @@ const AEROSPACE_SECTIONS: ShortcutSection[] = [
   },
   {
     platform: "Aerospace",
-    title: "Configuration",
+    title: "Aerospace - Configuration",
     entries: [
       { binding: "alt-shift-h", description: "Switch to home setup" },
       { binding: "alt-shift-w", description: "Switch to work/office setup" },
@@ -160,8 +200,8 @@ const AEROSPACE_SECTIONS: ShortcutSection[] = [
     ],
   },
   {
-    platform: "Raycast",
-    title: "Window Management (Float Mode)",
+    platform: "Aerospace",
+    title: "Aerospace - Window Management (Float Mode)",
     entries: [
       { binding: "ctrl-alt-shift-\\", description: "Almost Maximize" },
       { binding: "ctrl-alt-shift-equal", description: "Make Larger" },
@@ -174,7 +214,7 @@ const AEROSPACE_SECTIONS: ShortcutSection[] = [
 const SCREENSHOT_SECTIONS: ShortcutSection[] = [
   {
     platform: "macOS",
-    title: "Screenshots & Recording",
+    title: "Screenshots - Screenshots & Recording",
     entries: [
       { binding: "ctrl-shift-cmd-3", description: "Save picture of screen as a file" },
       { binding: "shift-cmd-3", description: "Copy picture of screen to the clipboard" },
@@ -188,9 +228,8 @@ const SCREENSHOT_SECTIONS: ShortcutSection[] = [
 const NEOVIM_SECTIONS: ShortcutSection[] = [
   {
     platform: "Neovim",
-    title: "Neovim Editor",
+    title: "Neovim - Navigation",
     entries: [
-      // Navigation
       { binding: "h", description: "Move cursor left" },
       { binding: "j", description: "Move cursor down" },
       { binding: "k", description: "Move cursor up" },
@@ -209,8 +248,12 @@ const NEOVIM_SECTIONS: ShortcutSection[] = [
       { binding: "F+char", description: "Find character backward on line" },
       { binding: "*", description: "Search word under cursor" },
       { binding: "zz", description: "Center cursor line on screen" },
-
-      // Mode Switching
+    ],
+  },
+  {
+    platform: "Neovim",
+    title: "Neovim - Mode Switching",
+    entries: [
       { binding: "i", description: "Enter insert mode before cursor" },
       { binding: "a", description: "Enter insert mode after cursor" },
       { binding: "o", description: "Insert new line below and enter insert mode" },
@@ -219,8 +262,12 @@ const NEOVIM_SECTIONS: ShortcutSection[] = [
       { binding: "v", description: "Enter visual mode (character select)" },
       { binding: "V", description: "Enter visual line mode" },
       { binding: "ctrl-v", description: "Enter visual block mode" },
-
-      // Editing
+    ],
+  },
+  {
+    platform: "Neovim",
+    title: "Neovim - Editing",
+    entries: [
       { binding: "dd", description: "Delete line" },
       { binding: "dw", description: "Delete word" },
       { binding: "d$", description: "Delete to end of line" },
@@ -233,8 +280,12 @@ const NEOVIM_SECTIONS: ShortcutSection[] = [
       { binding: ".", description: "Repeat last change" },
       { binding: "u", description: "Undo" },
       { binding: "ctrl-r", description: "Redo" },
-
-      // Copy/Paste
+    ],
+  },
+  {
+    platform: "Neovim",
+    title: "Neovim - Copy/Paste",
+    entries: [
       { binding: "yy", description: "Yank (copy) line" },
       { binding: "yw", description: "Yank (copy) word" },
       { binding: "y$", description: "Yank (copy) to end of line" },
@@ -242,21 +293,33 @@ const NEOVIM_SECTIONS: ShortcutSection[] = [
       { binding: "P", description: "Paste before cursor" },
       { binding: '"+y', description: "Yank to system clipboard (visual mode)" },
       { binding: ":%y+", description: "Yank entire file to system clipboard" },
-
-      // Search
+    ],
+  },
+  {
+    platform: "Neovim",
+    title: "Neovim - Search",
+    entries: [
       { binding: "/", description: "Search forward (open search prompt)" },
       { binding: "?", description: "Search backward (open search prompt)" },
       { binding: "n", description: "Jump to next search result" },
       { binding: "N", description: "Jump to previous search result" },
-
-      // Commands
+    ],
+  },
+  {
+    platform: "Neovim",
+    title: "Neovim - Commands",
+    entries: [
       { binding: ":w", description: "Save file" },
       { binding: ":q", description: "Quit" },
       { binding: ":wq", description: "Save and quit" },
       { binding: ":q!", description: "Quit without saving" },
       { binding: ":e", description: "Open file (edit)" },
-
-      // Window Management (ctrl-w)
+    ],
+  },
+  {
+    platform: "Neovim",
+    title: "Neovim - Window Management",
+    entries: [
       { binding: "ctrl-w s", description: "Split window horizontally" },
       { binding: "ctrl-w v", description: "Split window vertically" },
       { binding: "ctrl-w h", description: "Navigate to left window" },
@@ -267,31 +330,14 @@ const NEOVIM_SECTIONS: ShortcutSection[] = [
       { binding: "ctrl-w q", description: "Close current window" },
       { binding: "ctrl-w o", description: "Close all other windows" },
       { binding: "ctrl-w =", description: "Equalize window sizes" },
-
-      // Leader Key Shortcuts (LazyVim)
-      { binding: "space+e", description: "Open file explorer (root directory)" },
-      { binding: "space+E", description: "Open file explorer (current directory)" },
-      { binding: "space+space", description: "Find files" },
-      { binding: "space+ff", description: "Find files (alternate)" },
-      { binding: "space+/", description: "Grep search in files" },
-      { binding: "space+,", description: "Switch buffers" },
-      { binding: "space+|", description: "Split window right" },
-      { binding: "space+-", description: "Split window below" },
-      { binding: "space+l", description: "Open Lazy plugin manager" },
-      { binding: "space+q", description: "Quit session options" },
-      { binding: "space+w", description: "Window management menu" },
-      { binding: "space+b", description: "Buffers menu" },
-      { binding: "space+c", description: "Code actions menu" },
-      { binding: "space+g", description: "Git menu" },
-      { binding: "space+s", description: "Search menu" },
-      { binding: "space+x", description: "Diagnostics/Quickfix menu" },
     ],
   },
 ];
 
 const APPLICATION_SECTIONS: ShortcutSection[] = [
   {
-    title: "Application Shortcuts",
+    platform: "Applications",
+    title: "Applications - Application Shortcuts",
     entries: [
       { binding: "hyper-a", description: "Alarm.com" },
       { binding: "ctrl-shift-b", description: "Brave Browser" },
@@ -324,12 +370,56 @@ const APPLICATION_SECTIONS: ShortcutSection[] = [
   },
 ];
 
-const SECTIONS: ShortcutSection[] = [...AEROSPACE_SECTIONS, ...SCREENSHOT_SECTIONS, ...NEOVIM_SECTIONS, ...APPLICATION_SECTIONS];
+const SECTIONS: ShortcutSection[] = [
+  ...AEROSPACE_SECTIONS,
+  ...SCREENSHOT_SECTIONS,
+  ...NEOVIM_SECTIONS,
+  ...APPLICATION_SECTIONS,
+];
 
 export default function Command() {
+  const [platformFilter, setPlatformFilter] = useState<string>("all");
+  const [searchText, setSearchText] = useState<string>("");
+
+  const platformFilteredSections =
+    platformFilter === "all" ? SECTIONS : SECTIONS.filter((section) => section.platform === platformFilter);
+
+  const normalizedQuery = searchText.trim().toLowerCase();
+
+  const filteredSections =
+    normalizedQuery.length === 0
+      ? platformFilteredSections
+      : platformFilteredSections
+          .map((section) => {
+            const sectionMatches = section.title.toLowerCase().includes(normalizedQuery);
+            if (sectionMatches) {
+              return section;
+            }
+
+            const matchingEntries = section.entries.filter((entry) => {
+              const entryKeywords = keywords(section, entry).map((keyword) => keyword.toLowerCase());
+              return entryKeywords.some((keyword) => keyword.includes(normalizedQuery));
+            });
+
+            return matchingEntries.length > 0 ? { ...section, entries: matchingEntries } : null;
+          })
+          .filter((section): section is ShortcutSection => Boolean(section));
+
   return (
-    <List searchBarPlaceholder="Search keybindings...">
-      {SECTIONS.map((section) => (
+    <List
+      searchBarPlaceholder="Search keybindings..."
+      onSearchTextChange={setSearchText}
+      searchBarAccessory={
+        <List.Dropdown tooltip="Filter by Platform" value={platformFilter} onChange={setPlatformFilter}>
+          <List.Dropdown.Item title="All" value="all" />
+          <List.Dropdown.Item title="Aerospace" value="Aerospace" />
+          <List.Dropdown.Item title="Neovim" value="Neovim" />
+          <List.Dropdown.Item title="Screenshots" value="macOS" />
+          <List.Dropdown.Item title="Applications" value="Applications" />
+        </List.Dropdown>
+      }
+    >
+      {filteredSections.map((section) => (
         <List.Section key={section.title} title={section.title}>
           {section.entries.map((entry) => (
             <List.Item
