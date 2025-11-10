@@ -45,9 +45,11 @@ for i in {1..9}; do
     icon="$sid"
     icon.color=$ICON_COLOR
     icon.highlight_color=$RED
-    icon.padding_left=10
+    icon.padding_left=6
     icon.padding_right=0
     ignore_association=off
+    click_script="aerospace workspace $sid"
+    script="$PLUGIN_DIR/space_hover.sh"
     padding_left=2
     padding_right=2
     label.padding_right=10
@@ -60,7 +62,8 @@ for i in {1..9}; do
   )
 
   sketchybar --add space space.$sid left \
-             --set space.$sid "${space[@]}"
+             --set space.$sid "${space[@]}" \
+             --subscribe space.$sid mouse.entered mouse.exited
 done
 
 
