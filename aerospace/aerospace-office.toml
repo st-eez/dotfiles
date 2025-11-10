@@ -107,7 +107,7 @@ outer.right =      8
     # Window controls (Omarchy-style)
     ctrl-t = 'layout floating tiling'  # Super+T → Ctrl+T
     ctrl-f = 'fullscreen'  # Super+F → Ctrl+F
-    ctrl-j = 'layout tiles horizontal vertical'  # Super+J → Ctrl+J
+    ctrl-shift-j = 'layout tiles horizontal vertical'  # Super+J → Ctrl+Shift+J
 
     # Resize (Omarchy-style: Super+Equal/Minus → Ctrl+Equal/Minus)
     ctrl-equal = 'resize smart +100'

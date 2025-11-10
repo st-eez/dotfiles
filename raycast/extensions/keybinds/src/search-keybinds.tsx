@@ -150,7 +150,7 @@ const AEROSPACE_SECTIONS: ShortcutSection[] = [
     entries: [
       { binding: "ctrl-t", description: "Toggle floating/tiling mode" },
       { binding: "ctrl-f", description: "Toggle fullscreen" },
-      { binding: "ctrl-j", description: "Toggle split direction (horizontal/vertical)" },
+      { binding: "ctrl-shift-j", description: "Toggle split direction (horizontal/vertical)" },
     ],
   },
   {
@@ -363,6 +363,7 @@ const APPLICATION_SECTIONS: ShortcutSection[] = [
       { binding: "hyper-p", description: "iPhone Mirroring" },
       { binding: "hyper-v", description: "Clipboard History (Command)" },
       { binding: "hyper-`", description: "Confetti" },
+      { binding: "shift-cmd-l", description: "Autofill last used login (Bitwarden/Brave)" },
       { binding: "ctrl-shift-z", description: "AI Chat" },
       { binding: "hyper-space", description: "Search Emoji & Symbols" },
       { binding: "hyper-f", description: "Search Files" },
