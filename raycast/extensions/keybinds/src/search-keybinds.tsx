@@ -17,10 +17,14 @@ const ARROWS: Record<string, string> = {
   down: "↓",
 };
 
+const KEY_LABELS: Record<string, string> = {
+  alt: "OPT",
+};
+
 const formatKeybinding = (binding: string) =>
   binding
     .split("-")
-    .map((part) => ARROWS[part] ?? part.toUpperCase())
+    .map((part) => ARROWS[part] ?? KEY_LABELS[part] ?? part.toUpperCase())
     .join(" + ");
 
 const keywords = (section: ShortcutSection, entry: ShortcutEntry) => {
@@ -123,7 +127,7 @@ const AEROSPACE_SECTIONS: ShortcutSection[] = [
     platform: "Aerospace",
     title: "Layout Management",
     entries: [
-      { binding: "ctrl-alt-0", description: "Flatten workspace tree" },
+      { binding: "ctrl-alt-shift-0", description: "Flatten workspace tree" },
       { binding: "ctrl-alt-shift-left", description: "Join window with left" },
       { binding: "ctrl-alt-shift-right", description: "Join window with right" },
       { binding: "ctrl-alt-shift-up", description: "Join window with up" },
@@ -155,12 +159,55 @@ const AEROSPACE_SECTIONS: ShortcutSection[] = [
       { binding: "alt-shift-f", description: "Toggle macOS native fullscreen" },
     ],
   },
+  {
+    platform: "Raycast",
+    title: "Window Management (Float Mode)",
+    entries: [
+      { binding: "ctrl-alt-shift-\\", description: "Almost Maximize" },
+      { binding: "ctrl-alt-shift-equal", description: "Make Larger" },
+      { binding: "ctrl-alt-shift-minus", description: "Make Smaller" },
+      { binding: "ctrl-alt-shift-v", description: "Reasonable Size" },
+    ],
+  },
 ];
 
-const RAYCAST_SECTIONS: ShortcutSection[] = [
+const APPLICATION_SECTIONS: ShortcutSection[] = [
+  {
+    title: "Application Shortcuts",
+    entries: [
+      { binding: "hyper-a", description: "Alarm.com" },
+      { binding: "alt-b", description: "Brave Browser" },
+      { binding: "hyper-c", description: "Calendar" },
+      { binding: "alt-c", description: "ChatGPT" },
+      { binding: "alt-a", description: "Claude" },
+      { binding: "alt-d", description: "Discord" },
+      { binding: "alt-f", description: "Finder" },
+      { binding: "alt-enter", description: "Ghostty" },
+      { binding: "alt-x", description: "Grok" },
+      { binding: "hyper-m", description: "Mail" },
+      { binding: "alt-m", description: "Messages" },
+      { binding: "alt-e", description: "Microsoft Excel" },
+      { binding: "alt-o", description: "Microsoft Outlook" },
+      { binding: "alt-t", description: "Microsoft Teams" },
+      { binding: "alt-n", description: "Obsidian" },
+      { binding: "alt-p", description: "Perplexity" },
+      { binding: "alt-r", description: "Reminders" },
+      { binding: "alt-s", description: "Safari" },
+      { binding: "shift-cmd-s", description: "Screenshot" },
+      { binding: "hyper-s", description: "Spotify" },
+      { binding: "alt-v", description: "Visual Studio Code" },
+      { binding: "alt-y", description: "YouTube" },
+      { binding: "hyper-p", description: "iPhone Mirroring" },
+      { binding: "hyper-v", description: "Clipboard History (Command)" },
+      { binding: "hyper-`", description: "Confetti" },
+      { binding: "alt-z", description: "AI Chat" },
+      { binding: "hyper-space", description: "Search Emoji & Symbols" },
+      { binding: "hyper-f", description: "Search Files" },
+    ],
+  },
 ];
 
-const SECTIONS: ShortcutSection[] = [...AEROSPACE_SECTIONS];
+const SECTIONS: ShortcutSection[] = [...AEROSPACE_SECTIONS, ...APPLICATION_SECTIONS];
 
 export default function Command() {
   return (

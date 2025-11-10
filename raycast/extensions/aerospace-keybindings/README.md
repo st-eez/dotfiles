@@ -1,3 +1,0 @@
-# Aerospace Keybindings
-
-Aerospace Keybindings

@@ -1,23 +1,20 @@
 {
   "$schema": "https://www.raycast.com/schemas/extension.json",
-  "name": "aerospace-keybindings",
-  "title": "Aerospace Keybindings",
-  "description": "View all Aerospace window manager keybindings",
-  "icon": "⌨️",
+  "name": "keybinds",
+  "title": "Keybinds",
+  "description": "See a list of all Keybinds",
+  "icon": "extension-icon.png",
   "author": "steezz",
   "platforms": [
     "macOS",
     "Windows"
   ],
-  "categories": [
-    "Developer Tools"
-  ],
   "license": "MIT",
   "commands": [
     {
       "name": "search-keybinds",
-      "title": "Show Aerospace Keybindings",
-      "description": "Display searchable list of all Aerospace keybindings",
+      "title": "Search Keybinds",
+      "description": "Search for Keybinds",
       "mode": "view"
     }
   ],
