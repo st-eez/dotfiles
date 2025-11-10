@@ -29,7 +29,8 @@ for WORKSPACE_ID in $WORKSPACES; do
       icon.font="JetBrainsMono Nerd Font:Bold:16.0"
       label.color=0xffbb9af7
       label.highlight=true
-      background.border_color=0xff939BBD
+      # background.border_color=0xff2AC3DE
+      background.border_color=0x00000000
       background.color=0xd0332f55
     )
   else

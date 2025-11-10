@@ -50,10 +50,10 @@ for i in {1..9}; do
     ignore_association=off
     padding_left=2
     padding_right=2
-    label.padding_right=20
+    label.padding_right=10
     label.color=$GREY
-    label.highlight_color=0xffbb9af7
-    label.font="sketchybar-app-font:Regular:14.0"
+    label.highlight_color=$ICON_COLOR
+    label.font="sketchybar-app-font:Regular:12.0"
     label.y_offset=-1
     background.color=0x00000000
     background.border_color=0x00000000
@@ -66,11 +66,11 @@ done
 
 space_creator=(
   icon=􀆊
-  icon.font="$FONT:Heavy:12.0"
+  icon.font="$FONT:Black:14.0"
   padding_left=10
   padding_right=8
   label.drawing=off
-  icon.color=0xffbb9af7
+  icon.color=$ICON_COLOR
 )
 
 sketchybar --add item space_creator left               \
