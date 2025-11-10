@@ -9,12 +9,12 @@ return {
 
       local map = {
         {
-          "<D-C-M-_>",
+          "<D-C-M-S-->",
           "<cmd>vertical resize -5<cr>",
           desc = "Hyper Shrink Window Width",
         },
         {
-          "<D-C-M-+>",
+          "<D-C-M-S-=>",
           "<cmd>vertical resize +5<cr>",
           desc = "Hyper Grow Window Width",
         },
