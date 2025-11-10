@@ -201,6 +201,26 @@ Keep sensitive data out of the repo by creating local overrides:
 
 ---
 
-## License
+## Environment-specific config (skip-worktree)
 
-Personal configuration files. Reuse at your own risk and verify that you are not copying secrets or machine-specific data along the way.
+Some files need to change based on your environment (home, office, laptop) but shouldn't be committed. The `aerospace/aerospace.toml` monitor configuration is set to use `git skip-worktree`:
+
+```bash
+# Already configured - verify with:
+git ls-files -v | grep "^S"
+
+# To edit monitor assignments for your environment:
+# Just edit aerospace/aerospace.toml - changes won't show in git status
+```
+
+**Re-enable tracking if needed:**
+```bash
+# Temporarily re-enable to commit updates
+git update-index --no-skip-worktree aerospace/aerospace.toml
+git add aerospace/aerospace.toml
+git commit -m "Update aerospace config"
+
+# Re-enable skip-worktree
+git update-index --skip-worktree aerospace/aerospace.toml
+```
+
