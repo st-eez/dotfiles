@@ -225,115 +225,6 @@ const SCREENSHOT_SECTIONS: ShortcutSection[] = [
   },
 ];
 
-const NEOVIM_SECTIONS: ShortcutSection[] = [
-  {
-    platform: "Neovim",
-    title: "Neovim - Navigation",
-    entries: [
-      { binding: "h", description: "Move cursor left" },
-      { binding: "j", description: "Move cursor down" },
-      { binding: "k", description: "Move cursor up" },
-      { binding: "l", description: "Move cursor right" },
-      { binding: "w", description: "Jump to next word start" },
-      { binding: "b", description: "Jump back to word start" },
-      { binding: "e", description: "Jump to end of word" },
-      { binding: "0", description: "Jump to start of line" },
-      { binding: "$", description: "Jump to end of line" },
-      { binding: "gg", description: "Jump to top of file" },
-      { binding: "G", description: "Jump to bottom of file" },
-      { binding: "ctrl-u", description: "Scroll half page up" },
-      { binding: "ctrl-d", description: "Scroll half page down" },
-      { binding: "%", description: "Jump to matching bracket" },
-      { binding: "f+char", description: "Find character forward on line" },
-      { binding: "F+char", description: "Find character backward on line" },
-      { binding: "*", description: "Search word under cursor" },
-      { binding: "zz", description: "Center cursor line on screen" },
-    ],
-  },
-  {
-    platform: "Neovim",
-    title: "Neovim - Mode Switching",
-    entries: [
-      { binding: "i", description: "Enter insert mode before cursor" },
-      { binding: "a", description: "Enter insert mode after cursor" },
-      { binding: "o", description: "Insert new line below and enter insert mode" },
-      { binding: "O", description: "Insert new line above and enter insert mode" },
-      { binding: "esc", description: "Return to normal mode" },
-      { binding: "v", description: "Enter visual mode (character select)" },
-      { binding: "V", description: "Enter visual line mode" },
-      { binding: "ctrl-v", description: "Enter visual block mode" },
-    ],
-  },
-  {
-    platform: "Neovim",
-    title: "Neovim - Editing",
-    entries: [
-      { binding: "dd", description: "Delete line" },
-      { binding: "dw", description: "Delete word" },
-      { binding: "d$", description: "Delete to end of line" },
-      { binding: "cc", description: "Change line (delete and enter insert mode)" },
-      { binding: "cw", description: "Change word (delete word and enter insert mode)" },
-      { binding: "x", description: "Delete character under cursor" },
-      { binding: "J", description: "Join line below to current line" },
-      { binding: ">>", description: "Indent line right" },
-      { binding: "<<", description: "Indent line left" },
-      { binding: ".", description: "Repeat last change" },
-      { binding: "u", description: "Undo" },
-      { binding: "ctrl-r", description: "Redo" },
-    ],
-  },
-  {
-    platform: "Neovim",
-    title: "Neovim - Copy/Paste",
-    entries: [
-      { binding: "yy", description: "Yank (copy) line" },
-      { binding: "yw", description: "Yank (copy) word" },
-      { binding: "y$", description: "Yank (copy) to end of line" },
-      { binding: "p", description: "Paste after cursor" },
-      { binding: "P", description: "Paste before cursor" },
-      { binding: '"+y', description: "Yank to system clipboard (visual mode)" },
-      { binding: ":%y+", description: "Yank entire file to system clipboard" },
-    ],
-  },
-  {
-    platform: "Neovim",
-    title: "Neovim - Search",
-    entries: [
-      { binding: "/", description: "Search forward (open search prompt)" },
-      { binding: "?", description: "Search backward (open search prompt)" },
-      { binding: "n", description: "Jump to next search result" },
-      { binding: "N", description: "Jump to previous search result" },
-    ],
-  },
-  {
-    platform: "Neovim",
-    title: "Neovim - Commands",
-    entries: [
-      { binding: ":w", description: "Save file" },
-      { binding: ":q", description: "Quit" },
-      { binding: ":wq", description: "Save and quit" },
-      { binding: ":q!", description: "Quit without saving" },
-      { binding: ":e", description: "Open file (edit)" },
-    ],
-  },
-  {
-    platform: "Neovim",
-    title: "Neovim - Window Management",
-    entries: [
-      { binding: "ctrl-w s", description: "Split window horizontally" },
-      { binding: "ctrl-w v", description: "Split window vertically" },
-      { binding: "ctrl-w h", description: "Navigate to left window" },
-      { binding: "ctrl-w j", description: "Navigate to window below" },
-      { binding: "ctrl-w k", description: "Navigate to window above" },
-      { binding: "ctrl-w l", description: "Navigate to right window" },
-      { binding: "ctrl-w w", description: "Switch to next window" },
-      { binding: "ctrl-w q", description: "Close current window" },
-      { binding: "ctrl-w o", description: "Close all other windows" },
-      { binding: "ctrl-w =", description: "Equalize window sizes" },
-    ],
-  },
-];
-
 const APPLICATION_SECTIONS: ShortcutSection[] = [
   {
     platform: "Applications",
@@ -369,14 +260,138 @@ const APPLICATION_SECTIONS: ShortcutSection[] = [
       { binding: "hyper-f", description: "Search Files" },
     ],
   },
+  {
+    platform: "Microsoft Teams",
+    title: "Microsoft Teams - Navigation & Compose",
+    entries: [
+      { binding: "cmd-.", description: "Show keyboard shortcuts" },
+      { binding: "cmd-l", description: "Move focus to chat/channel list" },
+      { binding: "cmd-p", description: "Move focus to message pane" },
+      { binding: "cmd-r", description: "Go to compose box" },
+    ],
+  },
 ];
 
 const SECTIONS: ShortcutSection[] = [
   ...AEROSPACE_SECTIONS,
   ...SCREENSHOT_SECTIONS,
-  ...NEOVIM_SECTIONS,
+  {
+    platform: "Neovim",
+    title: "Neovim - Navigation",
+    entries: [
+      { binding: "space", description: "Show command options" },
+      { binding: "space space", description: "Open file via fuzzy search" },
+      { binding: "space e", description: "Toggle sidebar" },
+      { binding: "space g g", description: "Show git controls" },
+      { binding: "space s g", description: "Search file content" },
+      { binding: "space b d", description: "Close file tab" },
+      { binding: "shift-h", description: "Go to left file tab" },
+      { binding: "shift-l", description: "Go to right file tab" },
+      { binding: "hyper -", description: "Change size of sidebar (shrink)" },
+      { binding: "hyper =", description: "Change size of sidebar (grow)" },
+      { binding: "ctrl-w w", description: "Jump between sidebar and editor" },
+      { binding: "ctrl-h", description: "Move focus left" },
+      { binding: "ctrl-j", description: "Move focus down" },
+      { binding: "ctrl-k", description: "Move focus up" },
+      { binding: "ctrl-l", description: "Move focus right" },
+      { binding: "h", description: "Move cursor left" },
+      { binding: "j", description: "Move cursor down" },
+      { binding: "k", description: "Move cursor up" },
+      { binding: "l", description: "Move cursor right" },
+      { binding: "w", description: "Jump to next word start" },
+      { binding: "b", description: "Jump back to word start" },
+      { binding: "e", description: "Jump to end of word" },
+      { binding: "0", description: "Jump to start of line" },
+      { binding: "$", description: "Jump to end of line" },
+      { binding: "gg", description: "Jump to top of file" },
+      { binding: "G", description: "Jump to bottom of file" },
+      { binding: "ctrl-u", description: "Scroll half page up" },
+      { binding: "ctrl-d", description: "Scroll half page down" },
+      { binding: "%", description: "Jump to matching bracket" },
+      { binding: "f+char", description: "Find character forward on line" },
+      { binding: "F+char", description: "Find character backward on line" },
+      { binding: "*", description: "Search word under cursor" },
+      { binding: "zz", description: "Center cursor line on screen" },
+    ],
+  },
+  {
+    platform: "Neovim",
+    title: "Neovim - While in Sidebar",
+    entries: [
+      { binding: "a", description: "Add new file in parent dir" },
+      { binding: "shift-a", description: "Add new subdir in parent dir" },
+      { binding: "d", description: "Delete highlighted file/dir" },
+      { binding: "m", description: "Move highlighted file/dir" },
+      { binding: "r", description: "Rename highlighted file/dir" },
+      { binding: "?", description: "Show help for all commands" },
+    ],
+  },
+  {
+    platform: "Neovim",
+    title: "Neovim - Modes & Editing",
+    entries: [
+      { binding: "i", description: "Enter insert mode before cursor" },
+      { binding: "a", description: "Enter insert mode after cursor" },
+      { binding: "o", description: "Insert new line below and enter insert mode" },
+      { binding: "O", description: "Insert new line above and enter insert mode" },
+      { binding: "esc", description: "Return to normal mode" },
+      { binding: "v", description: "Enter visual mode (character select)" },
+      { binding: "V", description: "Enter visual line mode" },
+      { binding: "ctrl-v", description: "Enter visual block mode" },
+      { binding: "dd", description: "Delete line" },
+      { binding: "dw", description: "Delete word" },
+      { binding: "d$", description: "Delete to end of line" },
+      { binding: "cc", description: "Change line (delete and enter insert mode)" },
+      { binding: "cw", description: "Change word (delete word and enter insert mode)" },
+      { binding: "x", description: "Delete character under cursor" },
+      { binding: "J", description: "Join line below to current line" },
+      { binding: ">>", description: "Indent line right" },
+      { binding: "<<", description: "Indent line left" },
+      { binding: ".", description: "Repeat last change" },
+      { binding: "u", description: "Undo" },
+      { binding: "ctrl-r", description: "Redo" },
+    ],
+  },
+  {
+    platform: "Neovim",
+    title: "Neovim - Windows & Splits",
+    entries: [
+      { binding: "ctrl-w s", description: "Split window horizontally" },
+      { binding: "ctrl-w v", description: "Split window vertically" },
+      { binding: "ctrl-w h", description: "Navigate to left window" },
+      { binding: "ctrl-w j", description: "Navigate to window below" },
+      { binding: "ctrl-w k", description: "Navigate to window above" },
+      { binding: "ctrl-w l", description: "Navigate to right window" },
+      { binding: "ctrl-w q", description: "Close current window" },
+      { binding: "ctrl-w o", description: "Close all other windows" },
+      { binding: "ctrl-w =", description: "Equalize window sizes" },
+    ],
+  },
+  {
+    platform: "Neovim",
+    title: "Neovim - Clipboard & Search",
+    entries: [
+      { binding: "yy", description: "Yank (copy) line" },
+      { binding: "yw", description: "Yank (copy) word" },
+      { binding: "y$", description: "Yank (copy) to end of line" },
+      { binding: "p", description: "Paste after cursor" },
+      { binding: "P", description: "Paste before cursor" },
+      { binding: '"+y', description: "Yank to system clipboard (visual mode)" },
+      { binding: ":%y+", description: "Yank entire file to system clipboard" },
+      { binding: "/", description: "Search forward (open search prompt)" },
+      { binding: "?", description: "Search backward (open search prompt)" },
+      { binding: "n", description: "Jump to next search result" },
+      { binding: "N", description: "Jump to previous search result" },
+      { binding: ":w", description: "Save file" },
+      { binding: ":q", description: "Quit" },
+      { binding: ":wq", description: "Save and quit" },
+      { binding: ":q!", description: "Quit without saving" },
+      { binding: ":e", description: "Open file (edit)" },
+    ],
+  },
   ...APPLICATION_SECTIONS,
 ];
+
 
 export default function Command() {
   const [platformFilter, setPlatformFilter] = useState<string>("all");
@@ -417,11 +432,16 @@ export default function Command() {
           <List.Dropdown.Item title="Neovim" value="Neovim" />
           <List.Dropdown.Item title="Screenshots" value="macOS" />
           <List.Dropdown.Item title="Applications" value="Applications" />
+          <List.Dropdown.Item title="Microsoft Teams" value="Microsoft Teams" />
         </List.Dropdown>
       }
     >
       {filteredSections.map((section) => (
-        <List.Section key={section.title} title={section.title}>
+        <List.Section
+          key={section.title}
+          title={section.title.includes(" - ") ? section.title.split(" - ")[0] : section.title}
+          subtitle={section.title.includes(" - ") ? section.title.split(" - ")[1] : undefined}
+        >
           {section.entries.map((entry) => (
             <List.Item
               key={`${entry.binding}-${entry.description}`}
