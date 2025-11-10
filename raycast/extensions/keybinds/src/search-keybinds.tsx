@@ -171,6 +171,124 @@ const AEROSPACE_SECTIONS: ShortcutSection[] = [
   },
 ];
 
+const SCREENSHOT_SECTIONS: ShortcutSection[] = [
+  {
+    platform: "macOS",
+    title: "Screenshots & Recording",
+    entries: [
+      { binding: "ctrl-shift-cmd-3", description: "Save picture of screen as a file" },
+      { binding: "shift-cmd-3", description: "Copy picture of screen to the clipboard" },
+      { binding: "ctrl-shift-cmd-4", description: "Save picture of selected area as a file" },
+      { binding: "shift-cmd-4", description: "Copy picture of selected area to the clipboard" },
+      { binding: "shift-cmd-5", description: "Screenshot and recording options (screenshot HUD)" },
+    ],
+  },
+];
+
+const NEOVIM_SECTIONS: ShortcutSection[] = [
+  {
+    platform: "Neovim",
+    title: "Neovim Editor",
+    entries: [
+      // Navigation
+      { binding: "h", description: "Move cursor left" },
+      { binding: "j", description: "Move cursor down" },
+      { binding: "k", description: "Move cursor up" },
+      { binding: "l", description: "Move cursor right" },
+      { binding: "w", description: "Jump to next word start" },
+      { binding: "b", description: "Jump back to word start" },
+      { binding: "e", description: "Jump to end of word" },
+      { binding: "0", description: "Jump to start of line" },
+      { binding: "$", description: "Jump to end of line" },
+      { binding: "gg", description: "Jump to top of file" },
+      { binding: "G", description: "Jump to bottom of file" },
+      { binding: "ctrl-u", description: "Scroll half page up" },
+      { binding: "ctrl-d", description: "Scroll half page down" },
+      { binding: "%", description: "Jump to matching bracket" },
+      { binding: "f+char", description: "Find character forward on line" },
+      { binding: "F+char", description: "Find character backward on line" },
+      { binding: "*", description: "Search word under cursor" },
+      { binding: "zz", description: "Center cursor line on screen" },
+
+      // Mode Switching
+      { binding: "i", description: "Enter insert mode before cursor" },
+      { binding: "a", description: "Enter insert mode after cursor" },
+      { binding: "o", description: "Insert new line below and enter insert mode" },
+      { binding: "O", description: "Insert new line above and enter insert mode" },
+      { binding: "esc", description: "Return to normal mode" },
+      { binding: "v", description: "Enter visual mode (character select)" },
+      { binding: "V", description: "Enter visual line mode" },
+      { binding: "ctrl-v", description: "Enter visual block mode" },
+
+      // Editing
+      { binding: "dd", description: "Delete line" },
+      { binding: "dw", description: "Delete word" },
+      { binding: "d$", description: "Delete to end of line" },
+      { binding: "cc", description: "Change line (delete and enter insert mode)" },
+      { binding: "cw", description: "Change word (delete word and enter insert mode)" },
+      { binding: "x", description: "Delete character under cursor" },
+      { binding: "J", description: "Join line below to current line" },
+      { binding: ">>", description: "Indent line right" },
+      { binding: "<<", description: "Indent line left" },
+      { binding: ".", description: "Repeat last change" },
+      { binding: "u", description: "Undo" },
+      { binding: "ctrl-r", description: "Redo" },
+
+      // Copy/Paste
+      { binding: "yy", description: "Yank (copy) line" },
+      { binding: "yw", description: "Yank (copy) word" },
+      { binding: "y$", description: "Yank (copy) to end of line" },
+      { binding: "p", description: "Paste after cursor" },
+      { binding: "P", description: "Paste before cursor" },
+      { binding: '"+y', description: "Yank to system clipboard (visual mode)" },
+      { binding: ":%y+", description: "Yank entire file to system clipboard" },
+
+      // Search
+      { binding: "/", description: "Search forward (open search prompt)" },
+      { binding: "?", description: "Search backward (open search prompt)" },
+      { binding: "n", description: "Jump to next search result" },
+      { binding: "N", description: "Jump to previous search result" },
+
+      // Commands
+      { binding: ":w", description: "Save file" },
+      { binding: ":q", description: "Quit" },
+      { binding: ":wq", description: "Save and quit" },
+      { binding: ":q!", description: "Quit without saving" },
+      { binding: ":e", description: "Open file (edit)" },
+
+      // Window Management (ctrl-w)
+      { binding: "ctrl-w s", description: "Split window horizontally" },
+      { binding: "ctrl-w v", description: "Split window vertically" },
+      { binding: "ctrl-w h", description: "Navigate to left window" },
+      { binding: "ctrl-w j", description: "Navigate to window below" },
+      { binding: "ctrl-w k", description: "Navigate to window above" },
+      { binding: "ctrl-w l", description: "Navigate to right window" },
+      { binding: "ctrl-w w", description: "Switch to next window" },
+      { binding: "ctrl-w q", description: "Close current window" },
+      { binding: "ctrl-w o", description: "Close all other windows" },
+      { binding: "ctrl-w =", description: "Equalize window sizes" },
+
+      // Leader Key Shortcuts (LazyVim)
+      { binding: "space+e", description: "Open file explorer (root directory)" },
+      { binding: "space+E", description: "Open file explorer (current directory)" },
+      { binding: "space+space", description: "Find files" },
+      { binding: "space+ff", description: "Find files (alternate)" },
+      { binding: "space+/", description: "Grep search in files" },
+      { binding: "space+,", description: "Switch buffers" },
+      { binding: "space+|", description: "Split window right" },
+      { binding: "space+-", description: "Split window below" },
+      { binding: "space+l", description: "Open Lazy plugin manager" },
+      { binding: "space+q", description: "Quit session options" },
+      { binding: "space+w", description: "Window management menu" },
+      { binding: "space+b", description: "Buffers menu" },
+      { binding: "space+c", description: "Code actions menu" },
+      { binding: "space+g", description: "Git menu" },
+      { binding: "space+s", description: "Search menu" },
+      { binding: "space+x", description: "Diagnostics/Quickfix menu" },
+    ],
+  },
+];
+
 const APPLICATION_SECTIONS: ShortcutSection[] = [
   {
     title: "Application Shortcuts",
@@ -193,7 +311,6 @@ const APPLICATION_SECTIONS: ShortcutSection[] = [
       { binding: "ctrl-shift-p", description: "Perplexity" },
       { binding: "ctrl-shift-r", description: "Reminders" },
       { binding: "ctrl-shift-s", description: "Safari" },
-      { binding: "shift-cmd-s", description: "Screenshot" },
       { binding: "hyper-s", description: "Spotify" },
       { binding: "ctrl-shift-v", description: "Visual Studio Code" },
       { binding: "ctrl-shift-y", description: "YouTube" },
@@ -207,7 +324,7 @@ const APPLICATION_SECTIONS: ShortcutSection[] = [
   },
 ];
 
-const SECTIONS: ShortcutSection[] = [...AEROSPACE_SECTIONS, ...APPLICATION_SECTIONS];
+const SECTIONS: ShortcutSection[] = [...AEROSPACE_SECTIONS, ...SCREENSHOT_SECTIONS, ...NEOVIM_SECTIONS, ...APPLICATION_SECTIONS];
 
 export default function Command() {
   return (
