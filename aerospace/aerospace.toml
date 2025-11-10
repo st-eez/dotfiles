@@ -116,7 +116,7 @@ outer.right =      8
     ctrl-shift-minus = 'resize smart -50'
 
     # Layout management (Custom bindings kept)
-    ctrl-alt-0 = 'flatten-workspace-tree'
+    ctrl-alt-shift-0 = 'flatten-workspace-tree'
     ctrl-alt-shift-left  = 'join-with left'
     ctrl-alt-shift-right = 'join-with right'
     ctrl-alt-shift-up    = 'join-with up'
