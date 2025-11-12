@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # ## Sonokai
 # export BLACK=0xff181819
@@ -59,6 +59,6 @@ export BACKGROUND_2=$BG2
 export ICON_COLOR=0xff939BBD # Color of all icons
 export LABEL_COLOR=0xff939BBD # Color of all labels
 export POPUP_BACKGROUND_COLOR=$BAR_COLOR
-export POPUP_BORDER_COLOR=$WHITE
+export POPUP_BORDER_COLOR=0xff2AC3DE
 export SHADOW_COLOR=$BLACK
 

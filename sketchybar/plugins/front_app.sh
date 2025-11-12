@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 # Some events send additional information specific to the event in the $INFO
 # variable. E.g. the front_app_switched event sends the name of the newly
@@ -20,7 +20,7 @@ if [ "$SENDER" = "front_app_switched" ]; then
       icon_strip+=" $($CONFIG_DIR/plugins/icon_map.sh "$app")"
     done <<< "${apps}"
   else
-    icon_strip=" —"
+    icon_strip=""
   fi
   sketchybar --set space.$AEROSPACE_FOCUSED_MONITOR_NO label="$icon_strip"
 fi

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 wifi=(
   script="$PLUGIN_DIR/wifi.sh"

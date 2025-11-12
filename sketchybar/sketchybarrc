@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 source "$CONFIG_DIR/colors.sh" # Loads all defined colors
 source "$CONFIG_DIR/icons.sh"  # Loads all defined icons
@@ -73,6 +73,7 @@ defaults=(
 sketchybar --default "${defaults[@]}"
 
 # Left
+source "$PLUGIN_DIR/apple.sh"
 source "$ITEM_DIR/spaces.sh"
 source "$ITEM_DIR/front_app.sh"
 

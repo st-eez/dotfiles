@@ -69,7 +69,7 @@ if mkdir "$LOCK_DIR" 2>/dev/null; then
           icon_strip+=" $("$CONFIG_DIR/plugins/icon_map.sh" "$app_name")"
         done <<<"$apps"
       else
-        icon_strip=" —"
+        icon_strip=""
       fi
 
       label_args+=(

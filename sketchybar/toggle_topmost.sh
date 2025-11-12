@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Get current hidden state
 current_state=$(sketchybar --query bar | grep -o '"hidden": "[^"]*"' | cut -d'"' -f4)

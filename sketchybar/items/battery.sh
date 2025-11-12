@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 battery=(
   script="$PLUGIN_DIR/battery.sh"

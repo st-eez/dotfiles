@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 #SPACE_ICONS=("1" "2" "3" "4")
 

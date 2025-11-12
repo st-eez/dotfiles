@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 sketchybar --add item input_source right
 sketchybar --set input_source \

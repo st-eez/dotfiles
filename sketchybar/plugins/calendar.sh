@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Split date and time for precise spacing control
 DATE=$(date '+%a %b %d')
