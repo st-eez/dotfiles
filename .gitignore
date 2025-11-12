@@ -31,3 +31,5 @@ PROJECT_NOTES*.md
 # Backups
 *.backup
 *.bak
+backups/
+karabiner/automatic_backups/

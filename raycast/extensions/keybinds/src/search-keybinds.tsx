@@ -21,6 +21,11 @@ const ARROWS: Record<string, string> = {
 
 const KEY_LABELS: Record<string, string> = {
   alt: "OPT",
+  option: "OPT",
+  opt: "OPT",
+  cmd: "CMD",
+  command: "CMD",
+  caps: "CAPS",
 };
 
 const formatKeybinding = (binding: string) => {
@@ -47,12 +52,38 @@ const formatKeybinding = (binding: string) => {
       });
     });
 
-  return tokens
-    .map((part) => {
-      const normalized = part.toLowerCase();
-      return ARROWS[normalized] ?? KEY_LABELS[normalized] ?? part.toUpperCase();
-    })
-    .join(" + ");
+  const normalizedTokens = tokens.map((part) => part.toLowerCase());
+  const hasCtrl = normalizedTokens.some((token) => token === "ctrl" || token === "control");
+  const hasAlt = normalizedTokens.some((token) => token === "alt" || token === "option" || token === "opt");
+  const hasCmd = normalizedTokens.some((token) => token === "cmd" || token === "command");
+  const collapseToCaps = hasCtrl && hasAlt && hasCmd;
+
+  const formattedTokens: string[] = [];
+  let capsInserted = false;
+
+  tokens.forEach((part) => {
+    const normalized = part.toLowerCase();
+    if (
+      collapseToCaps &&
+      (normalized === "ctrl" ||
+        normalized === "control" ||
+        normalized === "alt" ||
+        normalized === "option" ||
+        normalized === "opt" ||
+        normalized === "cmd" ||
+        normalized === "command")
+    ) {
+      if (!capsInserted) {
+        formattedTokens.push("CAPS");
+        capsInserted = true;
+      }
+      return;
+    }
+
+    formattedTokens.push(ARROWS[normalized] ?? KEY_LABELS[normalized] ?? part.toUpperCase());
+  });
+
+  return formattedTokens.join(" + ");
 };
 
 const keywords = (section: ShortcutSection, entry: ShortcutEntry) => {
@@ -80,67 +111,52 @@ const AEROSPACE_SECTIONS: ShortcutSection[] = [
     platform: "Aerospace",
     title: "Aerospace - Window Navigation",
     entries: [
-      { binding: "ctrl-left", description: "Move focus left" },
-      { binding: "ctrl-right", description: "Move focus right" },
-      { binding: "ctrl-up", description: "Move focus up" },
-      { binding: "ctrl-down", description: "Move focus down" },
-      { binding: "ctrl-shift-left", description: "Swap window left" },
-      { binding: "ctrl-shift-right", description: "Swap window right" },
-      { binding: "ctrl-shift-up", description: "Swap window up" },
-      { binding: "ctrl-shift-down", description: "Swap window down" },
+      { binding: "ctrl-alt-cmd-left", description: "Move focus left" },
+      { binding: "ctrl-alt-cmd-right", description: "Move focus right" },
+      { binding: "ctrl-alt-cmd-up", description: "Move focus up" },
+      { binding: "ctrl-alt-cmd-down", description: "Move focus down" },
+      { binding: "ctrl-alt-cmd-shift-left", description: "Swap window left" },
+      { binding: "ctrl-alt-cmd-shift-right", description: "Swap window right" },
+      { binding: "ctrl-alt-cmd-shift-up", description: "Swap window up" },
+      { binding: "ctrl-alt-cmd-shift-down", description: "Swap window down" },
     ],
   },
   {
     platform: "Aerospace",
     title: "Aerospace - Jump to Workspace",
     entries: [
-      { binding: "ctrl-1", description: "Jump to workspace 1" },
-      { binding: "ctrl-2", description: "Jump to workspace 2" },
-      { binding: "ctrl-3", description: "Jump to workspace 3" },
-      { binding: "ctrl-4", description: "Jump to workspace 4" },
-      { binding: "ctrl-5", description: "Jump to workspace 5" },
-      { binding: "ctrl-6", description: "Jump to workspace 6" },
-      { binding: "ctrl-7", description: "Jump to workspace 7" },
-      { binding: "ctrl-8", description: "Jump to workspace 8" },
-      { binding: "ctrl-9", description: "Jump to workspace 9" },
+      { binding: "ctrl-alt-cmd-1", description: "Jump to workspace 1" },
+      { binding: "ctrl-alt-cmd-2", description: "Jump to workspace 2" },
+      { binding: "ctrl-alt-cmd-3", description: "Jump to workspace 3" },
+      { binding: "ctrl-alt-cmd-4", description: "Jump to workspace 4" },
+      { binding: "ctrl-alt-cmd-5", description: "Jump to workspace 5" },
+      { binding: "ctrl-alt-cmd-6", description: "Jump to workspace 6" },
+      { binding: "ctrl-alt-cmd-7", description: "Jump to workspace 7" },
+      { binding: "ctrl-alt-cmd-8", description: "Jump to workspace 8" },
+      { binding: "ctrl-alt-cmd-9", description: "Jump to workspace 9" },
     ],
   },
   {
     platform: "Aerospace",
     title: "Aerospace - Move Window to Workspace (Follow)",
     entries: [
-      { binding: "ctrl-shift-1", description: "Move window to workspace 1 and follow" },
-      { binding: "ctrl-shift-2", description: "Move window to workspace 2 and follow" },
-      { binding: "ctrl-shift-3", description: "Move window to workspace 3 and follow" },
-      { binding: "ctrl-shift-4", description: "Move window to workspace 4 and follow" },
-      { binding: "ctrl-shift-5", description: "Move window to workspace 5 and follow" },
-      { binding: "ctrl-shift-6", description: "Move window to workspace 6 and follow" },
-      { binding: "ctrl-shift-7", description: "Move window to workspace 7 and follow" },
-      { binding: "ctrl-shift-8", description: "Move window to workspace 8 and follow" },
-      { binding: "ctrl-shift-9", description: "Move window to workspace 9 and follow" },
-    ],
-  },
-  {
-    platform: "Aerospace",
-    title: "Aerospace - Move Window to Workspace (No Follow)",
-    entries: [
-      { binding: "ctrl-shift-alt-1", description: "Move window to workspace 1 without following" },
-      { binding: "ctrl-shift-alt-2", description: "Move window to workspace 2 without following" },
-      { binding: "ctrl-shift-alt-3", description: "Move window to workspace 3 without following" },
-      { binding: "ctrl-shift-alt-4", description: "Move window to workspace 4 without following" },
-      { binding: "ctrl-shift-alt-5", description: "Move window to workspace 5 without following" },
-      { binding: "ctrl-shift-alt-6", description: "Move window to workspace 6 without following" },
-      { binding: "ctrl-shift-alt-7", description: "Move window to workspace 7 without following" },
-      { binding: "ctrl-shift-alt-8", description: "Move window to workspace 8 without following" },
-      { binding: "ctrl-shift-alt-9", description: "Move window to workspace 9 without following" },
+      { binding: "ctrl-alt-cmd-shift-1", description: "Move window to workspace 1 and follow" },
+      { binding: "ctrl-alt-cmd-shift-2", description: "Move window to workspace 2 and follow" },
+      { binding: "ctrl-alt-cmd-shift-3", description: "Move window to workspace 3 and follow" },
+      { binding: "ctrl-alt-cmd-shift-4", description: "Move window to workspace 4 and follow" },
+      { binding: "ctrl-alt-cmd-shift-5", description: "Move window to workspace 5 and follow" },
+      { binding: "ctrl-alt-cmd-shift-6", description: "Move window to workspace 6 and follow" },
+      { binding: "ctrl-alt-cmd-shift-7", description: "Move window to workspace 7 and follow" },
+      { binding: "ctrl-alt-cmd-shift-8", description: "Move window to workspace 8 and follow" },
+      { binding: "ctrl-alt-cmd-shift-9", description: "Move window to workspace 9 and follow" },
     ],
   },
   {
     platform: "Aerospace",
     title: "Aerospace - Workspace Cycling",
     entries: [
-      { binding: "ctrl-tab", description: "Next workspace" },
-      { binding: "ctrl-shift-tab", description: "Previous workspace" },
+      { binding: "ctrl-alt-cmd-tab", description: "Next workspace" },
+      { binding: "ctrl-alt-cmd-shift-tab", description: "Previous workspace" },
       { binding: "ctrl-alt-tab", description: "Switch to previous workspace (back-and-forth)" },
     ],
   },
@@ -148,43 +164,43 @@ const AEROSPACE_SECTIONS: ShortcutSection[] = [
     platform: "Aerospace",
     title: "Aerospace - Window Controls",
     entries: [
-      { binding: "ctrl-t", description: "Toggle floating/tiling mode" },
-      { binding: "ctrl-f", description: "Toggle fullscreen" },
-      { binding: "ctrl-shift-j", description: "Toggle split direction (horizontal/vertical)" },
+      { binding: "ctrl-alt-cmd-t", description: "Toggle floating/tiling mode" },
+      { binding: "ctrl-alt-cmd-f", description: "Toggle fullscreen" },
+      { binding: "ctrl-alt-cmd-shift-j", description: "Toggle split direction (horizontal/vertical)" },
     ],
   },
   {
     platform: "Aerospace",
     title: "Aerospace - Resize Windows",
     entries: [
-      { binding: "ctrl-equal", description: "Resize window +100" },
-      { binding: "ctrl-minus", description: "Resize window -100" },
-      { binding: "ctrl-shift-equal", description: "Resize window +50" },
-      { binding: "ctrl-shift-minus", description: "Resize window -50" },
+      { binding: "ctrl-alt-cmd-equal", description: "Resize window +100" },
+      { binding: "ctrl-alt-cmd-minus", description: "Resize window -100" },
+      { binding: "ctrl-alt-cmd-shift-equal", description: "Resize window +50" },
+      { binding: "ctrl-alt-cmd-shift-minus", description: "Resize window -50" },
     ],
   },
   {
     platform: "Aerospace",
     title: "Aerospace - Layout Management",
     entries: [
-      { binding: "ctrl-alt-shift-0", description: "Flatten workspace tree" },
-      { binding: "ctrl-alt-shift-left", description: "Join window with left" },
-      { binding: "ctrl-alt-shift-right", description: "Join window with right" },
-      { binding: "ctrl-alt-shift-up", description: "Join window with up" },
-      { binding: "ctrl-alt-shift-down", description: "Join window with down" },
+      { binding: "ctrl-alt-cmd-shift-0", description: "Flatten workspace tree" },
+      { binding: "ctrl-alt-left", description: "Join window with left" },
+      { binding: "ctrl-alt-right", description: "Join window with right" },
+      { binding: "ctrl-alt-up", description: "Join window with up" },
+      { binding: "ctrl-alt-down", description: "Join window with down" },
     ],
   },
   {
     platform: "Aerospace",
     title: "Aerospace - Monitor Controls",
     entries: [
-      { binding: "ctrl-alt-cmd-left", description: "Move window to left monitor" },
-      { binding: "ctrl-alt-cmd-right", description: "Move window to right monitor" },
-      { binding: "ctrl-alt-cmd-up", description: "Move window to upper monitor" },
-      { binding: "ctrl-alt-cmd-down", description: "Move window to lower monitor" },
-      { binding: "ctrl-alt-1", description: "Move window to monitor 1" },
-      { binding: "ctrl-alt-2", description: "Move window to monitor 2" },
-      { binding: "ctrl-alt-3", description: "Move window to monitor 3" },
+      { binding: "ctrl-alt-shift-left", description: "Move window to left monitor" },
+      { binding: "ctrl-alt-shift-right", description: "Move window to right monitor" },
+      { binding: "ctrl-alt-shift-up", description: "Move window to upper monitor" },
+      { binding: "ctrl-alt-shift-down", description: "Move window to lower monitor" },
+      { binding: "ctrl-alt-shift-1", description: "Move window to monitor 1" },
+      { binding: "ctrl-alt-shift-2", description: "Move window to monitor 2" },
+      { binding: "ctrl-alt-shift-3", description: "Move window to monitor 3" },
     ],
   },
   {
@@ -231,34 +247,41 @@ const APPLICATION_SECTIONS: ShortcutSection[] = [
     platform: "Applications",
     title: "Applications - Application Shortcuts",
     entries: [
-      { binding: "hyper-a", description: "Alarm.com" },
-      { binding: "ctrl-shift-b", description: "Brave Browser" },
-      { binding: "hyper-c", description: "Calendar" },
-      { binding: "ctrl-shift-c", description: "ChatGPT" },
-      { binding: "ctrl-shift-a", description: "Claude" },
-      { binding: "ctrl-shift-d", description: "Discord" },
-      { binding: "ctrl-shift-f", description: "Finder" },
-      { binding: "ctrl-enter", description: "Ghostty" },
-      { binding: "ctrl-shift-x", description: "Grok" },
-      { binding: "hyper-m", description: "Mail" },
-      { binding: "ctrl-shift-m", description: "Messages" },
-      { binding: "ctrl-shift-e", description: "Microsoft Excel" },
-      { binding: "ctrl-shift-o", description: "Microsoft Outlook" },
-      { binding: "ctrl-shift-t", description: "Microsoft Teams" },
-      { binding: "ctrl-shift-n", description: "Obsidian" },
-      { binding: "ctrl-shift-p", description: "Perplexity" },
-      { binding: "ctrl-shift-r", description: "Reminders" },
-      { binding: "ctrl-shift-s", description: "Safari" },
-      { binding: "hyper-s", description: "Spotify" },
-      { binding: "ctrl-shift-v", description: "Visual Studio Code" },
-      { binding: "ctrl-shift-y", description: "YouTube" },
-      { binding: "hyper-p", description: "iPhone Mirroring" },
-      { binding: "hyper-v", description: "Clipboard History (Command)" },
-      { binding: "hyper-`", description: "Confetti" },
+      { binding: "ctrl-alt-cmd-shift-a", description: "Alarm.com" },
+      { binding: "ctrl-alt-cmd-b", description: "Brave Browser" },
+      { binding: "ctrl-alt-cmd-shift-c", description: "Calendar" },
+      { binding: "ctrl-alt-cmd-c", description: "ChatGPT" },
+      { binding: "ctrl-alt-cmd-a", description: "Claude" },
+      { binding: "ctrl-alt-cmd-d", description: "Discord" },
+      { binding: "ctrl-alt-cmd-f", description: "Finder" },
+      { binding: "ctrl-alt-cmd-enter", description: "Ghostty" },
+      { binding: "ctrl-alt-cmd-x", description: "Grok" },
+      { binding: "ctrl-alt-cmd-shift-m", description: "Mail" },
+      { binding: "ctrl-alt-cmd-m", description: "Messages" },
+      { binding: "ctrl-alt-cmd-e", description: "Microsoft Excel" },
+      { binding: "ctrl-alt-cmd-o", description: "Microsoft Outlook" },
+      { binding: "ctrl-alt-cmd-t", description: "Microsoft Teams" },
+      { binding: "ctrl-alt-cmd-n", description: "Obsidian" },
+      { binding: "ctrl-alt-cmd-p", description: "Perplexity" },
+      { binding: "ctrl-alt-cmd-r", description: "Reminders" },
+      { binding: "ctrl-alt-cmd-s", description: "Safari" },
+      { binding: "ctrl-alt-cmd-shift-s", description: "Spotify" },
+      { binding: "ctrl-alt-cmd-shift-v", description: "Visual Studio Code" },
+      { binding: "ctrl-alt-cmd-y", description: "YouTube" },
+      { binding: "ctrl-alt-cmd-shift-p", description: "iPhone Mirroring" },
+    ],
+  },
+  {
+    platform: "Applications",
+    title: "Applications - Commands",
+    entries: [
+      { binding: "ctrl-alt-cmd-v", description: "Clipboard History" },
+      { binding: "ctrl-alt-cmd-`", description: "Confetti" },
       { binding: "shift-cmd-l", description: "Autofill last used login (Bitwarden/Brave)" },
-      { binding: "ctrl-shift-z", description: "AI Chat" },
-      { binding: "hyper-space", description: "Search Emoji & Symbols" },
-      { binding: "hyper-f", description: "Search Files" },
+      { binding: "ctrl-alt-cmd-shift-z", description: "AI Chat" },
+      { binding: "ctrl-alt-cmd-space", description: "Search Emoji & Symbols" },
+      { binding: "alt-f", description: "Search Files" },
+      { binding: "ctrl-alt-cmd-k", description: "Search Keybinds" },
     ],
   },
   {
