@@ -58,11 +58,12 @@ outer.right =      8
     ctrl-alt-cmd-up    = 'exec-and-forget aerospace focus up --boundaries-action fail || aerospace focus-monitor up'
     ctrl-alt-cmd-down  = 'exec-and-forget aerospace focus down --boundaries-action fail || aerospace focus-monitor down'
 
-    # Swap windows (CAPS + SHIFT + arrows)
-    ctrl-alt-cmd-shift-left  = 'exec-and-forget bash -c "aerospace move left && sleep 0.05 && aerospace move-mouse window-lazy-center"'
-    ctrl-alt-cmd-shift-right = 'exec-and-forget bash -c "aerospace move right && sleep 0.05 && aerospace move-mouse window-lazy-center"'
-    ctrl-alt-cmd-shift-up    = 'exec-and-forget bash -c "aerospace move up && sleep 0.05 && aerospace move-mouse window-lazy-center"'
-    ctrl-alt-cmd-shift-down  = 'exec-and-forget bash -c "aerospace move down && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+    # Swap windows with wrap-around (CAPS + SHIFT + arrows)
+    # Moves within monitor, then wraps to adjacent monitor at boundaries
+    ctrl-alt-cmd-shift-left  = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail left || aerospace move-node-to-monitor --wrap-around --focus-follows-window left) && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+    ctrl-alt-cmd-shift-right = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail right || aerospace move-node-to-monitor --wrap-around --focus-follows-window right) && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+    ctrl-alt-cmd-shift-up    = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail up || aerospace move-node-to-monitor --wrap-around --focus-follows-window up) && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+    ctrl-alt-cmd-shift-down  = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail down || aerospace move-node-to-monitor --wrap-around --focus-follows-window down) && sleep 0.05 && aerospace move-mouse window-lazy-center"'
 
     # Jump to workspace (CAPS + number)
     ctrl-alt-cmd-1 = 'exec-and-forget bash -c "aerospace workspace 1 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
