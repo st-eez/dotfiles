@@ -36,7 +36,7 @@ inner.horizontal = 8
 inner.vertical =   8
 outer.left =       8
 outer.bottom =     8
-outer.top =        [{ monitor."built-in" = 12 }, 8]  # 12px for MacBook, 8px for externals
+outer.top =        [{ monitor."built-in" = 8 }, 8]  # 12px for MacBook, 8px for externals
 outer.right =      8
 
 # Home setup - BenQ, Pixio, and Built-in monitors
