@@ -7,13 +7,18 @@ volume=(
   script="$PLUGIN_DIR/volume.sh"
   click_script="$POPUP_TOGGLE"
   padding_left=3
-  padding_right=3
+  padding_right=0
   icon.font="$FONT:Regular:14.0"
-  icon.width=30
+  icon.width=38
   icon.padding_left=8
-  icon.padding_right=8
+  icon.padding_right=0
   label.drawing=off
   popup.align=center
+  background.color=0x00000000
+  background.corner_radius=8
+  background.height=26
+  background.padding_left=2
+  background.padding_right=2
 )
 
 volume_slider=(
@@ -36,7 +41,7 @@ volume_slider=(
 
 sketchybar --add item volume right         \
            --set volume "${volume[@]}"     \
-           --subscribe volume volume_change
+           --subscribe volume volume_change mouse.entered mouse.exited
 
 sketchybar --add slider volume.popup.slider popup.volume \
            --set volume.popup.slider "${volume_slider[@]}" \

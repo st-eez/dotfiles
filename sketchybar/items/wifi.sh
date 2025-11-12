@@ -2,7 +2,7 @@
 
 wifi=(
   script="$PLUGIN_DIR/wifi.sh"
-  padding_left=3
+  padding_left=0
   padding_right=3
   icon.font="$FONT:Regular:14.0"
   icon.padding_left=8
