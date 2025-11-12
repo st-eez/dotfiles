@@ -26,8 +26,8 @@ apple_prefs=(
   icon.padding_right=6
   label.padding_right=6
   background.corner_radius=4
-  background.padding_left=10
-  background.padding_right=10
+  background.padding_left=6
+  background.padding_right=6
   script="$PLUGIN_DIR/apple_hover.sh"
   click_script="open -a 'System Preferences'; $POPUP_OFF"
 )
@@ -42,8 +42,8 @@ apple_activity=(
   icon.padding_right=6
   label.padding_right=6
   background.corner_radius=4
-  background.padding_left=10
-  background.padding_right=10
+  background.padding_left=6
+  background.padding_right=6
   script="$PLUGIN_DIR/apple_hover.sh"
   click_script="open -a 'Activity Monitor'; $POPUP_OFF"
 )
@@ -58,8 +58,8 @@ apple_lock=(
   icon.padding_right=6
   label.padding_right=6
   background.corner_radius=4
-  background.padding_left=10
-  background.padding_right=10
+  background.padding_left=6
+  background.padding_right=6
   script="$PLUGIN_DIR/apple_hover.sh"
   click_script="pmset displaysleepnow; $POPUP_OFF"
 )
