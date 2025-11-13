@@ -5,13 +5,14 @@ HOVER_SCRIPT="$SCRIPT_DIR/volume_device_hover.sh"
 SELF_SCRIPT="$SCRIPT_DIR/volume_devices.sh"
 
 source "$CONFIG_DIR/colors.sh"
+source "$CONFIG_DIR/icons.sh"
 
 FONT="JetBrainsMono Nerd Font"
 
 command -v SwitchAudioSource >/dev/null 2>&1 || exit 0
 
 CURRENT_DEVICE="$(SwitchAudioSource -t output -c 2>/dev/null)"
-DEVICES="$(SwitchAudioSource -a -t output 2>/dev/null)"
+DEVICES="$(SwitchAudioSource -a -t output 2>/dev/null | grep -vE '(ASUS VA24E|LG ULTRAWIDE|Microsoft Teams Audio|BenQ XL2411Z|Pixio PX248PS)')"
 
 INACTIVE_LABEL="$LABEL_COLOR"
 INACTIVE_BACKGROUND=0x12000000
@@ -39,7 +40,7 @@ if [ "$1" = "--update-active" ]; then
   exit 0
 fi
 
-args=(--remove '/volume.device\..*/')
+args=(--remove '/volume.device\..*/' --remove volume.popup.settings)
 
 COUNTER=0
 while IFS= read -r device; do
@@ -69,10 +70,34 @@ while IFS= read -r device; do
                                      background.padding_right=6 \
                                      background.color="$background_color" \
                                      script="BASE_BACKGROUND=$background_color BASE_LABEL=$label_color $HOVER_SCRIPT" \
-               click_script="SwitchAudioSource -s \"${device}\" && sleep 0.1 && $SELF_SCRIPT --update-active")
-  args+=(--subscribe volume.device.$COUNTER mouse.entered mouse.exited)
+               click_script="SwitchAudioSource -t output -s \"${device}\" && sleep 0.1 && $SELF_SCRIPT --update-active")
+  args+=(--subscribe volume.device.$COUNTER mouse.entered mouse.exited mouse.exited.global)
 
   COUNTER=$((COUNTER + 1))
 done <<< "$DEVICES"
 
 sketchybar -m "${args[@]}" >/dev/null
+
+# Add settings item at the end
+sketchybar --add item volume.popup.settings popup.volume \
+           --set volume.popup.settings \
+                 icon="$PREFERENCES" \
+                 icon.font="$FONT:Semibold:13.0" \
+                 icon.color="$MAGENTA" \
+                 label="Sound Settings" \
+                 label.font="$FONT:Bold:13.0" \
+                 label.color="$MAGENTA" \
+                 label.align=left \
+                 label.width=160 \
+                 padding_left=6 \
+                 padding_right=6 \
+                 icon.padding_left=6 \
+                 icon.padding_right=6 \
+                 background.corner_radius=6 \
+                 background.height=32 \
+                 background.padding_left=8 \
+                 background.padding_right=8 \
+                 background.color=0x00000000 \
+                 click_script="open 'x-apple.systempreferences:com.apple.preference.sound'" \
+                 script="$SCRIPT_DIR/apple_hover.sh" \
+           --subscribe volume.popup.settings mouse.entered mouse.exited

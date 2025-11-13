@@ -39,13 +39,32 @@ volume_slider=(
   padding_right=14
 )
 
+volume_popup_settings=(
+  icon="$PREFERENCES"
+  icon.font="$FONT:Semibold:13.0"
+  label="Sound Settings"
+  label.align=left
+  label.width=160
+  padding_left=6
+  padding_right=6
+  icon.padding_left=6
+  icon.padding_right=6
+  background.corner_radius=6
+  background.height=32
+  background.padding_left=8
+  background.padding_right=8
+  background.color=0x00000000
+  click_script="open 'x-apple.systempreferences:com.apple.preference.sound'"
+  script="$PLUGIN_DIR/apple_hover.sh"
+)
+
 sketchybar --add item volume right         \
            --set volume "${volume[@]}"     \
            --subscribe volume volume_change mouse.entered mouse.exited
 
 sketchybar --add slider volume.popup.slider popup.volume \
            --set volume.popup.slider "${volume_slider[@]}" \
-           --subscribe volume.popup.slider mouse.clicked volume_change
+           --subscribe volume.popup.slider mouse.clicked volume_change mouse.exited.global
 
 "$PLUGIN_DIR/volume_devices.sh"
 

@@ -18,7 +18,7 @@ apple_logo=(
 
 apple_prefs=(
   icon=$PREFERENCES
-  label="Preferences"
+  label="Settings"
   label.width=90
   padding_left=6
   padding_right=6
@@ -69,12 +69,12 @@ sketchybar --add item apple.logo left                 \
                                                        \
            --add item apple.prefs popup.apple.logo     \
            --set apple.prefs "${apple_prefs[@]}"       \
-           --subscribe apple.prefs mouse.entered mouse.exited \
+           --subscribe apple.prefs mouse.entered mouse.exited mouse.exited.global \
                                                        \
            --add item apple.activity popup.apple.logo  \
            --set apple.activity "${apple_activity[@]}" \
-           --subscribe apple.activity mouse.entered mouse.exited \
+           --subscribe apple.activity mouse.entered mouse.exited mouse.exited.global \
                                                        \
            --add item apple.lock popup.apple.logo      \
            --set apple.lock "${apple_lock[@]}"         \
-           --subscribe apple.lock mouse.entered mouse.exited
+           --subscribe apple.lock mouse.entered mouse.exited mouse.exited.global

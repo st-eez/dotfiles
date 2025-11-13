@@ -18,6 +18,10 @@ case "$SENDER" in
       exit 0
     fi
     ;;
+  "mouse.exited.global")
+    sketchybar --set volume popup.drawing=off
+    exit 0
+    ;;
 esac
 
 sketchybar --set "$NAME" slider.percentage="$(current_volume)"

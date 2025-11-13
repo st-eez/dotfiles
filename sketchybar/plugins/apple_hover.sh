@@ -16,6 +16,11 @@ case "$SENDER" in
     sketchybar --set "$NAME" background.color="$TRANSPARENT"
     ;;
 
+  mouse.exited.global)
+    sketchybar --set "$NAME" background.color="$TRANSPARENT"
+    sketchybar --set apple.logo popup.drawing=off
+    ;;
+
   *)
     ;;
 esac

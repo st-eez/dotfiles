@@ -13,4 +13,8 @@ case "$SENDER" in
   mouse.exited)
     sketchybar --set "$NAME" background.color="$BASE_BACKGROUND" label.color="$BASE_LABEL"
     ;;
+  mouse.exited.global)
+    sketchybar --set "$NAME" background.color="$BASE_BACKGROUND" label.color="$BASE_LABEL"
+    sketchybar --set volume popup.drawing=off
+    ;;
 esac
