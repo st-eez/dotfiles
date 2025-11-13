@@ -3,8 +3,6 @@
 source "$CONFIG_DIR/icons.sh"
 source "$CONFIG_DIR/colors.sh"
 
-HIGHLIGHT_COLOR=0xd0332f55
-TRANSPARENT=0x00000000
 AIRPODS_ICON="􁄡"
 
 is_airpods_connected() {
@@ -39,11 +37,7 @@ case "$SENDER" in
     sketchybar --set "$NAME" icon="$ICON" icon.color="$ICON_COLOR"
     ;;
 
-  "mouse.entered")
-    sketchybar --set "$NAME" background.color="$HIGHLIGHT_COLOR"
-    ;;
-
-  "mouse.exited")
-    sketchybar --set "$NAME" background.color="$TRANSPARENT"
+  "mouse.entered"|"mouse.exited")
+    # Leave background untouched so no highlight effect
     ;;
 esac

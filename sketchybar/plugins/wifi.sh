@@ -3,9 +3,6 @@
 source "$CONFIG_DIR/icons.sh"
 source "$CONFIG_DIR/colors.sh"
 
-HIGHLIGHT_COLOR="${BG1:-0xff332f55}"
-TRANSPARENT_COLOR="${TRANSPARENT:-0x00000000}"
-
 set_wifi_icon() {
   local active_interface icon icon_size interface_type
 
@@ -33,11 +30,8 @@ set_wifi_icon() {
 }
 
 case "$SENDER" in
-  mouse.entered)
-    sketchybar --set "$NAME" background.color="$HIGHLIGHT_COLOR"
-    ;;
-  mouse.exited)
-    sketchybar --set "$NAME" background.color="$TRANSPARENT_COLOR"
+  mouse.entered|mouse.exited)
+    # No highlight changes; just ignore these events
     ;;
   *)
     set_wifi_icon
