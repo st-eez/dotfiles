@@ -9,11 +9,11 @@ calendar=(
   label.align=right
   label.padding_left=0
   label.padding_right=6
-  padding_left=3
-  padding_right=3
+  padding_left=0
+  padding_right=0
   update_freq=30
   script="$PLUGIN_DIR/calendar.sh"
-  click_script=":"
+  click_script="osascript -e 'tell application \"System Events\" to tell process \"ControlCenter\" to click menu bar item 2 of menu bar 1'"
 )
 
 sketchybar --add item calendar right       \

@@ -1,19 +1,31 @@
 #!/usr/bin/env bash
 
-battery=(
-  script="$PLUGIN_DIR/battery.sh"
-  icon.font="$FONT:Regular:19.0"
+BATTERY_CLICK='osascript -e "tell application \"System Events\" to tell process \"ControlCenter\" to click menu bar item 1 of menu bar 1"'
+CONTROL_CENTER_CLICK='osascript -e "tell application \"System Events\" to tell process \"ControlCenter\" to click menu bar item 4 of menu bar 1"'
+
+sketchybar --remove "Control Center,ControlCenter"
+
+control_center=(
+  icon="􀜊"
+  icon.font="$FONT:Regular:16.0"
+  icon.color=$ICON_COLOR
   icon.padding_left=8
   icon.padding_right=8
-  padding_right=3
-  padding_left=3
-  label.drawing=on  # Enable label to display the percentage
-  label.font="$FONT:Regular:12.0"  # Slightly smaller percentage label
-  update_freq=120
-  updates=on
+  label.drawing=off
+  padding_left=0
+  padding_right=0
+  click_script="$CONTROL_CENTER_CLICK"
 )
 
-sketchybar --add item battery right \
-           --set battery "${battery[@]}" \
-              icon.font.size=15 update_freq=120 script="$PLUGIN_DIR/battery.sh" \
-           --subscribe battery power_source_change system_woke
+sketchybar --add item control_center right \
+           --set control_center "${control_center[@]}"
+
+sketchybar --add alias "Control Center,Battery" right \
+           --set "Control Center,Battery" alias.color=$ICON_COLOR \
+                  padding_left=0 \
+                  padding_right=0 \
+                  icon.padding_left=0 \
+                  icon.padding_right=0 \
+                  label.padding_left=0 \
+                  label.padding_right=0 \
+                  click_script="$BATTERY_CLICK"

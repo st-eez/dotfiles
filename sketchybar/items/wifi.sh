@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 
 POPUP_CONTROLLER="$PLUGIN_DIR/wifi_popup.sh"
-POPUP_CLICK_SCRIPT="$POPUP_CONTROLLER --toggle-popup"
+POPUP_CLICK_SCRIPT="if [ \"\$BUTTON\" = \"right\" ]; then osascript -e 'tell application \"System Events\" to tell process \"ControlCenter\" to click menu bar item 3 of menu bar 1'; else $POPUP_CONTROLLER --toggle-popup; fi"
 WIFI_POWER_TOGGLE="$POPUP_CONTROLLER --toggle-wifi"
 
 wifi=(
   script="$PLUGIN_DIR/wifi.sh"
   click_script="$POPUP_CLICK_SCRIPT"
-  padding_left=3
-  padding_right=3
-  icon.font="$FONT:Regular:14.0"
+  padding_left=0
+  padding_right=0
+  icon.font="$FONT:Regular:16.0"
   icon.width=38
   icon.padding_left=8
   icon.padding_right=8

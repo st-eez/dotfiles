@@ -6,9 +6,9 @@ CURRENT_VOLUME="$(osascript -e 'output volume of (get volume settings)' 2>/dev/n
 volume=(
   script="$PLUGIN_DIR/volume.sh"
   click_script="$POPUP_TOGGLE"
-  padding_left=3
+  padding_left=0
   padding_right=0
-  icon.font="$FONT:Regular:14.0"
+  icon.font="$FONT:Regular:16.0"
   icon.width=38
   icon.padding_left=8
   icon.padding_right=0
@@ -58,8 +58,8 @@ volume_popup_settings=(
   script="$PLUGIN_DIR/apple_hover.sh"
 )
 
-sketchybar --add item volume right         \
-           --set volume "${volume[@]}"     \
+sketchybar --add item volume right \
+           --set volume "${volume[@]}" \
            --subscribe volume volume_change mouse.entered mouse.exited
 
 sketchybar --add slider volume.popup.slider popup.volume \
@@ -68,5 +68,11 @@ sketchybar --add slider volume.popup.slider popup.volume \
 
 "$PLUGIN_DIR/volume_devices.sh"
 
-sketchybar --add bracket status calendar battery wifi volume \
+TEAMS_CLICK='osascript -e "tell application \"System Events\" to tell process \"MSTeams\" to click menu bar item 1 of menu bar 2"'
+
+sketchybar --add alias "Control Center,com.microsoft.teams2" right \
+           --set "Control Center,com.microsoft.teams2" alias.color=$ICON_COLOR \
+                  click_script="$TEAMS_CLICK"
+
+sketchybar --add bracket status calendar control_center "Control Center,Battery" wifi volume "Control Center,com.microsoft.teams2" \
            --set status background.drawing=off
