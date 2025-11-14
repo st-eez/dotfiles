@@ -18,8 +18,8 @@ set_highlight() {
 }
 
 # Default highlight color from space_windows.sh
-HIGHLIGHT_COLOR=0xd0332f55
-TRANSPARENT=0x00000000
+HIGHLIGHT_COLOR=$HIGHLIGHT_TINT
+TRANSPARENT_COLOR=$TRANSPARENT
 
 case "$SENDER" in
   mouse.entered)
@@ -28,7 +28,7 @@ case "$SENDER" in
 
     # Remove tint from whichever space is currently focused
     if [ -n "$FOCUSED" ]; then
-      set_highlight "$FOCUSED" "$TRANSPARENT"
+      set_highlight "$FOCUSED" "$TRANSPARENT_COLOR"
     fi
 
     # Apply tint to hovered space
@@ -43,7 +43,7 @@ case "$SENDER" in
 
     # Clear tint from hovered item when leaving
     if [ -n "$HOVERED_ID" ]; then
-      set_highlight "$HOVERED_ID" "$TRANSPARENT"
+      set_highlight "$HOVERED_ID" "$TRANSPARENT_COLOR"
     fi
 
     # Restore tint to the actual focused workspace

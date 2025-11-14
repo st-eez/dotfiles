@@ -27,22 +27,22 @@ for WORKSPACE_ID in $WORKSPACES; do
       icon.highlight=true
       icon.color=$ICON_COLOR
       icon.font="JetBrainsMono Nerd Font:Bold:16.0"
-      label.color=0xffbb9af7
+      label.color=$SPACE_LABEL_ACTIVE
       label.highlight=true
       # background.border_color=0xff2AC3DE
-      background.border_color=0x00000000
-      background.color=0xd0332f55
+      background.border_color=$TRANSPARENT
+      background.color=$HIGHLIGHT_TINT
     )
   else
     highlight_args+=(
       --set "$item_name"
       icon.highlight=false
-      icon.color=0xcc939BBD
+      icon.color=$SPACE_LABEL_INACTIVE
       icon.font="JetBrainsMono Nerd Font:Regular:12.0"
-      label.color=0xcc939BBD
+      label.color=$SPACE_LABEL_INACTIVE
       label.highlight=false
-      background.border_color=0x00000000
-      background.color=0x00000000
+      background.border_color=$TRANSPARENT
+      background.color=$TRANSPARENT
     )
   fi
 done

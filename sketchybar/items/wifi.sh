@@ -15,7 +15,7 @@ wifi=(
   icon.padding_right=8
   label.drawing=off
   popup.align=center
-  background.color=0x00000000
+  background.color=$TRANSPARENT
   background.corner_radius=8
   background.height=26
   background.width=38
@@ -36,7 +36,7 @@ wifi_popup_toggle=(
   background.height=32
   background.padding_left=8
   background.padding_right=8
-  background.color=0x00000000
+  background.color=$TRANSPARENT
   click_script="$WIFI_POWER_TOGGLE"
   script="$POPUP_CONTROLLER"
 )
@@ -54,7 +54,7 @@ wifi_popup_info=(
   background.height=24
   background.padding_left=8
   background.padding_right=8
-  background.color=0x00000000
+  background.color=$TRANSPARENT
   script="$POPUP_CONTROLLER"
 )
 
@@ -75,9 +75,15 @@ wifi_popup_settings=(
   background.height=32
   background.padding_left=8
   background.padding_right=8
-  background.color=0x00000000
+  background.color=$TRANSPARENT
   click_script="open 'x-apple.systempreferences:com.apple.wifi-settings-extension'"
   script="$POPUP_CONTROLLER"
+)
+
+wifi_popup_controller=(
+  drawing=off
+  updates=on
+  script="$POPUP_CONTROLLER --refresh"
 )
 
 sketchybar --add item wifi right \
@@ -92,5 +98,9 @@ sketchybar --add item wifi.popup.toggle popup.wifi \
            --add item wifi.popup.settings popup.wifi \
            --set wifi.popup.settings "${wifi_popup_settings[@]}" \
            --subscribe wifi.popup.settings mouse.entered mouse.exited mouse.exited.global
+
+sketchybar --add item wifi.popup.controller right \
+           --set wifi.popup.controller "${wifi_popup_controller[@]}" \
+           --subscribe wifi.popup.controller wifi_change
 
 "$POPUP_CONTROLLER" --refresh >/dev/null 2>&1 &

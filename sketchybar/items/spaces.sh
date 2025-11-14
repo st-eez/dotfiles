@@ -2,22 +2,26 @@
 
 sketchybar --add event aerospace_workspace_change
 
+declare -A WORKSPACE_MONITORS
+for mon in {1..3}; do
+  workspace_ids="$(aerospace list-workspaces --monitor "$mon" 2>/dev/null)"
+  for ws in $workspace_ids; do
+    WORKSPACE_MONITORS["$ws"]=$mon
+  done
+done
+
+monitor_list="$(aerospace list-monitors 2>/dev/null)"
+
 for i in {1..9}; do
   sid=$i
 
   # Dynamically determine which monitor this workspace belongs to
-  monitor_id=""
-  for mon in {1..3}; do
-    if aerospace list-workspaces --monitor $mon | grep -q "^${sid}$"; then
-      monitor_id=$mon
-      break
-    fi
-  done
+  monitor_id="${WORKSPACE_MONITORS[$sid]}"
 
   # Detect setup by checking monitor names
   # Auto-detect Work vs Home setup
   display_id=""
-  if aerospace list-monitors | grep -q "LG ULTRAWIDE"; then
+  if echo "$monitor_list" | grep -q "LG ULTRAWIDE"; then
     # Work/Office setup - swapped displays 2 and 3
     case $monitor_id in
       1) display_id=1 ;;  # LG ULTRAWIDE (workspaces 1-4)
@@ -51,8 +55,8 @@ for i in {1..9}; do
     label.highlight_color=$ICON_COLOR
     label.font="sketchybar-app-font:Regular:12.0"
     label.y_offset=-1
-    background.color=0x00000000
-    background.border_color=0x00000000
+    background.color=$TRANSPARENT
+    background.border_color=$TRANSPARENT
   )
 
   sketchybar --add space space.$sid left \

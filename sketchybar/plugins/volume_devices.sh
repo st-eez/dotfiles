@@ -9,15 +9,28 @@ source "$CONFIG_DIR/icons.sh"
 
 FONT="JetBrainsMono Nerd Font"
 
-command -v SwitchAudioSource >/dev/null 2>&1 || exit 0
+if ! command -v SwitchAudioSource >/dev/null 2>&1; then
+  sketchybar --remove '/volume.device\..*/' >/dev/null 2>&1
+  sketchybar --add item volume.device.info popup.volume \
+             --set volume.device.info label="Install switchaudio-osx for device picker" \
+                                       label.font="$FONT:Regular:13.0" \
+                                       label.align=left \
+                                       label.padding_left=12 \
+                                       padding_left=8 \
+                                       padding_right=8 \
+                                       icon.drawing=off \
+                                       background.color=$INACTIVE_OVERLAY \
+             --subscribe volume.device.info mouse.entered mouse.exited.mouse.exited.global
+  exit 0
+fi
 
 CURRENT_DEVICE="$(SwitchAudioSource -t output -c 2>/dev/null)"
 DEVICES="$(SwitchAudioSource -a -t output 2>/dev/null | grep -vE '(ASUS VA24E|LG ULTRAWIDE|Microsoft Teams Audio|BenQ XL2411Z|Pixio PX248PS)')"
 
 INACTIVE_LABEL="$LABEL_COLOR"
-INACTIVE_BACKGROUND=0x12000000
+INACTIVE_BACKGROUND=$INACTIVE_OVERLAY
 ACTIVE_LABEL="$WHITE"
-ACTIVE_BACKGROUND=0x80332f55
+ACTIVE_BACKGROUND=$ACTIVE_OVERLAY
 
 # If called with --update-active, just update colors without rebuilding
 if [ "$1" = "--update-active" ]; then
@@ -97,7 +110,7 @@ sketchybar --add item volume.popup.settings popup.volume \
                  background.height=32 \
                  background.padding_left=8 \
                  background.padding_right=8 \
-                 background.color=0x00000000 \
+                 background.color=$TRANSPARENT \
                  click_script="open 'x-apple.systempreferences:com.apple.preference.sound'" \
                  script="$SCRIPT_DIR/apple_hover.sh" \
            --subscribe volume.popup.settings mouse.entered mouse.exited

@@ -4,8 +4,7 @@
 
 source "$CONFIG_DIR/colors.sh"
 
-HIGHLIGHT_COLOR=0xd0332f55
-TRANSPARENT=0x00000000
+HIGHLIGHT_COLOR=$HIGHLIGHT_TINT
 
 case "$SENDER" in
   mouse.entered)

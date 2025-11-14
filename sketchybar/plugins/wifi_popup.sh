@@ -8,7 +8,6 @@ source "$CONFIG_DIR/icons.sh"
 POPUP_PARENT="wifi"
 TOGGLE_ITEM="wifi.popup.toggle"
 
-ACTIVE_BG="${BG1:-0xff332f55}"
 INACTIVE_BG="${TRANSPARENT:-0x00000000}"
 BUSY_ICON="$LOADING"
 
@@ -98,7 +97,6 @@ set_toggle_visuals() {
       label="Wi-Fi On"
       icon_color="${GREEN:-0xff9ece6a}"
       label_color="${GREEN:-0xff9ece6a}"
-      background="$INACTIVE_BG"
       ;;
     off)
       icon="$WIFI_DISCONNECTED"
