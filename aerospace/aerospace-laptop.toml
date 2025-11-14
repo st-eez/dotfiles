@@ -8,7 +8,9 @@ enable-normalization-opposite-orientation-for-nested-containers = true
 default-root-container-layout = 'tiles'
 
 # Mouse follows focus (like yabai mouse_follows_focus)
-# on-focus-changed = ['move-mouse window-lazy-center']
+on-focus-changed = [
+    "exec-and-forget /bin/bash -c '/opt/homebrew/opt/sketchybar/bin/sketchybar --trigger aerospace_workspace_change AEROSPACE_FOCUSED_WORKSPACE=$(aerospace list-workspaces --focused)'",
+]
 
 # Automatically change accordion to tiles when only one window
 accordion-padding = 30

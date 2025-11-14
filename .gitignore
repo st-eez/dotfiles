@@ -25,6 +25,7 @@ Temporary Items
 # Personal notes and configs
 WORKING_NOTES*.md
 PROJECT_NOTES*.md
+sketchybar/AGENTS.md
 .gitconfig
 .gitconfig-*
 
