@@ -7,5 +7,5 @@
 
 if [ "$SENDER" = "front_app_switched" ]; then
   sketchybar --set "$NAME" label="$INFO"
-  sketchybar --trigger aerospace_workspace_change
+  sketchybar --trigger aerospace_workspace_change SKIP_ICON_REFRESH=1
 fi

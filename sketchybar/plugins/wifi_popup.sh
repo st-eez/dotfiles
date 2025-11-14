@@ -5,6 +5,7 @@ PLUGIN_DIR="${PLUGIN_DIR:-$CONFIG_DIR/plugins}"
 
 source "$CONFIG_DIR/colors.sh"
 source "$CONFIG_DIR/icons.sh"
+source "$CONFIG_DIR/plugins/wifi_common.sh"
 POPUP_PARENT="wifi"
 TOGGLE_ITEM="wifi.popup.toggle"
 
@@ -39,23 +40,6 @@ handle_mouse_event() {
 if [ "$#" -eq 0 ] && [ -n "$SENDER" ]; then
   handle_mouse_event
 fi
-
-get_wifi_device() {
-  networksetup -listallhardwareports 2>/dev/null | \
-    awk '/Hardware Port: (Wi-Fi|AirPort)/{getline; sub(/^Device: /,"" ); print; exit}'
-}
-
-get_wifi_power_state() {
-  local device="$1"
-  [ -z "$device" ] && { echo "missing"; return 1; }
-
-  local state
-  state=$(networksetup -getairportpower "$device" 2>/dev/null | awk '{print tolower($NF)}')
-  case "$state" in
-    on|off) echo "$state" ;;
-    *) echo "unknown"; return 1 ;;
-  esac
-}
 
 get_connection_type() {
   local active_interface interface_type
@@ -136,6 +120,11 @@ refresh_popup() {
     state="$(get_wifi_power_state "$device")"
   fi
 
+  case "$state" in
+    on|off|missing) ;;
+    *) state="unknown" ;;
+  esac
+
   set_toggle_visuals "$state"
   set_connection_info
 }
@@ -155,6 +144,11 @@ toggle_wifi() {
   fi
 
   state="$(get_wifi_power_state "$device")"
+  case "$state" in
+    on|off) ;;
+    missing) set_toggle_visuals "missing"; return 1 ;;
+    *) state="off" ;;
+  esac
   case "$state" in
     on)  target="off" ;;
     off) target="on" ;;

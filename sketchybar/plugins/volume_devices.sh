@@ -20,7 +20,7 @@ if ! command -v SwitchAudioSource >/dev/null 2>&1; then
                                        padding_right=8 \
                                        icon.drawing=off \
                                        background.color=$INACTIVE_OVERLAY \
-             --subscribe volume.device.info mouse.entered mouse.exited.mouse.exited.global
+             --subscribe volume.device.info mouse.entered mouse.exited mouse.exited.global
   exit 0
 fi
 
@@ -113,4 +113,4 @@ sketchybar --add item volume.popup.settings popup.volume \
                  background.color=$TRANSPARENT \
                  click_script="open 'x-apple.systempreferences:com.apple.preference.sound'" \
                  script="$SCRIPT_DIR/apple_hover.sh" \
-           --subscribe volume.popup.settings mouse.entered mouse.exited
+           --subscribe volume.popup.settings mouse.entered mouse.exited mouse.exited.global

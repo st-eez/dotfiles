@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
 
-BATTERY_CLICK='osascript -e "tell application \"System Events\" to tell process \"ControlCenter\" to click menu bar item 1 of menu bar 1"'
-CONTROL_CENTER_CLICK='osascript -e "tell application \"System Events\" to tell process \"ControlCenter\" to click menu bar item 4 of menu bar 1"'
-
 sketchybar --remove "Control Center,ControlCenter"
 
 control_center=(
@@ -14,7 +11,6 @@ control_center=(
   label.drawing=off
   padding_left=0
   padding_right=0
-  click_script="$CONTROL_CENTER_CLICK"
 )
 
 sketchybar --add item control_center right \
@@ -27,5 +23,4 @@ sketchybar --add alias "Control Center,Battery" right \
                   icon.padding_left=0 \
                   icon.padding_right=0 \
                   label.padding_left=0 \
-                  label.padding_right=0 \
-                  click_script="$BATTERY_CLICK"
+                  label.padding_right=0

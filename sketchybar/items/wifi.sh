@@ -95,6 +95,7 @@ sketchybar --add item wifi.popup.toggle popup.wifi \
            --subscribe wifi.popup.toggle mouse.entered mouse.exited mouse.exited.global \
            --add item wifi.popup.info popup.wifi \
            --set wifi.popup.info "${wifi_popup_info[@]}" \
+           --subscribe wifi.popup.info mouse.exited.global \
            --add item wifi.popup.settings popup.wifi \
            --set wifi.popup.settings "${wifi_popup_settings[@]}" \
            --subscribe wifi.popup.settings mouse.entered mouse.exited mouse.exited.global

@@ -801,5 +801,8 @@ function __icon_map() {
     esac
 }
 ### END-OF-ICON-MAP
-__icon_map "$1"
-echo "$icon_result"
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    __icon_map "$1"
+    echo "$icon_result"
+fi
