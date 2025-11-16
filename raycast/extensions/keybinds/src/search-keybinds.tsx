@@ -253,6 +253,16 @@ const SCREENSHOT_SECTIONS: ShortcutSection[] = [
   },
 ];
 
+const KEYBOARD_SECTIONS: ShortcutSection[] = [
+  {
+    platform: "macOS",
+    title: "macOS - Modifier Keys",
+    entries: [
+      { binding: "caps", description: "Tap: Escape; Hold: Command + Control + Option" },
+    ],
+  },
+];
+
 const APPLICATION_SECTIONS: ShortcutSection[] = [
   {
     platform: "Applications",
@@ -311,6 +321,7 @@ const APPLICATION_SECTIONS: ShortcutSection[] = [
 const SECTIONS: ShortcutSection[] = [
   ...AEROSPACE_SECTIONS,
   ...SCREENSHOT_SECTIONS,
+  ...KEYBOARD_SECTIONS,
   {
     platform: "Neovim",
     title: "Neovim - Navigation",
@@ -477,7 +488,7 @@ export default function Command() {
           <List.Dropdown.Item title="All" value="all" />
           <List.Dropdown.Item title="Aerospace" value="Aerospace" />
           <List.Dropdown.Item title="Neovim" value="Neovim" />
-          <List.Dropdown.Item title="Screenshots" value="macOS" />
+          <List.Dropdown.Item title="macOS" value="macOS" />
           <List.Dropdown.Item title="Applications" value="Applications" />
           <List.Dropdown.Item title="Microsoft Teams" value="Microsoft Teams" />
         </List.Dropdown>
