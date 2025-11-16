@@ -11,7 +11,7 @@ PADDINGS=1                     # All paddings use this value (icon, label, backg
 
 # Setting up the general bar appearance of the bar
 bar=(
-  height=30
+  height=34
   color=$BAR_COLOR
   border_width=0
   border_color=$BAR_BORDER_COLOR

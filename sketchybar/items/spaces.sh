@@ -41,19 +41,17 @@ for i in {1..9}; do
     space="$sid"
     display="$display_id"
     icon="$sid"
-    icon.color=$ICON_COLOR
-    icon.highlight_color=$RED
+    icon.color=$WORKSPACE_ICON_INACTIVE
+    icon.highlight_color=$WORKSPACE_ICON_ACTIVE
     icon.padding_left=6
     icon.padding_right=0
     ignore_association=off
     click_script="aerospace workspace $sid"
     script="$PLUGIN_DIR/space_hover.sh"
-    padding_left=2
-    padding_right=2
     label.padding_right=10
     label.color=$GREY
     label.highlight_color=$ICON_COLOR
-    label.font="sketchybar-app-font:Regular:12.0"
+    label.font="sketchybar-app-font:Regular:14.0"
     label.y_offset=-1
     background.color=$TRANSPARENT
     background.border_color=$TRANSPARENT
@@ -65,7 +63,7 @@ for i in {1..9}; do
 done
 
 
-space_creator=(
+space_separator=(
   icon=􀆊
   icon.font="$FONT:Black:14.0"
   padding_left=10
@@ -74,8 +72,8 @@ space_creator=(
   icon.color=$ICON_COLOR
 )
 
-sketchybar --add item space_creator left               \
-           --set space_creator "${space_creator[@]}"
+sketchybar --add item space_separator left               \
+           --set space_separator "${space_separator[@]}"
 
 workspace_controller=(
   drawing=off

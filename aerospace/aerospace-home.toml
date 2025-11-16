@@ -34,12 +34,12 @@ exec-on-workspace-change = [
 ]
 
 [gaps]
-inner.horizontal = 8
-inner.vertical =   8
-outer.left =       8
-outer.bottom =     8
-outer.top =        [{ monitor."built-in" = 8 }, 8]  # 12px for MacBook, 8px for externals
-outer.right =      8
+inner.horizontal = 10
+inner.vertical =   10
+outer.left =       10
+outer.bottom =     10
+outer.top =        [{ monitor."built-in" = 10 }, 10]  # 12px for MacBook, 8px for externals
+outer.right =      10
 
 # Home setup - BenQ, Pixio, and Built-in monitors
 [workspace-to-monitor-force-assignment]

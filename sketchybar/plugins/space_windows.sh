@@ -32,11 +32,13 @@ for WORKSPACE_ID in $WORKSPACES; do
     highlight_args+=(
       --set "$item_name"
       icon.highlight=true
-      icon.color=$ICON_COLOR
-      icon.font="JetBrainsMono Nerd Font:Bold:16.0"
-      label.color=$SPACE_LABEL_ACTIVE
+      icon.font="JetBrainsMono Nerd Font:Bold:18.0"
+      icon.padding_left=12
+      icon.padding_right=2
+      label.padding_left=4
+      label.padding_right=18
+      label.color=$WORKSPACE_ICON_ACTIVE
       label.highlight=true
-      # background.border_color=0xff2AC3DE
       background.border_color=$TRANSPARENT
       background.color=$HIGHLIGHT_TINT
     )
@@ -44,9 +46,12 @@ for WORKSPACE_ID in $WORKSPACES; do
     highlight_args+=(
       --set "$item_name"
       icon.highlight=false
-      icon.color=$SPACE_LABEL_INACTIVE
-      icon.font="JetBrainsMono Nerd Font:Regular:12.0"
-      label.color=$SPACE_LABEL_INACTIVE
+      icon.font="JetBrainsMono Nerd Font:Regular:14.0"
+      icon.padding_left=12
+      icon.padding_right=2
+      label.padding_left=4
+      label.padding_right=18
+      label.color=$WORKSPACE_ICON_INACTIVE
       label.highlight=false
       background.border_color=$TRANSPARENT
       background.color=$TRANSPARENT
@@ -90,7 +95,7 @@ fi
         icon_strip+=" $(icon_from_app "$app_name")"
       done <<<"$apps"
     else
-      icon_strip=""
+      icon_strip=" ~"
     fi
 
     label_args+=(
