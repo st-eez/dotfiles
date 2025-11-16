@@ -96,13 +96,24 @@ const keywords = (section: ShortcutSection, entry: ShortcutEntry) => {
     .split(/[^a-z0-9+]+/)
     .filter(Boolean);
 
+  const formattedBinding = formatKeybinding(entry.binding);
+  const formattedTokens = formattedBinding
+    .toLowerCase()
+    .split(/[^a-z0-9+]+/)
+    .filter(Boolean);
+
+  const formattedWithoutPlus = formattedBinding.replace(/\s*\+\s*/g, " ").trim();
+
   return [
     entry.description,
     section.title,
     entry.binding,
     entry.binding.replace(/-/g, " "),
+    formattedBinding,
+    formattedWithoutPlus,
     ...textTokens,
     ...sectionTokens,
+    ...formattedTokens,
   ];
 };
 
@@ -248,7 +259,7 @@ const APPLICATION_SECTIONS: ShortcutSection[] = [
     title: "Applications - Application Shortcuts",
     entries: [
       { binding: "ctrl-alt-cmd-shift-a", description: "Alarm.com" },
-      { binding: "ctrl-alt-cmd-b", description: "Brave Browser" },
+      { binding: "ctrl-alt-cmd-shift-b", description: "Brave Browser" },
       { binding: "ctrl-alt-cmd-shift-c", description: "Calendar" },
       { binding: "ctrl-alt-cmd-c", description: "ChatGPT" },
       { binding: "ctrl-alt-cmd-a", description: "Claude" },
@@ -256,6 +267,7 @@ const APPLICATION_SECTIONS: ShortcutSection[] = [
       { binding: "ctrl-alt-cmd-shift-f", description: "Finder" },
       { binding: "ctrl-alt-cmd-enter", description: "Ghostty" },
       { binding: "ctrl-alt-cmd-x", description: "Grok" },
+      { binding: "ctrl-alt-cmd-b", description: "Helium" },
       { binding: "ctrl-alt-cmd-shift-m", description: "Mail" },
       { binding: "ctrl-alt-cmd-m", description: "Messages" },
       { binding: "ctrl-alt-cmd-e", description: "Microsoft Excel" },
@@ -427,20 +439,29 @@ export default function Command() {
     platformFilter === "all" ? SECTIONS : SECTIONS.filter((section) => section.platform === platformFilter);
 
   const normalizedQuery = searchText.trim().toLowerCase();
+  const searchTokens = normalizedQuery.split(/\s+/).filter(Boolean);
 
   const filteredSections =
-    normalizedQuery.length === 0
+    searchTokens.length === 0
       ? platformFilteredSections
       : platformFilteredSections
           .map((section) => {
-            const sectionMatches = section.title.toLowerCase().includes(normalizedQuery);
+            const sectionMatches = searchTokens.every((token) =>
+              section.title.toLowerCase().includes(token)
+            );
             if (sectionMatches) {
               return section;
             }
 
             const matchingEntries = section.entries.filter((entry) => {
               const entryKeywords = keywords(section, entry).map((keyword) => keyword.toLowerCase());
-              return entryKeywords.some((keyword) => keyword.includes(normalizedQuery));
+              return searchTokens.every((token) =>
+                entryKeywords.some((keyword) => {
+                  const escapedToken = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                  const regex = new RegExp(`\\b${escapedToken}`, 'i');
+                  return regex.test(keyword);
+                })
+              );
             });
 
             return matchingEntries.length > 0 ? { ...section, entries: matchingEntries } : null;
