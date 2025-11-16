@@ -36,6 +36,9 @@ function __icon_map() {
    "Alacritty")
         icon_result=":alacritty:"
         ;;
+   "Alarm.com")
+        icon_result=":camera:"
+        ;;
    "Alfred")
         icon_result=":alfred:"
         ;;
@@ -269,6 +272,9 @@ function __icon_map() {
         ;;
    "Grammarly Editor")
         icon_result=":grammarly:"
+        ;;
+   "Helium")
+        icon_result=":helium:"
         ;;
    "Home Assistant")
         icon_result=":home_assistant:"
@@ -522,6 +528,9 @@ function __icon_map() {
    "Pearcleaner")
         icon_result=":pearcleaner:"
         ;;
+   "Perplexity")
+        icon_result=":perplexity:"
+        ;;
    "Phoenix Slides")
         icon_result=":phoenix_slides:"
         ;;
@@ -581,6 +590,9 @@ function __icon_map() {
         ;;
    "Raindrop.io")
         icon_result=":raindrop_io:"
+        ;;
+   "Raycast")
+        icon_result=":raycast:"
         ;;
    "Reeder")
         icon_result=":reeder5:"
