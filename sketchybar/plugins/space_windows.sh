@@ -94,8 +94,6 @@ fi
         [ -z "$app_name" ] && continue
         icon_strip+=" $(icon_from_app "$app_name")"
       done <<<"$apps"
-    else
-      icon_strip=" ~"
     fi
 
     label_args+=(

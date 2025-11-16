@@ -6,7 +6,7 @@
                     {
                         "manipulators": [
                             {
-                                "description": "Change caps_lock to command+control+option.",
+                                "description": "Change caps_lock to command+control+option (hold) or escape (tap).",
                                 "from": {
                                     "key_code": "caps_lock",
                                     "modifiers": { "optional": ["any"] }
@@ -15,6 +15,11 @@
                                     {
                                         "key_code": "left_command",
                                         "modifiers": ["left_control", "left_option"]
+                                    }
+                                ],
+                                "to_if_alone": [
+                                    {
+                                        "key_code": "escape"
                                     }
                                 ],
                                 "type": "basic"
