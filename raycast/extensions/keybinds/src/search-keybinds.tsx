@@ -257,8 +257,141 @@ const KEYBOARD_SECTIONS: ShortcutSection[] = [
   {
     platform: "macOS",
     title: "macOS - Modifier Keys",
+    entries: [{ binding: "caps", description: "Tap: Escape; Hold: Command + Control + Option" }],
+  },
+];
+
+const GHOSTTY_SECTIONS: ShortcutSection[] = [
+  {
+    platform: "Ghostty",
+    title: "Ghostty - Tab Management",
     entries: [
-      { binding: "caps", description: "Tap: Escape; Hold: Command + Control + Option" },
+      { binding: "cmd-t", description: "New tab" },
+      { binding: "cmd-w", description: "Close surface" },
+      { binding: "cmd-alt-w", description: "Close tab" },
+      { binding: "cmd-alt-shift-w", description: "Close all windows" },
+      { binding: "shift-cmd-w", description: "Close window" },
+      { binding: "cmd-1", description: "Go to tab 1" },
+      { binding: "cmd-2", description: "Go to tab 2" },
+      { binding: "cmd-3", description: "Go to tab 3" },
+      { binding: "cmd-4", description: "Go to tab 4" },
+      { binding: "cmd-5", description: "Go to tab 5" },
+      { binding: "cmd-6", description: "Go to tab 6" },
+      { binding: "cmd-7", description: "Go to tab 7" },
+      { binding: "cmd-8", description: "Go to tab 8" },
+      { binding: "cmd-9", description: "Last tab" },
+      { binding: "shift-cmd-[", description: "Previous tab" },
+      { binding: "shift-cmd-]", description: "Next tab" },
+      { binding: "ctrl-tab", description: "Next tab (cycle)" },
+      { binding: "ctrl-shift-tab", description: "Previous tab (cycle)" },
+      { binding: "shift-cmd-t", description: "Undo close tab" },
+      { binding: "shift-cmd-z", description: "Redo close tab" },
+      { binding: "cmd-z", description: "Undo close tab" },
+    ],
+  },
+  {
+    platform: "Ghostty",
+    title: "Ghostty - Split Management",
+    entries: [
+      { binding: "cmd-d", description: "New split (right)" },
+      { binding: "shift-cmd-d", description: "New split (down)" },
+      { binding: "cmd-alt-down", description: "Go to split down" },
+      { binding: "cmd-alt-up", description: "Go to split up" },
+      { binding: "cmd-alt-left", description: "Go to split left" },
+      { binding: "cmd-alt-right", description: "Go to split right" },
+      { binding: "cmd-[", description: "Go to previous split" },
+      { binding: "cmd-]", description: "Go to next split" },
+      { binding: "ctrl-cmd-down", description: "Resize split down by 10" },
+      { binding: "ctrl-cmd-up", description: "Resize split up by 10" },
+      { binding: "ctrl-cmd-left", description: "Resize split left by 10" },
+      { binding: "ctrl-cmd-right", description: "Resize split right by 10" },
+      { binding: "ctrl-cmd-equal", description: "Equalize splits" },
+      { binding: "shift-cmd-enter", description: "Toggle split zoom" },
+    ],
+  },
+  {
+    platform: "Ghostty",
+    title: "Ghostty - Window Management",
+    entries: [
+      { binding: "cmd-n", description: "New window" },
+      { binding: "cmd-q", description: "Quit Ghostty" },
+      { binding: "cmd-enter", description: "Toggle fullscreen" },
+      { binding: "ctrl-cmd-f", description: "Toggle fullscreen" },
+    ],
+  },
+  {
+    platform: "Ghostty",
+    title: "Ghostty - Navigation & Scrolling",
+    entries: [
+      { binding: "cmd-down", description: "Jump to next prompt" },
+      { binding: "cmd-up", description: "Jump to previous prompt" },
+      { binding: "shift-cmd-down", description: "Jump to next prompt" },
+      { binding: "shift-cmd-up", description: "Jump to previous prompt" },
+      { binding: "cmd-home", description: "Scroll to top" },
+      { binding: "cmd-end", description: "Scroll to bottom" },
+      { binding: "cmd-page_up", description: "Scroll page up" },
+      { binding: "cmd-page_down", description: "Scroll page down" },
+    ],
+  },
+  {
+    platform: "Ghostty",
+    title: "Ghostty - Text Selection & Clipboard",
+    entries: [
+      { binding: "cmd-c", description: "Copy to clipboard" },
+      { binding: "cmd-v", description: "Paste from clipboard" },
+      { binding: "shift-cmd-v", description: "Paste from selection" },
+      { binding: "cmd-a", description: "Select all" },
+      { binding: "shift-down", description: "Adjust selection down" },
+      { binding: "shift-up", description: "Adjust selection up" },
+      { binding: "shift-left", description: "Adjust selection left" },
+      { binding: "shift-right", description: "Adjust selection right" },
+      { binding: "shift-home", description: "Adjust selection to home" },
+      { binding: "shift-end", description: "Adjust selection to end" },
+      { binding: "shift-page_up", description: "Adjust selection page up" },
+      { binding: "shift-page_down", description: "Adjust selection page down" },
+      { binding: "copy", description: "Copy to clipboard (key)" },
+      { binding: "paste", description: "Paste from clipboard (key)" },
+    ],
+  },
+  {
+    platform: "Ghostty",
+    title: "Ghostty - Screen File Operations",
+    entries: [
+      { binding: "cmd-alt-shift-j", description: "Write screen file and open" },
+      { binding: "ctrl-cmd-shift-j", description: "Write screen file and copy path" },
+      { binding: "shift-cmd-j", description: "Paste screen file path" },
+    ],
+  },
+  {
+    platform: "Ghostty",
+    title: "Ghostty - Font & Display",
+    entries: [
+      { binding: "cmd-equal", description: "Increase font size by 1" },
+      { binding: "cmd-+", description: "Increase font size by 1" },
+      { binding: "cmd-minus", description: "Decrease font size by 1" },
+      { binding: "cmd-0", description: "Reset font size" },
+    ],
+  },
+  {
+    platform: "Ghostty",
+    title: "Ghostty - Configuration & Tools",
+    entries: [
+      { binding: "shift-cmd-,", description: "Reload config" },
+      { binding: "cmd-,", description: "Open config file" },
+      { binding: "cmd-alt-i", description: "Toggle inspector" },
+      { binding: "shift-cmd-p", description: "Toggle command palette" },
+      { binding: "cmd-k", description: "Clear screen" },
+    ],
+  },
+  {
+    platform: "Ghostty",
+    title: "Ghostty - Terminal Text Navigation",
+    entries: [
+      { binding: "cmd-left", description: "Jump to line start (Ctrl+A)" },
+      { binding: "cmd-right", description: "Jump to line end (Ctrl+E)" },
+      { binding: "alt-left", description: "Jump backward one word (Esc+B)" },
+      { binding: "alt-right", description: "Jump forward one word (Esc+F)" },
+      { binding: "cmd-backspace", description: "Delete to line start (Ctrl+U)" },
     ],
   },
 ];
@@ -322,6 +455,7 @@ const SECTIONS: ShortcutSection[] = [
   ...AEROSPACE_SECTIONS,
   ...SCREENSHOT_SECTIONS,
   ...KEYBOARD_SECTIONS,
+  ...GHOSTTY_SECTIONS,
   {
     platform: "Neovim",
     title: "Neovim - Navigation",
@@ -441,7 +575,6 @@ const SECTIONS: ShortcutSection[] = [
   ...APPLICATION_SECTIONS,
 ];
 
-
 export default function Command() {
   const [platformFilter, setPlatformFilter] = useState<string>("all");
   const [searchText, setSearchText] = useState<string>("");
@@ -457,9 +590,7 @@ export default function Command() {
       ? platformFilteredSections
       : platformFilteredSections
           .map((section) => {
-            const sectionMatches = searchTokens.every((token) =>
-              section.title.toLowerCase().includes(token)
-            );
+            const sectionMatches = searchTokens.every((token) => section.title.toLowerCase().includes(token));
             if (sectionMatches) {
               return section;
             }
@@ -468,10 +599,10 @@ export default function Command() {
               const entryKeywords = keywords(section, entry).map((keyword) => keyword.toLowerCase());
               return searchTokens.every((token) =>
                 entryKeywords.some((keyword) => {
-                  const escapedToken = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                  const regex = new RegExp(`\\b${escapedToken}`, 'i');
+                  const escapedToken = token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+                  const regex = new RegExp(`\\b${escapedToken}`, "i");
                   return regex.test(keyword);
-                })
+                }),
               );
             });
 
@@ -487,6 +618,7 @@ export default function Command() {
         <List.Dropdown tooltip="Filter by Platform" value={platformFilter} onChange={setPlatformFilter}>
           <List.Dropdown.Item title="All" value="all" />
           <List.Dropdown.Item title="Aerospace" value="Aerospace" />
+          <List.Dropdown.Item title="Ghostty" value="Ghostty" />
           <List.Dropdown.Item title="Neovim" value="Neovim" />
           <List.Dropdown.Item title="macOS" value="macOS" />
           <List.Dropdown.Item title="Applications" value="Applications" />
