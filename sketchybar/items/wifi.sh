@@ -1,12 +1,9 @@
 #!/usr/bin/env bash
 
 POPUP_CONTROLLER="$PLUGIN_DIR/wifi_popup.sh"
-POPUP_CLICK_SCRIPT="if [ \"\$BUTTON\" = \"right\" ]; then osascript -e 'tell application \"System Events\" to tell process \"ControlCenter\" to click menu bar item 3 of menu bar 1'; else $POPUP_CONTROLLER --toggle-popup; fi"
-WIFI_POWER_TOGGLE="$POPUP_CONTROLLER --toggle-wifi"
 
 wifi=(
   script="$PLUGIN_DIR/wifi.sh"
-  click_script="$POPUP_CLICK_SCRIPT"
   padding_left=0
   padding_right=0
   icon.font="$FONT:Regular:16.0"
@@ -37,7 +34,6 @@ wifi_popup_toggle=(
   background.padding_left=8
   background.padding_right=8
   background.color=$TRANSPARENT
-  click_script="$WIFI_POWER_TOGGLE"
   script="$POPUP_CONTROLLER"
 )
 
@@ -76,7 +72,6 @@ wifi_popup_settings=(
   background.padding_left=8
   background.padding_right=8
   background.color=$TRANSPARENT
-  click_script="open 'x-apple.systempreferences:com.apple.wifi-settings-extension'"
   script="$POPUP_CONTROLLER"
 )
 

@@ -12,6 +12,13 @@ done
 
 monitor_list="$(aerospace list-monitors 2>/dev/null)"
 
+# Check if this is laptop-only mode (only built-in monitor)
+is_laptop_only=false
+monitor_count=$(echo "$monitor_list" | wc -l)
+if [ "$monitor_count" -eq 1 ] && echo "$monitor_list" | grep -q "Built-in"; then
+  is_laptop_only=true
+fi
+
 for i in {1..9}; do
   sid=$i
 
@@ -19,9 +26,12 @@ for i in {1..9}; do
   monitor_id="${WORKSPACE_MONITORS[$sid]}"
 
   # Detect setup by checking monitor names
-  # Auto-detect Work vs Home setup
+  # Auto-detect Work vs Home vs Laptop-only setup
   display_id=""
-  if echo "$monitor_list" | grep -q "LG ULTRAWIDE"; then
+  if [ "$is_laptop_only" = true ]; then
+    # Laptop-only setup - all workspaces on single display
+    display_id=1
+  elif echo "$monitor_list" | grep -q "LG ULTRAWIDE"; then
     # Work/Office setup - swapped displays 2 and 3
     case $monitor_id in
       1) display_id=1 ;;  # LG ULTRAWIDE (workspaces 1-4)

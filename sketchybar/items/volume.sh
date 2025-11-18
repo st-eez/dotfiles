@@ -1,11 +1,9 @@
 #!/usr/bin/env bash
 
-POPUP_TOGGLE="$PLUGIN_DIR/volume_devices.sh; sketchybar --set \$NAME popup.drawing=toggle"
 CURRENT_VOLUME="$(osascript -e 'output volume of (get volume settings)' 2>/dev/null || echo 0)"
 
 volume=(
   script="$PLUGIN_DIR/volume.sh"
-  click_script="$POPUP_TOGGLE"
   padding_left=0
   padding_right=0
   icon.font="$FONT:Regular:16.0"
@@ -49,11 +47,8 @@ sketchybar --add slider volume.popup.slider popup.volume \
 
 "$PLUGIN_DIR/volume_devices.sh"
 
-TEAMS_CLICK='osascript -e "tell application \"System Events\" to tell process \"MSTeams\" to click menu bar item 1 of menu bar 2"'
-
 sketchybar --add alias "Control Center,com.microsoft.teams2" right \
            --set "Control Center,com.microsoft.teams2" alias.color=$ICON_COLOR \
-                  click_script="$TEAMS_CLICK"
 
 sketchybar --add bracket status calendar control_center "Control Center,Battery" wifi volume "Control Center,com.microsoft.teams2" \
            --set status background.drawing=off

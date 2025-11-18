@@ -82,8 +82,7 @@ while IFS= read -r device; do
                                      background.padding_left=6 \
                                      background.padding_right=6 \
                                      background.color="$background_color" \
-                                     script="BASE_BACKGROUND=$background_color BASE_LABEL=$label_color $HOVER_SCRIPT" \
-               click_script="SwitchAudioSource -t output -s \"${device}\" && sleep 0.1 && $SELF_SCRIPT --update-active")
+                                     script="BASE_BACKGROUND=$background_color BASE_LABEL=$label_color $HOVER_SCRIPT")
   args+=(--subscribe volume.device.$COUNTER mouse.entered mouse.exited mouse.exited.global)
 
   COUNTER=$((COUNTER + 1))
@@ -111,6 +110,5 @@ sketchybar --add item volume.popup.settings popup.volume \
                  background.padding_left=8 \
                  background.padding_right=8 \
                  background.color=$TRANSPARENT \
-                 click_script="open 'x-apple.systempreferences:com.apple.preference.sound'" \
                  script="$SCRIPT_DIR/apple_hover.sh" \
            --subscribe volume.popup.settings mouse.entered mouse.exited mouse.exited.global

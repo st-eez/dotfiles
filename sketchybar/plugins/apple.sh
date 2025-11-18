@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
 
-POPUP_OFF='sketchybar --set apple.logo popup.drawing=off'
-POPUP_CLICK_SCRIPT='sketchybar --set $NAME popup.drawing=toggle'
-
 apple_logo=(
   icon=$APPLE
   icon.font="$FONT:Black:18.0"
@@ -12,7 +9,6 @@ apple_logo=(
   label.padding_right=5
   padding_left=0
   label.drawing=off
-  click_script="$POPUP_CLICK_SCRIPT"
   popup.height=35
 )
 
@@ -29,7 +25,6 @@ apple_prefs=(
   background.padding_left=6
   background.padding_right=6
   script="$PLUGIN_DIR/apple_hover.sh"
-  click_script="open -a 'System Preferences'; $POPUP_OFF"
 )
 
 apple_activity=(
@@ -45,7 +40,6 @@ apple_activity=(
   background.padding_left=6
   background.padding_right=6
   script="$PLUGIN_DIR/apple_hover.sh"
-  click_script="open -a 'Activity Monitor'; $POPUP_OFF"
 )
 
 apple_lock=(
@@ -61,7 +55,6 @@ apple_lock=(
   background.padding_left=6
   background.padding_right=6
   script="$PLUGIN_DIR/apple_hover.sh"
-  click_script="pmset displaysleepnow; $POPUP_OFF"
 )
 
 sketchybar --add item apple.logo left                 \
