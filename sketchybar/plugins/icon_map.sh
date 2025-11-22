@@ -54,6 +54,9 @@ function __icon_map() {
    "Anytype")
         icon_result=":anytype:"
         ;;
+   "Antigravity")
+        icon_result=":cursor:"
+        ;;
    "App Eraser")
         icon_result=":app_eraser:"
         ;;

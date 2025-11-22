@@ -17,11 +17,63 @@ LAST_BACKUP_DIR=""
 # - neovim: Terminal-based editor configured in dotfiles/nvim
 # - fzf: Fuzzy finder (used by shell aliases and Neovim pickers)
 # - ripgrep: Fast text search leveraged by shell and Neovim
-ESSENTIAL_FORMULAE=(neovim fzf ripgrep)
+# - borders: Window border system (JankyBorders)
+# - sketchybar: Menu bar replacement
+# - btop: Resource monitor
+# - neofetch: System info display
+# - cmatrix: Matrix screensaver
+# - seven-zip: File archiver
+ESSENTIAL_FORMULAE=(
+  neovim
+  fzf
+  ripgrep
+  borders
+  sketchybar
+  btop
+  neofetch
+  cmatrix
+  seven-zip
+  zoxide
+  dimitrieh/autoraise/autoraise
+)
 
 # Essential Homebrew casks
 # - ghostty: GPU-accelerated terminal emulator configured under ghostty/config
-ESSENTIAL_CASKS=(ghostty)
+# - aerospace: Tiling window manager
+# - bettertouchtool: Gesture automation
+# - betterdisplay: Display management
+# - rectangle: Window snapping
+# - raycast: Launcher
+# - karabiner-elements: Keyboard customization
+# - tinkertool: System tweaks
+# - bitwarden: Password manager
+# - brave-browser: Web browser
+# - discord: Chat
+# - gimp: Image editor
+# - obsidian: Note taking
+# - protonvpn: VPN
+# - rustdesk: Remote desktop
+# - visual-studio-code: Code editor
+# - vmware-fusion: Virtualization
+ESSENTIAL_CASKS=(
+  ghostty
+  nikitabobko/tap/aerospace
+  bettertouchtool
+  betterdisplay
+  rectangle
+  raycast
+  karabiner-elements
+  tinkertool
+  bitwarden
+  brave-browser
+  discord
+  gimp
+  obsidian
+  protonvpn
+  rustdesk
+  visual-studio-code
+  vmware-fusion
+)
 
 # Symlink configuration: source path (relative to DOTFILES_DIR) | target path (relative to TARGET_HOME)
 declare -a SYMLINK_MAPPINGS=(
@@ -31,6 +83,11 @@ declare -a SYMLINK_MAPPINGS=(
   "zsh/.oh-my-zsh/custom/aliases.zsh|.oh-my-zsh/custom/aliases.zsh"
   "ghostty/config|.config/ghostty/config"
   "nvim|.config/nvim"
+  "aerospace/aerospace.toml|.aerospace.toml"
+  "autoraise/config|.config/AutoRaise/config"
+  "borders/bordersrc|.config/borders/bordersrc"
+  "karabiner/karabiner.json|.config/karabiner/karabiner.json"
+  "sketchybar|.config/sketchybar"
 )
 
 log() {
@@ -677,6 +734,24 @@ confirm_execution() {
   fi
 }
 
+setup_gitconfig() {
+  local target="${TARGET_HOME}/.gitconfig"
+  local template="${DOTFILES_DIR}/git/.gitconfig.template"
+
+  if [[ -f "$target" ]]; then
+    ok "Git config already exists at $target"
+    return
+  fi
+
+  if "$DRY_RUN"; then
+    log "DRY" "cp \"$template\" \"$target\""
+  else
+    action "Copying gitconfig template to $target"
+    cp "$template" "$target"
+    ok "Created .gitconfig from template. Please edit it to set your name and email."
+  fi
+}
+
 main() {
   parse_args "$@"
   show_menu
@@ -695,6 +770,7 @@ main() {
       preflight
       backup_existing_files
       create_symlinks
+      setup_gitconfig
       finish_prompt
       ;;
     *)

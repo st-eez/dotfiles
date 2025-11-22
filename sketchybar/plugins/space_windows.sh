@@ -15,7 +15,7 @@ if [ "$SENDER" != "aerospace_workspace_change" ] && [ "$SENDER" != "forced" ]; t
   exit 0
 fi
 
-WORKSPACES=${WORKSPACES_OVERRIDE:-"1 2 3 4 5 6 7 8 9"}
+WORKSPACES=${WORKSPACES_OVERRIDE:-"1 2 3 4 5 6 7 8 9 0"}
 FOCUSED="${AEROSPACE_FOCUSED_WORKSPACE:-}"
 SKIP_ICON_REFRESH="${SKIP_ICON_REFRESH:-}"
 

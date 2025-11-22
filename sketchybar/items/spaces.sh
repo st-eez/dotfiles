@@ -42,8 +42,8 @@ for i in {1..9}; do
     # Home setup - swapped mapping for BenQ/Pixio
     case $monitor_id in
       1) display_id=2 ;;  # BenQ XL2411Z (workspaces 1-4)
-      2) display_id=1 ;;  # Pixio PX248PS (workspace 9)
-      3) display_id=3 ;;  # Built-in Retina Display (workspaces 5-8)
+      2) display_id=1 ;;  # Pixio PX248PS (workspaces 5-8)
+      3) display_id=3 ;;  # Built-in Retina Display (workspaces 9 and 0)
     esac
   fi
 
@@ -71,6 +71,53 @@ for i in {1..9}; do
              --set space.$sid "${space[@]}" \
              --subscribe space.$sid mouse.entered mouse.exited
 done
+
+# Add workspace 0 separately (appears after workspace 9 on Built-in display)
+sid=0
+monitor_id="${WORKSPACE_MONITORS[$sid]}"
+
+display_id=""
+if [ "$is_laptop_only" = true ]; then
+  display_id=1
+elif echo "$monitor_list" | grep -q "LG ULTRAWIDE"; then
+  # Work/Office setup
+  case $monitor_id in
+    1) display_id=1 ;;
+    2) display_id=3 ;;
+    3) display_id=2 ;;
+  esac
+else
+  # Home setup - workspace 0 on Built-in (monitor 3 → display 3)
+  case $monitor_id in
+    1) display_id=2 ;;
+    2) display_id=1 ;;
+    3) display_id=3 ;;
+  esac
+fi
+
+space=(
+  space="$sid"
+  display="$display_id"
+  icon="$sid"
+  icon.color=$WORKSPACE_ICON_INACTIVE
+  icon.highlight_color=$WORKSPACE_ICON_ACTIVE
+  icon.padding_left=6
+  icon.padding_right=0
+  ignore_association=off
+  click_script="aerospace workspace $sid"
+  script="$PLUGIN_DIR/space_hover.sh"
+  label.padding_right=10
+  label.color=$GREY
+  label.highlight_color=$ICON_COLOR
+  label.font="sketchybar-app-font:Regular:14.0"
+  label.y_offset=-1
+  background.color=$TRANSPARENT
+  background.border_color=$TRANSPARENT
+)
+
+sketchybar --add space space.$sid left \
+           --set space.$sid "${space[@]}" \
+           --subscribe space.$sid mouse.entered mouse.exited
 
 
 space_separator=(
