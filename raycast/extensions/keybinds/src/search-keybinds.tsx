@@ -126,10 +126,18 @@ const AEROSPACE_SECTIONS: ShortcutSection[] = [
       { binding: "ctrl-alt-cmd-right", description: "Move focus right" },
       { binding: "ctrl-alt-cmd-up", description: "Move focus up" },
       { binding: "ctrl-alt-cmd-down", description: "Move focus down" },
+      { binding: "ctrl-alt-cmd-h", description: "Move focus left" },
+      { binding: "ctrl-alt-cmd-l", description: "Move focus right" },
+      { binding: "ctrl-alt-cmd-k", description: "Move focus up" },
+      { binding: "ctrl-alt-cmd-j", description: "Move focus down" },
       { binding: "ctrl-alt-cmd-shift-left", description: "Swap window left (wraps to prev monitor)" },
       { binding: "ctrl-alt-cmd-shift-right", description: "Swap window right (wraps to next monitor)" },
       { binding: "ctrl-alt-cmd-shift-up", description: "Swap window up (wraps to upper monitor)" },
       { binding: "ctrl-alt-cmd-shift-down", description: "Swap window down (wraps to lower monitor)" },
+      { binding: "ctrl-alt-cmd-shift-h", description: "Swap window left (wraps to prev monitor)" },
+      { binding: "ctrl-alt-cmd-shift-l", description: "Swap window right (wraps to next monitor)" },
+      { binding: "ctrl-alt-cmd-shift-k", description: "Swap window up (wraps to upper monitor)" },
+      { binding: "ctrl-alt-cmd-shift-j", description: "Swap window down (wraps to lower monitor)" },
     ],
   },
   {
@@ -145,6 +153,7 @@ const AEROSPACE_SECTIONS: ShortcutSection[] = [
       { binding: "ctrl-alt-cmd-7", description: "Jump to workspace 7" },
       { binding: "ctrl-alt-cmd-8", description: "Jump to workspace 8" },
       { binding: "ctrl-alt-cmd-9", description: "Jump to workspace 9" },
+      { binding: "ctrl-alt-cmd-0", description: "Jump to workspace 0" },
     ],
   },
   {
@@ -160,6 +169,7 @@ const AEROSPACE_SECTIONS: ShortcutSection[] = [
       { binding: "ctrl-alt-cmd-shift-7", description: "Move window to workspace 7 and follow" },
       { binding: "ctrl-alt-cmd-shift-8", description: "Move window to workspace 8 and follow" },
       { binding: "ctrl-alt-cmd-shift-9", description: "Move window to workspace 9 and follow" },
+      { binding: "ctrl-alt-cmd-shift-0", description: "Move window to workspace 0 and follow" },
     ],
   },
   {
@@ -177,7 +187,6 @@ const AEROSPACE_SECTIONS: ShortcutSection[] = [
     entries: [
       { binding: "ctrl-alt-cmd-t", description: "Toggle floating/tiling mode" },
       { binding: "ctrl-alt-cmd-f", description: "Toggle fullscreen" },
-      { binding: "ctrl-alt-cmd-shift-j", description: "Toggle split direction (horizontal/vertical)" },
     ],
   },
   {
@@ -194,7 +203,6 @@ const AEROSPACE_SECTIONS: ShortcutSection[] = [
     platform: "Aerospace",
     title: "Aerospace - Layout Management",
     entries: [
-      { binding: "ctrl-alt-cmd-shift-0", description: "Flatten workspace tree" },
       { binding: "ctrl-alt-left", description: "Join window with left" },
       { binding: "ctrl-alt-right", description: "Join window with right" },
       { binding: "ctrl-alt-up", description: "Join window with up" },
@@ -218,6 +226,7 @@ const AEROSPACE_SECTIONS: ShortcutSection[] = [
     platform: "Aerospace",
     title: "Aerospace - Configuration",
     entries: [
+      { binding: "alt-shift-r", description: "Flatten workspace tree (reset layout)" },
       { binding: "alt-shift-h", description: "Switch to home setup" },
       { binding: "alt-shift-w", description: "Switch to work/office setup" },
       { binding: "alt-shift-l", description: "Switch to laptop-only setup" },
@@ -225,6 +234,7 @@ const AEROSPACE_SECTIONS: ShortcutSection[] = [
       { binding: "alt-shift-a", description: "Toggle AutoRaise on/off" },
       { binding: "alt-shift-c", description: "Reload aerospace config" },
       { binding: "alt-shift-f", description: "Toggle macOS native fullscreen" },
+      { binding: "alt-shift-j", description: "Toggle split direction (horizontal/vertical)" },
     ],
   },
   {
@@ -402,6 +412,7 @@ const APPLICATION_SECTIONS: ShortcutSection[] = [
     title: "Applications - Application Shortcuts",
     entries: [
       { binding: "ctrl-alt-cmd-shift-a", description: "Alarm.com" },
+      { binding: "ctrl-alt-cmd-v", description: "Antigravity" },
       { binding: "ctrl-alt-cmd-shift-b", description: "Brave Browser" },
       { binding: "ctrl-alt-cmd-shift-c", description: "Calendar" },
       { binding: "ctrl-alt-cmd-c", description: "ChatGPT" },
@@ -409,6 +420,7 @@ const APPLICATION_SECTIONS: ShortcutSection[] = [
       { binding: "ctrl-alt-cmd-d", description: "Discord" },
       { binding: "ctrl-alt-cmd-shift-f", description: "Finder" },
       { binding: "ctrl-alt-cmd-enter", description: "Ghostty" },
+      { binding: "ctrl-alt-cmd-g", description: "Google Chrome" },
       { binding: "ctrl-alt-cmd-x", description: "Grok" },
       { binding: "ctrl-alt-cmd-b", description: "Helium" },
       { binding: "ctrl-alt-cmd-shift-m", description: "Mail" },
@@ -430,13 +442,13 @@ const APPLICATION_SECTIONS: ShortcutSection[] = [
     platform: "Applications",
     title: "Applications - Commands",
     entries: [
-      { binding: "ctrl-alt-cmd-v", description: "Clipboard History" },
+      { binding: "opt-v", description: "Clipboard History" },
       { binding: "ctrl-alt-cmd-`", description: "Confetti" },
       { binding: "shift-cmd-l", description: "Autofill last used login (Bitwarden/Brave)" },
       { binding: "ctrl-alt-cmd-shift-z", description: "AI Chat" },
       { binding: "ctrl-alt-cmd-space", description: "Search Emoji & Symbols" },
       { binding: "alt-f", description: "Search Files" },
-      { binding: "ctrl-alt-cmd-k", description: "Search Keybinds" },
+      { binding: "alt-k", description: "Search Keybinds" },
     ],
   },
   {
