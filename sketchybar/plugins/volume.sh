@@ -36,8 +36,4 @@ case "$SENDER" in
     fi
     sketchybar --set "$NAME" icon="$ICON" icon.color="$ICON_COLOR"
     ;;
-
-  "mouse.entered"|"mouse.exited")
-    # Leave background untouched so no highlight effect
-    ;;
 esac
