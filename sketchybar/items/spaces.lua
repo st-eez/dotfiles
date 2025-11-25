@@ -7,13 +7,17 @@ local sbar = require("sketchybar")
 package.path = package.path .. ";./helpers/?.lua"
 local app_icons = require("helpers.icon_map")
 
+local monitor_profiles = (settings.monitors and settings.monitors.profiles) or {}
+local default_monitor_profile = (settings.monitors and settings.monitors.default_profile) or "home"
+local laptop_display = (settings.monitors and settings.monitors.laptop_display) or 1
+
 local spaces = {}
 local current_workspace = nil
 
 -- Styling Constants
 local active_color = colors.white
 local inactive_color = colors.grey -- 0xff565f89
-local highlight_tint = 0x1A7aa2f7 -- 10% Blue tint
+local highlight_tint = colors.highlight or 0x1A7aa2f7 -- 10% Blue tint
 local transparent = colors.transparent
 
 -- Function to update window icons for a specific space
@@ -37,12 +41,13 @@ local function update_highlight(focused_sid)
   current_workspace = focused_sid
   for sid, item in pairs(spaces) do
     local is_selected = (tostring(sid) == tostring(focused_sid))
+    local icon_font = is_selected and { style = settings.font.style_map.bold, size = 18.0 }
+                                   or { style = settings.font.style_map.regular, size = 14.0 }
     
     item:set({
       icon = { 
         highlight = is_selected,
-        font = is_selected and { style = settings.font.style_map.bold, size = 18.0 }
-                            or { style = settings.font.style_map.regular, size = 14.0 },
+        font = icon_font,
         padding_left = 12,
         padding_right = 2,
       },
@@ -68,6 +73,14 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
   for line in monitor_output:gmatch("[^\r\n]+") do
     table.insert(monitor_list, line)
   end
+
+  local active_profile = monitor_profiles[default_monitor_profile]
+  for _, profile in pairs(monitor_profiles) do
+    if profile.match and monitor_output:find(profile.match) then
+      active_profile = profile
+      break
+    end
+  end
   
   if #monitor_list == 1 and monitor_output:find("Built%-in") then
     is_laptop_only = true
@@ -84,23 +97,11 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
 
     for _, sid in ipairs(workspaces) do
       local monitor_id = workspace_monitors[sid] or 1
-      local display_id = 1 -- Default
+      local display_id = laptop_display
 
-      -- Monitor Mapping Logic (Mirrored from spaces.sh)
-      if is_laptop_only then
-        display_id = 1
-      elseif monitor_output:find("LG ULTRAWIDE") then
-        -- Work/Office Setup
-        if monitor_id == 1 then display_id = 1      -- LG ULTRAWIDE
-        elseif monitor_id == 2 then display_id = 3  -- Built-in
-        elseif monitor_id == 3 then display_id = 2  -- ASUS
-        end
-      else
-        -- Home Setup
-        if monitor_id == 1 then display_id = 2      -- BenQ
-        elseif monitor_id == 2 then display_id = 1  -- Pixio
-        elseif monitor_id == 3 then display_id = 3  -- Built-in
-        end
+      if not is_laptop_only then
+        local map = (active_profile and active_profile.map) or {}
+        display_id = map[monitor_id] or laptop_display
       end
 
       -- Create the Space Item
@@ -158,10 +159,6 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
       padding_left = 0,
       padding_right = 0,
     })
-    
-    -- Load front_app here to ensure it appears after spaces
-    require("items.front_app")
-
     -- Controller / Observer
     local spacer_observer = sbar.add("item", { drawing = false, updates = true })
     
@@ -182,7 +179,9 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
     end)
 
     -- Initial Trigger
-    sbar.trigger("aerospace_workspace_change")
+    if next(spaces) then
+      sbar.trigger("aerospace_workspace_change")
+    end
   end
 
   -- Chain calls to populate workspace_monitors

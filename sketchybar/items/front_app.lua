@@ -15,9 +15,19 @@ local front_app = sbar.add("item", "front_app", {
   updates = true,
 })
 
+-- Ensure ordering stays after the spaces separator once it exists
+local function ensure_order()
+  sbar.exec("sketchybar --move front_app after space_separator")
+end
+
+ensure_order()
+
 front_app:subscribe("front_app_switched", function(env)
   front_app:set({ label = env.INFO })
 end)
+
+-- Re-assert ordering as the bar updates
+front_app:subscribe({ "routine", "aerospace_workspace_change" }, ensure_order)
 
 front_app:subscribe("mouse.clicked", function(env)
   sbar.exec("open -a 'Mission Control'")

@@ -3,15 +3,6 @@ local settings = require("settings")
 local sbar = require("sketchybar")
 
 local calendar = sbar.add("item", "calendar", {
-  icon = {
-    font = {
-      style = settings.font.style_map.bold,
-      size = 13.0,
-    },
-    padding_left = 10,
-    padding_right = 5,
-    color = colors.white,
-  },
   label = {
     font = {
       family = settings.font.family,

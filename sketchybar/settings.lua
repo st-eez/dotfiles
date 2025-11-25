@@ -43,6 +43,20 @@ local settings = {
       border_width = 2,
     }
   },
+  monitors = {
+    -- Display assignment per monitor_id (as reported by AeroSpace) to SketchyBar display_id
+    laptop_display = 1,
+    default_profile = "home",
+    profiles = {
+      work = {
+        match = "LG ULTRAWIDE",
+        map = { [1] = 1, [2] = 3, [3] = 2 },
+      },
+      home = {
+        map = { [1] = 2, [2] = 1, [3] = 3 },
+      },
+    },
+  },
 }
 
 return settings
