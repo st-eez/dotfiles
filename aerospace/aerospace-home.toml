@@ -148,7 +148,7 @@ outer.right =      10
     alt-shift-h = 'exec-and-forget /bin/bash -c "cp ~/.config/aerospace/aerospace-home.toml ~/.config/aerospace/aerospace.toml && aerospace reload-config && sketchybar --reload"'
     alt-shift-w = 'exec-and-forget /bin/bash -c "cp ~/.config/aerospace/aerospace-office.toml ~/.config/aerospace/aerospace.toml && aerospace reload-config && sketchybar --reload"'
     alt-shift-l = 'exec-and-forget /bin/bash -c "cp ~/.config/aerospace/aerospace-laptop.toml ~/.config/aerospace/aerospace.toml && aerospace reload-config && sketchybar --reload"'
-    alt-shift-m = 'exec-and-forget /bin/bash ~/.config/sketchybar/toggle_topmost.sh'
+    alt-shift-m = 'exec-and-forget ~/.config/sketchybar/toggle_topmost.lua'
     alt-shift-a = 'exec-and-forget /bin/bash ~/.config/AutoRaise/toggle_autoraise.sh'
 
 [[on-window-detected]]

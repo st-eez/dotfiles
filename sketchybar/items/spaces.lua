@@ -1,0 +1,208 @@
+local colors = require("colors")
+local settings = require("settings")
+local icons = require("icons")
+local sbar = require("sketchybar")
+
+-- Add helpers to package path to load icon_map
+package.path = package.path .. ";./helpers/?.lua"
+local app_icons = require("helpers.icon_map")
+
+local spaces = {}
+local current_workspace = nil
+
+-- Styling Constants
+local active_color = colors.white
+local inactive_color = colors.grey -- 0xff565f89
+local highlight_tint = 0x1A7aa2f7 -- 10% Blue tint
+local transparent = colors.transparent
+
+-- Function to update window icons for a specific space
+local function update_windows(space_id)
+  sbar.exec("aerospace list-windows --workspace " .. space_id .. " --format '%{app-name}'", function(apps)
+    local icon_line = ""
+    if apps then
+      for app in apps:gmatch("[^\r\n]+") do
+        local icon = app_icons[app] or app_icons["Default"] or icons.activity
+        icon_line = icon_line .. " " .. icon
+      end
+    end
+    if spaces[space_id] then
+      spaces[space_id]:set({ label = icon_line })
+    end
+  end)
+end
+
+-- Function to update highlighting (Focus/Unfocus)
+local function update_highlight(focused_sid)
+  current_workspace = focused_sid
+  for sid, item in pairs(spaces) do
+    local is_selected = (tostring(sid) == tostring(focused_sid))
+    
+    item:set({
+      icon = { 
+        highlight = is_selected,
+        font = is_selected and { style = settings.font.style_map.bold, size = 18.0 }
+                            or { style = settings.font.style_map.regular, size = 14.0 },
+        padding_left = 12,
+        padding_right = 2,
+      },
+      label = {
+        highlight = is_selected,
+        color = is_selected and active_color or inactive_color,
+        padding_left = 4,
+        padding_right = 18,
+      },
+      background = {
+        border_color = transparent,
+        color = is_selected and highlight_tint or transparent
+      }
+    })
+  end
+end
+
+-- Main Setup
+-- 1. Get Monitor List to determine setup type
+sbar.exec("aerospace list-monitors", function(monitor_output)
+  local is_laptop_only = false
+  local monitor_list = {}
+  for line in monitor_output:gmatch("[^\r\n]+") do
+    table.insert(monitor_list, line)
+  end
+  
+  if #monitor_list == 1 and monitor_output:find("Built%-in") then
+    is_laptop_only = true
+  end
+
+  -- 2. Map Workspaces to Monitors (Async chain)
+  -- We need to know which monitor each workspace is on to assign display_id correctly.
+  -- Since we can't do synchronous calls, we'll fetch all assignments first.
+  
+  local workspace_monitors = {} -- [sid] = monitor_id (1, 2, 3)
+  
+  local function setup_spaces()
+    local workspaces = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0" }
+
+    for _, sid in ipairs(workspaces) do
+      local monitor_id = workspace_monitors[sid] or 1
+      local display_id = 1 -- Default
+
+      -- Monitor Mapping Logic (Mirrored from spaces.sh)
+      if is_laptop_only then
+        display_id = 1
+      elseif monitor_output:find("LG ULTRAWIDE") then
+        -- Work/Office Setup
+        if monitor_id == 1 then display_id = 1      -- LG ULTRAWIDE
+        elseif monitor_id == 2 then display_id = 3  -- Built-in
+        elseif monitor_id == 3 then display_id = 2  -- ASUS
+        end
+      else
+        -- Home Setup
+        if monitor_id == 1 then display_id = 2      -- BenQ
+        elseif monitor_id == 2 then display_id = 1  -- Pixio
+        elseif monitor_id == 3 then display_id = 3  -- Built-in
+        end
+      end
+
+      -- Create the Space Item
+      spaces[sid] = sbar.add("item", "space." .. sid, {
+        icon = {
+          string = sid,
+          color = inactive_color,
+          highlight_color = active_color,
+          padding_left = 6,
+          padding_right = 0,
+          font = { family = settings.font.family, style = settings.font.style_map.regular, size = 14.0 },
+        },
+        label = {
+          string = "",
+          color = inactive_color,
+          highlight_color = colors.white,
+          font = { family = "sketchybar-app-font", style = "Regular", size = 14.0 },
+          y_offset = -1,
+          padding_right = 10,
+        },
+        background = {
+          color = transparent,
+          border_color = transparent,
+        },
+        display = display_id,
+        click_script = "aerospace workspace " .. sid,
+        position = "left",
+      })
+
+      -- Subscribe to mouse events (Hover)
+      spaces[sid]:subscribe("mouse.entered", function(env)
+        spaces[sid]:set({ background = { color = highlight_tint } })
+      end)
+
+      spaces[sid]:subscribe("mouse.exited", function(env)
+        if tostring(sid) ~= tostring(current_workspace) then
+          spaces[sid]:set({ background = { color = transparent } })
+        else
+          spaces[sid]:set({ background = { color = highlight_tint } })
+        end
+      end)
+    end
+
+    -- Separator
+    sbar.add("item", "space_separator", {
+      icon = {
+        string = "􀆊",
+        font = { size = 14.0, style = "Black" },
+        color = colors.white,
+        padding_left = 10,
+        padding_right = 8,
+      },
+      label = { drawing = false },
+      position = "left",
+      padding_left = 0,
+      padding_right = 0,
+    })
+    
+    -- Load front_app here to ensure it appears after spaces
+    require("items.front_app")
+
+    -- Controller / Observer
+    local spacer_observer = sbar.add("item", { drawing = false, updates = true })
+    
+    spacer_observer:subscribe("aerospace_workspace_change", function(env)
+      local focused_workspace = env.FOCUSED_WORKSPACE
+      
+      if not focused_workspace or focused_workspace == "" then
+         sbar.exec("aerospace list-workspaces --focused", function(f) 
+           local clean_f = f:gsub("%s+", "")
+           update_highlight(clean_f)
+         end)
+      else
+         update_highlight(focused_workspace)
+      end
+
+      -- Refresh windows for ALL spaces
+      for s, _ in pairs(spaces) do update_windows(s) end
+    end)
+
+    -- Initial Trigger
+    sbar.trigger("aerospace_workspace_change")
+  end
+
+  -- Chain calls to populate workspace_monitors
+  local function fetch_monitor_workspaces(mon_idx)
+    if mon_idx > 3 then
+      setup_spaces() -- Done fetching, proceed to setup
+      return
+    end
+    
+    sbar.exec("aerospace list-workspaces --monitor " .. mon_idx, function(ws_list)
+      if ws_list then
+        for ws in ws_list:gmatch("%S+") do
+           workspace_monitors[ws] = mon_idx
+        end
+      end
+      fetch_monitor_workspaces(mon_idx + 1)
+    end)
+  end
+
+  fetch_monitor_workspaces(1) -- Start fetching for monitor 1
+end)
+
+return spaces

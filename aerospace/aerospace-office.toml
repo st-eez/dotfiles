@@ -118,6 +118,29 @@ outer.right =      10
     ctrl-alt-cmd-t = 'layout floating tiling'  # Super+T → Ctrl+T
     ctrl-alt-cmd-f = 'fullscreen'  # Super+F → Ctrl+F
 
+    # Resize windows (CAPS + +/-)
+    ctrl-alt-cmd-equal = 'resize smart +100'
+    ctrl-alt-cmd-minus = 'resize smart -100'
+    ctrl-alt-cmd-shift-equal = 'resize smart +50'
+    ctrl-alt-cmd-shift-minus = 'resize smart -50'
+
+    # Layout management (CTRL + ALT + arrows)
+    ctrl-alt-left  = 'join-with left'
+    ctrl-alt-right = 'join-with right'
+    ctrl-alt-up    = 'join-with up'
+    ctrl-alt-down  = 'join-with down'
+
+    # Move window to different monitor (CTRL + ALT + SHIFT + arrows)
+    ctrl-alt-shift-left  = 'exec-and-forget bash -c "aerospace move-node-to-monitor --wrap-around --focus-follows-window prev && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+    ctrl-alt-shift-right = 'exec-and-forget bash -c "aerospace move-node-to-monitor --wrap-around --focus-follows-window next && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+    ctrl-alt-shift-up    = 'exec-and-forget bash -c "aerospace move-node-to-monitor --wrap-around --focus-follows-window up && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+    ctrl-alt-shift-down  = 'exec-and-forget bash -c "aerospace move-node-to-monitor --wrap-around --focus-follows-window down && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+
+    # Move window to specific monitor by number (CTRL + ALT + SHIFT + number)
+    ctrl-alt-shift-1 = 'move-node-to-monitor 1'
+    ctrl-alt-shift-2 = 'move-node-to-monitor 2'
+    ctrl-alt-shift-3 = 'move-node-to-monitor 3'
+
     # Configuration management (Custom bindings kept)
     alt-shift-j = 'layout tiles horizontal vertical'
     alt-shift-f = 'macos-native-fullscreen'
@@ -126,7 +149,7 @@ outer.right =      10
     alt-shift-h = 'exec-and-forget /bin/bash -c "cp ~/.config/aerospace/aerospace-home.toml ~/.config/aerospace/aerospace.toml && aerospace reload-config && sketchybar --reload"'
     alt-shift-w = 'exec-and-forget /bin/bash -c "cp ~/.config/aerospace/aerospace-office.toml ~/.config/aerospace/aerospace.toml && aerospace reload-config && sketchybar --reload"'
     alt-shift-l = 'exec-and-forget /bin/bash -c "cp ~/.config/aerospace/aerospace-laptop.toml ~/.config/aerospace/aerospace.toml && aerospace reload-config && sketchybar --reload"'
-    alt-shift-m = 'exec-and-forget /bin/bash ~/.config/sketchybar/toggle_topmost.sh'
+    alt-shift-m = 'exec-and-forget ~/.config/sketchybar/toggle_topmost.lua'
     alt-shift-a = 'exec-and-forget /bin/bash ~/.config/AutoRaise/toggle_autoraise.sh'
 
 [[on-window-detected]]
