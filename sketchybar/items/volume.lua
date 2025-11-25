@@ -1,6 +1,4 @@
 local colors = require("colors")
-local icons = require("icons")
-local settings = require("settings")
 local sbar = require("sketchybar")
 
 -- Mirror the macOS Control Center volume item as an alias
