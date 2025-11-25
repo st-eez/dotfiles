@@ -9,6 +9,7 @@ sbar.bar({
   color = colors.bar.bg,
   border_width = 0,
   border_color = colors.bar.border,
+  corner_radius = 0,
   shadow = false,
   position = settings.bar.position,
   sticky = settings.bar.sticky,

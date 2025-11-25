@@ -16,7 +16,8 @@ local current_workspace = nil
 
 -- Styling Constants
 local active_color = colors.white
-local inactive_color = colors.grey -- 0xff565f89
+-- Tokyo Night comment-ish tone for inactive state
+local inactive_color = 0xff565f89
 local highlight_tint = colors.highlight or 0x1A7aa2f7 -- 10% Blue tint
 local transparent = colors.transparent
 
