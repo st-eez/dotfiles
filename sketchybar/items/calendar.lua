@@ -14,7 +14,7 @@ local calendar = sbar.add("item", "calendar", {
     color = colors.white,
   },
   position = "right",
-  update_freq = 5, -- refresh every 5 seconds for higher accuracy
+  update_freq = 30, -- refresh every 30 seconds; still accurate, less churn
   padding_left = 1,
   padding_right = 1,
   background = {
