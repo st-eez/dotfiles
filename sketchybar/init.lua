@@ -64,7 +64,6 @@ sbar.default({
 -- Load Items
 require("items.apple")
 require("items.spaces")
-require("items.front_app")
 require("items.calendar")
 require("items.control_center")
 require("items.battery")

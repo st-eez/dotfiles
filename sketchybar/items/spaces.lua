@@ -159,23 +159,70 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
       padding_left = 0,
       padding_right = 0,
     })
+
+    -- Front App (placed immediately after separator for deterministic ordering)
+    local front_app = sbar.add("item", "front_app", {
+      icon = { drawing = false },
+      label = {
+        font = {
+          family = settings.font.family,
+          style = settings.font.style_map.bold,
+          size = 13.0,
+        },
+      },
+      display = "active",
+      position = "left",
+      updates = true,
+    })
+
+    front_app:subscribe("front_app_switched", function(env)
+      front_app:set({ label = env.INFO })
+    end)
+
+    front_app:subscribe("mouse.clicked", function(env)
+      sbar.exec("open -a 'Mission Control'")
+    end)
+
+    -- Initial label population
+    sbar.exec("aerospace list-windows --focused --format '%{app-name}'", function(app_name)
+      if app_name and app_name ~= "" then
+        front_app:set({ label = app_name:gsub("\n", "") })
+      end
+    end)
     -- Controller / Observer
     local spacer_observer = sbar.add("item", { drawing = false, updates = true })
     
+    -- One-time initial window population for all spaces
+    for s, _ in pairs(spaces) do
+      update_windows(s)
+    end
+
     spacer_observer:subscribe("aerospace_workspace_change", function(env)
       local focused_workspace = env.FOCUSED_WORKSPACE
-      
-      if not focused_workspace or focused_workspace == "" then
-         sbar.exec("aerospace list-workspaces --focused", function(f) 
-           local clean_f = f:gsub("%s+", "")
-           update_highlight(clean_f)
-         end)
-      else
-         update_highlight(focused_workspace)
-      end
+      local prev_workspace = current_workspace -- capture before highlight updates it
 
-      -- Refresh windows for ALL spaces
-      for s, _ in pairs(spaces) do update_windows(s) end
+      if not focused_workspace or focused_workspace == "" then
+        sbar.exec("aerospace list-workspaces --focused", function(f)
+          local clean_f = f:gsub("%s+", "")
+          update_highlight(clean_f)
+
+          if prev_workspace and spaces[prev_workspace] then
+            update_windows(prev_workspace)
+          end
+          if spaces[clean_f] then
+            update_windows(clean_f)
+          end
+        end)
+      else
+        update_highlight(focused_workspace)
+
+        if prev_workspace and spaces[prev_workspace] then
+          update_windows(prev_workspace)
+        end
+        if spaces[focused_workspace] then
+          update_windows(focused_workspace)
+        end
+      end
     end)
 
     -- Initial Trigger
