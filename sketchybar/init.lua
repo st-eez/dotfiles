@@ -71,6 +71,7 @@ require("items.battery")
 require("items.wifi")
 require("items.volume")
 require("items.teams")
+require("items.betterdisplay")
 
 -- Hotload configuration
 sbar.exec("sketchybar --hotload true")

@@ -3,6 +3,7 @@ local icons = {
   apple = "􀣺",
   preferences = "􀺽",
   activity = "􀒓",
+  display = "􀢹",
 }
 
 return icons

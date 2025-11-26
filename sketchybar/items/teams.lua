@@ -16,6 +16,7 @@ local teams = sbar.add("alias", teams_alias, {
 		padding_right = 0,
 	},
 	label = {
+		drawing = false,
 		padding_left = 0,
 		padding_right = 0,
 	},
