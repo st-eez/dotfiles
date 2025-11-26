@@ -18,7 +18,7 @@ local current_workspace = nil
 local active_color = colors.white
 -- Tokyo Night comment-ish tone for inactive state
 local inactive_color = 0xff565f89
-local highlight_tint = colors.highlight or 0x1A7aa2f7 -- 10% Blue tint
+local highlight_tint = colors.highlight or 0x337aa2f7 -- 20% Blue tint
 local transparent = colors.transparent
 
 -- Function to update window icons for a specific space
