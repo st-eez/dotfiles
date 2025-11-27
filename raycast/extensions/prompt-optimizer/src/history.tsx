@@ -66,11 +66,11 @@ export default function HistoryCommand() {
         title: "History Exported",
         message: `Saved to Downloads/${filename}`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       showToast({
         style: Toast.Style.Failure,
         title: "Export Failed",
-        message: error.message,
+        message: error instanceof Error ? error.message : String(error),
       });
     }
   }
@@ -98,10 +98,7 @@ export default function HistoryCommand() {
                           <Detail.Metadata.Label title="Engine" text={item.engine} />
                           {item.model && <Detail.Metadata.Label title="Model" text={item.model} />}
                           <Detail.Metadata.Label title="Duration" text={`${item.durationSec}s`} />
-                          <Detail.Metadata.Label
-                            title="Date"
-                            text={new Date(item.timestamp).toLocaleString()}
-                          />
+                          <Detail.Metadata.Label title="Date" text={new Date(item.timestamp).toLocaleString()} />
                         </Detail.Metadata>
                       }
                       actions={

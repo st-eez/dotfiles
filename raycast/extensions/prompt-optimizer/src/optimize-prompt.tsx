@@ -86,10 +86,10 @@ export default function Command() {
           }
         />,
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.style = Toast.Style.Failure;
       toast.title = "Failed to optimize prompt";
-      toast.message = error.message;
+      toast.message = error instanceof Error ? error.message : String(error);
     } finally {
       clearInterval(timer);
       setIsLoading(false);

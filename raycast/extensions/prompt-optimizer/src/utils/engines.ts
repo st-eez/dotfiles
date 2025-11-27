@@ -59,6 +59,11 @@ export const engines: Engine[] = [
       );
     },
   },
+  // Claude engine disabled due to known authentication bug in Claude Code CLI
+  // Non-interactive mode (-p) fails with "Invalid API key" even when logged in
+  // See: https://github.com/anthropics/claude-code/issues/5666
+  // Uncomment when fixed
+  /*
   {
     name: "claude",
     displayName: "Claude",
@@ -69,10 +74,11 @@ export const engines: Engine[] = [
       { id: "opus", label: "Opus" },
     ],
     run: async (prompt, model = "sonnet") => {
-      // Claude: claude -p "<prompt>" --model sonnet (alias for latest Sonnet)
-      return safeExec("claude", ["-p", "--model", model], buildOptimizationPrompt(prompt));
+      // Claude: Run in login shell to access Keychain/Env vars
+      return safeExec("/bin/zsh", ["-l", "-c", `cat | claude -p --model ${model}`], buildOptimizationPrompt(prompt));
     },
   },
+  */
   {
     name: "gemini",
     displayName: "Gemini",

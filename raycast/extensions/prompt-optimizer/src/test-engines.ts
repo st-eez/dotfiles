@@ -15,10 +15,12 @@ async function testEngines() {
       const result = await engine.run(testPrompt);
       console.log(`✅ Success! Output length: ${result.length}`);
       // console.log("Output:", result); // Uncomment to see full output
-    } catch (error: any) {
-      console.error(`❌ Failed: ${error.message}`);
-      if (error.stderr) {
-        console.error("Stderr:", error.stderr);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`❌ Failed: ${message}`);
+      const execError = error as { stderr?: string };
+      if (execError.stderr) {
+        console.error("Stderr:", execError.stderr);
       }
     }
   }

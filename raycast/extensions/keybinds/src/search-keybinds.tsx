@@ -12,6 +12,12 @@ type ShortcutSection = {
   entries: ShortcutEntry[];
 };
 
+type ScoredEntry = {
+  section: ShortcutSection;
+  entry: ShortcutEntry;
+  score: number;
+};
+
 const ARROWS: Record<string, string> = {
   left: "←",
   right: "→",
@@ -52,38 +58,29 @@ const formatKeybinding = (binding: string) => {
       });
     });
 
-  const normalizedTokens = tokens.map((part) => part.toLowerCase());
-  const hasCtrl = normalizedTokens.some((token) => token === "ctrl" || token === "control");
-  const hasAlt = normalizedTokens.some((token) => token === "alt" || token === "option" || token === "opt");
-  const hasCmd = normalizedTokens.some((token) => token === "cmd" || token === "command");
-  const collapseToCaps = hasCtrl && hasAlt && hasCmd;
-
-  const formattedTokens: string[] = [];
-  let capsInserted = false;
-
-  tokens.forEach((part) => {
+  const formattedTokens = tokens.map((part) => {
     const normalized = part.toLowerCase();
-    if (
-      collapseToCaps &&
-      (normalized === "ctrl" ||
-        normalized === "control" ||
-        normalized === "alt" ||
-        normalized === "option" ||
-        normalized === "opt" ||
-        normalized === "cmd" ||
-        normalized === "command")
-    ) {
-      if (!capsInserted) {
-        formattedTokens.push("CAPS");
-        capsInserted = true;
-      }
-      return;
-    }
-
-    formattedTokens.push(ARROWS[normalized] ?? KEY_LABELS[normalized] ?? part.toUpperCase());
+    return ARROWS[normalized] ?? KEY_LABELS[normalized] ?? part.toUpperCase();
   });
 
   return formattedTokens.join(" + ");
+};
+
+const normalizeModifier = (token: string): string[] => {
+  const lower = token.toLowerCase();
+  if (lower === "alt" || lower === "option" || lower === "opt") {
+    return ["alt", "option", "opt"];
+  }
+  if (lower === "cmd" || lower === "command") {
+    return ["cmd", "command"];
+  }
+  if (lower === "ctrl" || lower === "control") {
+    return ["ctrl", "control"];
+  }
+  if (lower === "caps" || lower === "capslock" || lower === "hyper") {
+    return ["caps", "capslock", "hyper"];
+  }
+  return [lower];
 };
 
 const keywords = (section: ShortcutSection, entry: ShortcutEntry) => {
@@ -104,6 +101,12 @@ const keywords = (section: ShortcutSection, entry: ShortcutEntry) => {
 
   const formattedWithoutPlus = formattedBinding.replace(/\s*\+\s*/g, " ").trim();
 
+  const bindingParts = entry.binding
+    .toLowerCase()
+    .split(/[-+\s]+/)
+    .filter(Boolean);
+  const normalizedBindingParts = bindingParts.flatMap(normalizeModifier);
+
   return [
     entry.description,
     section.title,
@@ -114,7 +117,107 @@ const keywords = (section: ShortcutSection, entry: ShortcutEntry) => {
     ...textTokens,
     ...sectionTokens,
     ...formattedTokens,
+    ...normalizedBindingParts,
   ];
+};
+
+const scoreMatch = (section: ShortcutSection, entry: ShortcutEntry, searchTokens: string[]): number => {
+  if (searchTokens.length === 0) {
+    return 1;
+  }
+
+  const formattedBinding = formatKeybinding(entry.binding).toLowerCase();
+  const formattedBindingNoPlus = formattedBinding.replace(/\s*\+\s*/g, " ").trim();
+  const bindingTokens = formattedBindingNoPlus.split(/\s+/);
+
+  const normalizedBinding = entry.binding.toLowerCase();
+  const bindingParts = normalizedBinding.split(/[-+\s]+/).filter(Boolean);
+  const expandedBindingParts = bindingParts.flatMap(normalizeModifier);
+
+  const descriptionLower = entry.description.toLowerCase();
+  const titleLower = section.title.toLowerCase();
+
+  const searchString = searchTokens.join(" ");
+
+  // Score 100: Exact match with formatted binding (e.g., "cmd t" matches "CMD + T" exactly)
+  if (formattedBindingNoPlus === searchString) {
+    return 100;
+  }
+
+  // Score 90: Exact match with raw binding (e.g., "cmd-t" matches binding "cmd-t")
+  if (normalizedBinding === searchString || normalizedBinding === searchTokens.join("-")) {
+    return 90;
+  }
+
+  // Score 80: All search tokens match binding tokens exactly in order
+  let allTokensMatchBinding = true;
+  let tokenIndex = 0;
+  for (const searchToken of searchTokens) {
+    let foundMatch = false;
+    while (tokenIndex < bindingTokens.length) {
+      const bindingToken = bindingTokens[tokenIndex];
+      const expandedToken = normalizeModifier(bindingToken);
+      if (expandedToken.some((t) => t.startsWith(searchToken) || searchToken.startsWith(t))) {
+        foundMatch = true;
+        tokenIndex++;
+        break;
+      }
+      tokenIndex++;
+    }
+    if (!foundMatch) {
+      allTokensMatchBinding = false;
+      break;
+    }
+  }
+  if (allTokensMatchBinding && searchTokens.length === bindingTokens.length) {
+    return 80;
+  }
+
+  // Score 70: All search tokens found in binding parts (any order)
+  const allInBinding = searchTokens.every((token) =>
+    expandedBindingParts.some((part) => part.startsWith(token) || token.startsWith(part)),
+  );
+  if (allInBinding) {
+    return 70;
+  }
+
+  // Score 50: All search tokens found in binding + description combined
+  const allInBindingOrDescription = searchTokens.every((token) => {
+    const inBinding = expandedBindingParts.some((part) => part.startsWith(token) || token.startsWith(part));
+    const inDescription = descriptionLower.includes(token);
+    return inBinding || inDescription;
+  });
+  if (allInBindingOrDescription) {
+    return 50;
+  }
+
+  // Score 30: All search tokens found in description only
+  const allInDescription = searchTokens.every((token) => descriptionLower.includes(token));
+  if (allInDescription) {
+    return 30;
+  }
+
+  // Score 20: All search tokens found in section title
+  const allInTitle = searchTokens.every((token) => titleLower.includes(token));
+  if (allInTitle) {
+    return 20;
+  }
+
+  // Score 10: Partial matches via keywords (fallback)
+  const entryKeywords = keywords(section, entry).map((k) => k.toLowerCase());
+  const allInKeywords = searchTokens.every((token) =>
+    entryKeywords.some((keyword) => {
+      const escapedToken = token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = new RegExp(`\\b${escapedToken}`, "i");
+      return regex.test(keyword);
+    }),
+  );
+  if (allInKeywords) {
+    return 10;
+  }
+
+  // Score 0: No match
+  return 0;
 };
 
 const AEROSPACE_SECTIONS: ShortcutSection[] = [
@@ -122,62 +225,62 @@ const AEROSPACE_SECTIONS: ShortcutSection[] = [
     platform: "Aerospace",
     title: "Aerospace - Window Navigation",
     entries: [
-      { binding: "ctrl-alt-cmd-left", description: "Move focus left" },
-      { binding: "ctrl-alt-cmd-right", description: "Move focus right" },
-      { binding: "ctrl-alt-cmd-up", description: "Move focus up" },
-      { binding: "ctrl-alt-cmd-down", description: "Move focus down" },
-      { binding: "ctrl-alt-cmd-h", description: "Move focus left" },
-      { binding: "ctrl-alt-cmd-l", description: "Move focus right" },
-      { binding: "ctrl-alt-cmd-k", description: "Move focus up" },
-      { binding: "ctrl-alt-cmd-j", description: "Move focus down" },
-      { binding: "ctrl-alt-cmd-shift-left", description: "Swap window left (wraps to prev monitor)" },
-      { binding: "ctrl-alt-cmd-shift-right", description: "Swap window right (wraps to next monitor)" },
-      { binding: "ctrl-alt-cmd-shift-up", description: "Swap window up (wraps to upper monitor)" },
-      { binding: "ctrl-alt-cmd-shift-down", description: "Swap window down (wraps to lower monitor)" },
-      { binding: "ctrl-alt-cmd-shift-h", description: "Swap window left (wraps to prev monitor)" },
-      { binding: "ctrl-alt-cmd-shift-l", description: "Swap window right (wraps to next monitor)" },
-      { binding: "ctrl-alt-cmd-shift-k", description: "Swap window up (wraps to upper monitor)" },
-      { binding: "ctrl-alt-cmd-shift-j", description: "Swap window down (wraps to lower monitor)" },
+      { binding: "caps-left", description: "Move focus left" },
+      { binding: "caps-right", description: "Move focus right" },
+      { binding: "caps-up", description: "Move focus up" },
+      { binding: "caps-down", description: "Move focus down" },
+      { binding: "caps-h", description: "Move focus left" },
+      { binding: "caps-l", description: "Move focus right" },
+      { binding: "caps-k", description: "Move focus up" },
+      { binding: "caps-j", description: "Move focus down" },
+      { binding: "caps-shift-left", description: "Swap window left (wraps to prev monitor)" },
+      { binding: "caps-shift-right", description: "Swap window right (wraps to next monitor)" },
+      { binding: "caps-shift-up", description: "Swap window up (wraps to upper monitor)" },
+      { binding: "caps-shift-down", description: "Swap window down (wraps to lower monitor)" },
+      { binding: "caps-shift-h", description: "Swap window left (wraps to prev monitor)" },
+      { binding: "caps-shift-l", description: "Swap window right (wraps to next monitor)" },
+      { binding: "caps-shift-k", description: "Swap window up (wraps to upper monitor)" },
+      { binding: "caps-shift-j", description: "Swap window down (wraps to lower monitor)" },
     ],
   },
   {
     platform: "Aerospace",
     title: "Aerospace - Jump to Workspace",
     entries: [
-      { binding: "ctrl-alt-cmd-1", description: "Jump to workspace 1" },
-      { binding: "ctrl-alt-cmd-2", description: "Jump to workspace 2" },
-      { binding: "ctrl-alt-cmd-3", description: "Jump to workspace 3" },
-      { binding: "ctrl-alt-cmd-4", description: "Jump to workspace 4" },
-      { binding: "ctrl-alt-cmd-5", description: "Jump to workspace 5" },
-      { binding: "ctrl-alt-cmd-6", description: "Jump to workspace 6" },
-      { binding: "ctrl-alt-cmd-7", description: "Jump to workspace 7" },
-      { binding: "ctrl-alt-cmd-8", description: "Jump to workspace 8" },
-      { binding: "ctrl-alt-cmd-9", description: "Jump to workspace 9" },
-      { binding: "ctrl-alt-cmd-0", description: "Jump to workspace 0" },
+      { binding: "caps-1", description: "Jump to workspace 1" },
+      { binding: "caps-2", description: "Jump to workspace 2" },
+      { binding: "caps-3", description: "Jump to workspace 3" },
+      { binding: "caps-4", description: "Jump to workspace 4" },
+      { binding: "caps-5", description: "Jump to workspace 5" },
+      { binding: "caps-6", description: "Jump to workspace 6" },
+      { binding: "caps-7", description: "Jump to workspace 7" },
+      { binding: "caps-8", description: "Jump to workspace 8" },
+      { binding: "caps-9", description: "Jump to workspace 9" },
+      { binding: "caps-0", description: "Jump to workspace 0" },
     ],
   },
   {
     platform: "Aerospace",
     title: "Aerospace - Move Window to Workspace (Follow)",
     entries: [
-      { binding: "ctrl-alt-cmd-shift-1", description: "Move window to workspace 1 and follow" },
-      { binding: "ctrl-alt-cmd-shift-2", description: "Move window to workspace 2 and follow" },
-      { binding: "ctrl-alt-cmd-shift-3", description: "Move window to workspace 3 and follow" },
-      { binding: "ctrl-alt-cmd-shift-4", description: "Move window to workspace 4 and follow" },
-      { binding: "ctrl-alt-cmd-shift-5", description: "Move window to workspace 5 and follow" },
-      { binding: "ctrl-alt-cmd-shift-6", description: "Move window to workspace 6 and follow" },
-      { binding: "ctrl-alt-cmd-shift-7", description: "Move window to workspace 7 and follow" },
-      { binding: "ctrl-alt-cmd-shift-8", description: "Move window to workspace 8 and follow" },
-      { binding: "ctrl-alt-cmd-shift-9", description: "Move window to workspace 9 and follow" },
-      { binding: "ctrl-alt-cmd-shift-0", description: "Move window to workspace 0 and follow" },
+      { binding: "caps-shift-1", description: "Move window to workspace 1 and follow" },
+      { binding: "caps-shift-2", description: "Move window to workspace 2 and follow" },
+      { binding: "caps-shift-3", description: "Move window to workspace 3 and follow" },
+      { binding: "caps-shift-4", description: "Move window to workspace 4 and follow" },
+      { binding: "caps-shift-5", description: "Move window to workspace 5 and follow" },
+      { binding: "caps-shift-6", description: "Move window to workspace 6 and follow" },
+      { binding: "caps-shift-7", description: "Move window to workspace 7 and follow" },
+      { binding: "caps-shift-8", description: "Move window to workspace 8 and follow" },
+      { binding: "caps-shift-9", description: "Move window to workspace 9 and follow" },
+      { binding: "caps-shift-0", description: "Move window to workspace 0 and follow" },
     ],
   },
   {
     platform: "Aerospace",
     title: "Aerospace - Workspace Cycling",
     entries: [
-      { binding: "ctrl-alt-cmd-tab", description: "Next workspace" },
-      { binding: "ctrl-alt-cmd-shift-tab", description: "Previous workspace" },
+      { binding: "caps-tab", description: "Next workspace" },
+      { binding: "caps-shift-tab", description: "Previous workspace" },
       { binding: "ctrl-alt-tab", description: "Switch to previous workspace (back-and-forth)" },
     ],
   },
@@ -185,18 +288,18 @@ const AEROSPACE_SECTIONS: ShortcutSection[] = [
     platform: "Aerospace",
     title: "Aerospace - Window Controls",
     entries: [
-      { binding: "ctrl-alt-cmd-t", description: "Toggle floating/tiling mode" },
-      { binding: "ctrl-alt-cmd-f", description: "Toggle fullscreen" },
+      { binding: "caps-t", description: "Toggle floating/tiling mode" },
+      { binding: "caps-f", description: "Toggle fullscreen" },
     ],
   },
   {
     platform: "Aerospace",
     title: "Aerospace - Resize Windows",
     entries: [
-      { binding: "ctrl-alt-cmd-equal", description: "Resize window +100" },
-      { binding: "ctrl-alt-cmd-minus", description: "Resize window -100" },
-      { binding: "ctrl-alt-cmd-shift-equal", description: "Resize window +50" },
-      { binding: "ctrl-alt-cmd-shift-minus", description: "Resize window -50" },
+      { binding: "caps-equal", description: "Resize window +100" },
+      { binding: "caps-minus", description: "Resize window -100" },
+      { binding: "caps-shift-equal", description: "Resize window +50" },
+      { binding: "caps-shift-minus", description: "Resize window -50" },
     ],
   },
   {
@@ -411,31 +514,31 @@ const APPLICATION_SECTIONS: ShortcutSection[] = [
     platform: "Applications",
     title: "Applications - Application Shortcuts",
     entries: [
-      { binding: "ctrl-alt-cmd-shift-a", description: "Alarm.com" },
-      { binding: "ctrl-alt-cmd-v", description: "Antigravity" },
-      { binding: "ctrl-alt-cmd-shift-b", description: "Brave Browser" },
-      { binding: "ctrl-alt-cmd-shift-c", description: "Calendar" },
-      { binding: "ctrl-alt-cmd-c", description: "ChatGPT" },
-      { binding: "ctrl-alt-cmd-a", description: "Claude" },
-      { binding: "ctrl-alt-cmd-d", description: "Discord" },
-      { binding: "ctrl-alt-cmd-shift-f", description: "Finder" },
-      { binding: "ctrl-alt-cmd-enter", description: "Ghostty" },
-      { binding: "ctrl-alt-cmd-g", description: "Google Chrome" },
-      { binding: "ctrl-alt-cmd-x", description: "Grok" },
-      { binding: "ctrl-alt-cmd-b", description: "Helium" },
-      { binding: "ctrl-alt-cmd-shift-m", description: "Mail" },
-      { binding: "ctrl-alt-cmd-m", description: "Messages" },
-      { binding: "ctrl-alt-cmd-e", description: "Microsoft Excel" },
-      { binding: "ctrl-alt-cmd-o", description: "Microsoft Outlook" },
-      { binding: "ctrl-alt-cmd-shift-t", description: "Microsoft Teams" },
-      { binding: "ctrl-alt-cmd-n", description: "Obsidian" },
-      { binding: "ctrl-alt-cmd-p", description: "Perplexity" },
-      { binding: "ctrl-alt-cmd-r", description: "Reminders" },
-      { binding: "ctrl-alt-cmd-s", description: "Safari" },
-      { binding: "ctrl-alt-cmd-shift-s", description: "Spotify" },
-      { binding: "ctrl-alt-cmd-shift-v", description: "Visual Studio Code" },
-      { binding: "ctrl-alt-cmd-y", description: "YouTube" },
-      { binding: "ctrl-alt-cmd-shift-p", description: "iPhone Mirroring" },
+      { binding: "caps-shift-a", description: "Alarm.com" },
+      { binding: "caps-v", description: "Antigravity" },
+      { binding: "caps-shift-b", description: "Brave Browser" },
+      { binding: "caps-shift-c", description: "Calendar" },
+      { binding: "caps-c", description: "ChatGPT" },
+      { binding: "caps-a", description: "Claude" },
+      { binding: "caps-d", description: "Discord" },
+      { binding: "caps-shift-f", description: "Finder" },
+      { binding: "caps-enter", description: "Ghostty" },
+      { binding: "caps-g", description: "Google Chrome" },
+      { binding: "caps-x", description: "Grok" },
+      { binding: "caps-b", description: "Helium" },
+      { binding: "caps-shift-m", description: "Mail" },
+      { binding: "caps-m", description: "Messages" },
+      { binding: "caps-e", description: "Microsoft Excel" },
+      { binding: "caps-o", description: "Microsoft Outlook" },
+      { binding: "caps-shift-t", description: "Microsoft Teams" },
+      { binding: "caps-n", description: "Obsidian" },
+      { binding: "caps-p", description: "Perplexity" },
+      { binding: "caps-r", description: "Reminders" },
+      { binding: "caps-s", description: "Safari" },
+      { binding: "caps-shift-s", description: "Spotify" },
+      { binding: "caps-shift-v", description: "Visual Studio Code" },
+      { binding: "caps-y", description: "YouTube" },
+      { binding: "caps-shift-p", description: "iPhone Mirroring" },
     ],
   },
   {
@@ -443,10 +546,10 @@ const APPLICATION_SECTIONS: ShortcutSection[] = [
     title: "Applications - Commands",
     entries: [
       { binding: "opt-v", description: "Clipboard History" },
-      { binding: "ctrl-alt-cmd-`", description: "Confetti" },
+      { binding: "caps-`", description: "Confetti" },
       { binding: "shift-cmd-l", description: "Autofill last used login (Bitwarden/Brave)" },
-      { binding: "ctrl-alt-cmd-shift-z", description: "AI Chat" },
-      { binding: "ctrl-alt-cmd-space", description: "Search Emoji & Symbols" },
+      { binding: "caps-shift-z", description: "AI Chat" },
+      { binding: "caps-space", description: "Search Emoji & Symbols" },
       { binding: "alt-f", description: "Search Files" },
       { binding: "alt-k", description: "Search Keybinds" },
     ],
@@ -464,10 +567,10 @@ const APPLICATION_SECTIONS: ShortcutSection[] = [
 ];
 
 const SECTIONS: ShortcutSection[] = [
+  ...APPLICATION_SECTIONS,
   ...AEROSPACE_SECTIONS,
-  ...SCREENSHOT_SECTIONS,
-  ...KEYBOARD_SECTIONS,
   ...GHOSTTY_SECTIONS,
+  ...KEYBOARD_SECTIONS,
   {
     platform: "Neovim",
     title: "Neovim - Navigation",
@@ -584,7 +687,7 @@ const SECTIONS: ShortcutSection[] = [
       { binding: ":e", description: "Open file (edit)" },
     ],
   },
-  ...APPLICATION_SECTIONS,
+  ...SCREENSHOT_SECTIONS,
 ];
 
 export default function Command() {
@@ -595,32 +698,50 @@ export default function Command() {
     platformFilter === "all" ? SECTIONS : SECTIONS.filter((section) => section.platform === platformFilter);
 
   const normalizedQuery = searchText.trim().toLowerCase();
-  const searchTokens = normalizedQuery.split(/\s+/).filter(Boolean);
+  const searchTokens = normalizedQuery.split(/\s+/).filter((t) => t && t !== "+");
 
-  const filteredSections =
-    searchTokens.length === 0
-      ? platformFilteredSections
-      : platformFilteredSections
-          .map((section) => {
-            const sectionMatches = searchTokens.every((token) => section.title.toLowerCase().includes(token));
-            if (sectionMatches) {
-              return section;
-            }
+  let filteredSections: ShortcutSection[];
 
-            const matchingEntries = section.entries.filter((entry) => {
-              const entryKeywords = keywords(section, entry).map((keyword) => keyword.toLowerCase());
-              return searchTokens.every((token) =>
-                entryKeywords.some((keyword) => {
-                  const escapedToken = token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-                  const regex = new RegExp(`\\b${escapedToken}`, "i");
-                  return regex.test(keyword);
-                }),
-              );
-            });
+  if (searchTokens.length === 0) {
+    filteredSections = platformFilteredSections;
+  } else {
+    // Score all entries
+    const scoredEntries: ScoredEntry[] = [];
 
-            return matchingEntries.length > 0 ? { ...section, entries: matchingEntries } : null;
-          })
-          .filter((section): section is ShortcutSection => Boolean(section));
+    for (const section of platformFilteredSections) {
+      for (const entry of section.entries) {
+        const score = scoreMatch(section, entry, searchTokens);
+        if (score > 0) {
+          scoredEntries.push({ section, entry, score });
+        }
+      }
+    }
+
+    // Sort by score descending
+    scoredEntries.sort((a, b) => b.score - a.score);
+
+    // Group back into sections while preserving score order
+    const sectionMap = new Map<string, ShortcutEntry[]>();
+    const sectionOrder: string[] = [];
+
+    for (const { section, entry } of scoredEntries) {
+      const key = section.title;
+      if (!sectionMap.has(key)) {
+        sectionMap.set(key, []);
+        sectionOrder.push(key);
+      }
+      sectionMap.get(key)!.push(entry);
+    }
+
+    // Rebuild sections in the order they first appeared (by highest-scored entry)
+    filteredSections = sectionOrder.map((title) => {
+      const originalSection = platformFilteredSections.find((s) => s.title === title)!;
+      return {
+        ...originalSection,
+        entries: sectionMap.get(title)!,
+      };
+    });
+  }
 
   return (
     <List
@@ -630,11 +751,11 @@ export default function Command() {
         <List.Dropdown tooltip="Filter by Platform" value={platformFilter} onChange={setPlatformFilter}>
           <List.Dropdown.Item title="All" value="all" />
           <List.Dropdown.Item title="Aerospace" value="Aerospace" />
-          <List.Dropdown.Item title="Ghostty" value="Ghostty" />
-          <List.Dropdown.Item title="Neovim" value="Neovim" />
-          <List.Dropdown.Item title="macOS" value="macOS" />
           <List.Dropdown.Item title="Applications" value="Applications" />
+          <List.Dropdown.Item title="Ghostty" value="Ghostty" />
+          <List.Dropdown.Item title="macOS" value="macOS" />
           <List.Dropdown.Item title="Microsoft Teams" value="Microsoft Teams" />
+          <List.Dropdown.Item title="Neovim" value="Neovim" />
         </List.Dropdown>
       }
     >

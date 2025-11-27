@@ -20,6 +20,7 @@ export async function safeExec(
   try {
     const { stdout } = await execa(command, args, {
       env: {
+        ...process.env,
         PATH: normalizedPath, // make sure Homebrew bin is available for Raycast runtime
       },
       shell: false, // avoid shell splitting newlines from multi-line prompts
@@ -30,17 +31,23 @@ export async function safeExec(
     });
     console.log(`Execution success: ${command}`);
     return stdout;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(`Execution failed: ${command}`, error);
-    if (error.code === "ENOENT") {
-      throw new Error(`Command '${command}' not found. Install it or add it to PATH (${normalizedPath}).`);
+
+    if (error instanceof Error) {
+      const execError = error as Error & { code?: string; timedOut?: boolean; stderr?: string };
+
+      if (execError.code === "ENOENT") {
+        throw new Error(`Command '${command}' not found. Install it or add it to PATH (${normalizedPath}).`);
+      }
+      if (execError.timedOut) {
+        throw new Error(`Command '${command}' timed out after ${(timeoutMs / 1000).toFixed(0)}s.`);
+      }
+      if (execError.stderr) {
+        throw new Error(execError.stderr);
+      }
+      throw error;
     }
-    if (error.timedOut) {
-      throw new Error(`Command '${command}' timed out after ${(timeoutMs / 1000).toFixed(0)}s.`);
-    }
-    if (error.stderr) {
-      throw new Error(error.stderr);
-    }
-    throw error;
+    throw new Error(String(error));
   }
 }
