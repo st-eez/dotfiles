@@ -9,7 +9,7 @@ default-root-container-layout = 'tiles'
 
 # Mouse follows focus (like yabai mouse_follows_focus)
 on-focus-changed = [
-    "exec-and-forget /bin/bash -c '/opt/homebrew/opt/sketchybar/bin/sketchybar --trigger aerospace_workspace_change AEROSPACE_FOCUSED_WORKSPACE=$(aerospace list-workspaces --focused)'",
+  "exec-and-forget /bin/bash -c '/opt/homebrew/opt/sketchybar/bin/sketchybar --trigger aerospace_workspace_change AEROSPACE_FOCUSED_WORKSPACE=$(aerospace list-workspaces --focused)'",
 ]
 
 # Automatically change accordion to tiles when only one window
@@ -21,135 +21,138 @@ after-login-command = []
 # 'after-startup-command' is run after 'after-login-command'
 # Available commands : https://nikitabobko.github.io/AeroSpace/commands
 after-startup-command = [
-    # JankyBorders has a built-in detection of already running process,
-    # so it won't be run twice on AeroSpace restart
-    'exec-and-forget /opt/homebrew/opt/sketchybar/bin/sketchybar',
-    # 'exec-and-forget /opt/homebrew/opt/borders/bin/borders active_color="glow(0xd943ff64)" inactive_color=0x20494d64 width=8.0'
+  # JankyBorders has a built-in detection of already running process,
+  # so it won't be run twice on AeroSpace restart
+  'exec-and-forget /opt/homebrew/opt/sketchybar/bin/sketchybar',
+  # 'exec-and-forget /opt/homebrew/opt/borders/bin/borders active_color="glow(0xd943ff64)" inactive_color=0x20494d64 width=8.0'
 ]
 
 exec-on-workspace-change = [
-    '/bin/bash',
-    '-c',
-    '/opt/homebrew/opt/sketchybar/bin/sketchybar --trigger aerospace_workspace_change AEROSPACE_FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE AEROSPACE_PREV_WORKSPACE=$AEROSPACE_PREV_WORKSPACE',
+  '/bin/bash',
+  '-c',
+  '/opt/homebrew/opt/sketchybar/bin/sketchybar --trigger aerospace_workspace_change AEROSPACE_FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE AEROSPACE_PREV_WORKSPACE=$AEROSPACE_PREV_WORKSPACE',
 ]
 
 [gaps]
 inner.horizontal = 10
-inner.vertical =   10
-outer.left =       10
-outer.bottom =     10
-outer.top =        [{ monitor."built-in" = 10 }, 10]  # 12px for MacBook, 8px for externals
-outer.right =      10
+inner.vertical = 10
+outer.left = 10
+outer.bottom = 10
+outer.top = [
+  { monitor."built-in" = 10 },
+  10,
+] # 12px for MacBook, 8px for externals
+outer.right = 10
 
 # Home setup - BenQ, Pixio, and Built-in monitors
 [workspace-to-monitor-force-assignment]
-1 = 'BenQ XL2411Z'      # Workspaces 1-4 on BenQ
+1 = 'BenQ XL2411Z'            # Workspaces 1-4 on BenQ
 2 = 'BenQ XL2411Z'
 3 = 'BenQ XL2411Z'
 4 = 'BenQ XL2411Z'
-5 = 'Pixio PX248PS'     # Workspaces 5-8 on Pixio
+5 = 'Pixio PX248PS'           # Workspaces 5-8 on Pixio
 6 = 'Pixio PX248PS'
 7 = 'Pixio PX248PS'
 8 = 'Pixio PX248PS'
-9 = 'Built-in Retina Display'          # Workspaces 9 and 0 on MacBook display
+9 = 'Built-in Retina Display' # Workspaces 9 and 0 on MacBook display
 0 = 'Built-in Retina Display'
 
 [mode.main.binding]
-    # Window focus (CAPS + arrows)
-    ctrl-alt-cmd-left  = 'exec-and-forget aerospace focus left --boundaries-action fail || aerospace focus-monitor left'
-    ctrl-alt-cmd-right = 'exec-and-forget aerospace focus right --boundaries-action fail || aerospace focus-monitor right'
-    ctrl-alt-cmd-up    = 'exec-and-forget aerospace focus up --boundaries-action fail || aerospace focus-monitor up'
-    ctrl-alt-cmd-down  = 'exec-and-forget aerospace focus down --boundaries-action fail || aerospace focus-monitor down'
+# Window focus (CAPS + arrows)
+ctrl-alt-cmd-left = 'exec-and-forget bash -c "(aerospace focus left --boundaries-action fail || aerospace focus-monitor left) && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-cmd-right = 'exec-and-forget bash -c "(aerospace focus right --boundaries-action fail || aerospace focus-monitor right) && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-cmd-up = 'exec-and-forget bash -c "(aerospace focus up --boundaries-action fail || aerospace focus-monitor up) && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-cmd-down = 'exec-and-forget bash -c "(aerospace focus down --boundaries-action fail || aerospace focus-monitor down) && sleep 0.05 && aerospace move-mouse window-lazy-center"'
 
-    # Window focus (CAPS + vim keys)
-    ctrl-alt-cmd-h = 'exec-and-forget aerospace focus left --boundaries-action fail || aerospace focus-monitor left'
-    ctrl-alt-cmd-l = 'exec-and-forget aerospace focus right --boundaries-action fail || aerospace focus-monitor right'
-    ctrl-alt-cmd-k = 'exec-and-forget aerospace focus up --boundaries-action fail || aerospace focus-monitor up'
-    ctrl-alt-cmd-j = 'exec-and-forget aerospace focus down --boundaries-action fail || aerospace focus-monitor down'
+# Window focus (CAPS + vim keys)
+ctrl-alt-cmd-h = 'exec-and-forget bash -c "(aerospace focus left --boundaries-action fail || aerospace focus-monitor left) && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-cmd-l = 'exec-and-forget bash -c "(aerospace focus right --boundaries-action fail || aerospace focus-monitor right) && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-cmd-k = 'exec-and-forget bash -c "(aerospace focus up --boundaries-action fail || aerospace focus-monitor up) && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-cmd-j = 'exec-and-forget bash -c "(aerospace focus down --boundaries-action fail || aerospace focus-monitor down) && sleep 0.05 && aerospace move-mouse window-lazy-center"'
 
-    # Swap windows with wrap-around (CAPS + SHIFT + arrows)
-    # Moves within monitor, then wraps to adjacent monitor at boundaries
-    ctrl-alt-cmd-shift-left  = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail left || aerospace move-node-to-monitor --wrap-around --focus-follows-window left) && sleep 0.05 && aerospace move-mouse window-lazy-center"'
-    ctrl-alt-cmd-shift-right = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail right || aerospace move-node-to-monitor --wrap-around --focus-follows-window right) && sleep 0.05 && aerospace move-mouse window-lazy-center"'
-    ctrl-alt-cmd-shift-up    = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail up || aerospace move-node-to-monitor --wrap-around --focus-follows-window up) && sleep 0.05 && aerospace move-mouse window-lazy-center"'
-    ctrl-alt-cmd-shift-down  = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail down || aerospace move-node-to-monitor --wrap-around --focus-follows-window down) && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+# Swap windows with wrap-around (CAPS + SHIFT + arrows)
+# Moves within monitor, then wraps to adjacent monitor at boundaries
+ctrl-alt-cmd-shift-left = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail left || aerospace move-node-to-monitor --wrap-around --focus-follows-window left) && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-cmd-shift-right = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail right || aerospace move-node-to-monitor --wrap-around --focus-follows-window right) && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-cmd-shift-up = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail up || aerospace move-node-to-monitor --wrap-around --focus-follows-window up) && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-cmd-shift-down = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail down || aerospace move-node-to-monitor --wrap-around --focus-follows-window down) && sleep 0.05 && aerospace move-mouse window-lazy-center"'
 
-    # Swap windows with wrap-around (CAPS + SHIFT + vim keys)
-    ctrl-alt-cmd-shift-h = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail left || aerospace move-node-to-monitor --wrap-around --focus-follows-window left) && sleep 0.05 && aerospace move-mouse window-lazy-center"'
-    ctrl-alt-cmd-shift-l = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail right || aerospace move-node-to-monitor --wrap-around --focus-follows-window right) && sleep 0.05 && aerospace move-mouse window-lazy-center"'
-    ctrl-alt-cmd-shift-k = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail up || aerospace move-node-to-monitor --wrap-around --focus-follows-window up) && sleep 0.05 && aerospace move-mouse window-lazy-center"'
-    ctrl-alt-cmd-shift-j = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail down || aerospace move-node-to-monitor --wrap-around --focus-follows-window down) && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+# Swap windows with wrap-around (CAPS + SHIFT + vim keys)
+ctrl-alt-cmd-shift-h = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail left || aerospace move-node-to-monitor --wrap-around --focus-follows-window left) && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-cmd-shift-l = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail right || aerospace move-node-to-monitor --wrap-around --focus-follows-window right) && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-cmd-shift-k = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail up || aerospace move-node-to-monitor --wrap-around --focus-follows-window up) && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-cmd-shift-j = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail down || aerospace move-node-to-monitor --wrap-around --focus-follows-window down) && sleep 0.05 && aerospace move-mouse window-lazy-center"'
 
-    # Jump to workspace (CAPS + number)
-    ctrl-alt-cmd-1 = 'exec-and-forget bash -c "aerospace workspace 1 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
-    ctrl-alt-cmd-2 = 'exec-and-forget bash -c "aerospace workspace 2 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
-    ctrl-alt-cmd-3 = 'exec-and-forget bash -c "aerospace workspace 3 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
-    ctrl-alt-cmd-4 = 'exec-and-forget bash -c "aerospace workspace 4 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
-    ctrl-alt-cmd-5 = 'exec-and-forget bash -c "aerospace workspace 5 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
-    ctrl-alt-cmd-6 = 'exec-and-forget bash -c "aerospace workspace 6 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
-    ctrl-alt-cmd-7 = 'exec-and-forget bash -c "aerospace workspace 7 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
-    ctrl-alt-cmd-8 = 'exec-and-forget bash -c "aerospace workspace 8 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
-    ctrl-alt-cmd-9 = 'exec-and-forget bash -c "aerospace workspace 9 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
-    ctrl-alt-cmd-0 = 'exec-and-forget bash -c "aerospace workspace 0 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+# Jump to workspace (CAPS + number)
+ctrl-alt-cmd-1 = 'exec-and-forget bash -c "aerospace workspace 1 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-cmd-2 = 'exec-and-forget bash -c "aerospace workspace 2 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-cmd-3 = 'exec-and-forget bash -c "aerospace workspace 3 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-cmd-4 = 'exec-and-forget bash -c "aerospace workspace 4 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-cmd-5 = 'exec-and-forget bash -c "aerospace workspace 5 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-cmd-6 = 'exec-and-forget bash -c "aerospace workspace 6 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-cmd-7 = 'exec-and-forget bash -c "aerospace workspace 7 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-cmd-8 = 'exec-and-forget bash -c "aerospace workspace 8 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-cmd-9 = 'exec-and-forget bash -c "aerospace workspace 9 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-cmd-0 = 'exec-and-forget bash -c "aerospace workspace 0 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
 
-    # Move window to workspace and follow (CAPS + SHIFT + number)
-    ctrl-alt-cmd-shift-1 = 'exec-and-forget bash -c "aerospace move-node-to-workspace --focus-follows-window 1 && aerospace workspace 1 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
-    ctrl-alt-cmd-shift-2 = 'exec-and-forget bash -c "aerospace move-node-to-workspace --focus-follows-window 2 && aerospace workspace 2 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
-    ctrl-alt-cmd-shift-3 = 'exec-and-forget bash -c "aerospace move-node-to-workspace --focus-follows-window 3 && aerospace workspace 3 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
-    ctrl-alt-cmd-shift-4 = 'exec-and-forget bash -c "aerospace move-node-to-workspace --focus-follows-window 4 && aerospace workspace 4 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
-    ctrl-alt-cmd-shift-5 = 'exec-and-forget bash -c "aerospace move-node-to-workspace --focus-follows-window 5 && aerospace workspace 5 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
-    ctrl-alt-cmd-shift-6 = 'exec-and-forget bash -c "aerospace move-node-to-workspace --focus-follows-window 6 && aerospace workspace 6 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
-    ctrl-alt-cmd-shift-7 = 'exec-and-forget bash -c "aerospace move-node-to-workspace --focus-follows-window 7 && aerospace workspace 7 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
-    ctrl-alt-cmd-shift-8 = 'exec-and-forget bash -c "aerospace move-node-to-workspace --focus-follows-window 8 && aerospace workspace 8 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
-    ctrl-alt-cmd-shift-9 = 'exec-and-forget bash -c "aerospace move-node-to-workspace --focus-follows-window 9 && aerospace workspace 9 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
-    ctrl-alt-cmd-shift-0 = 'exec-and-forget bash -c "aerospace move-node-to-workspace --focus-follows-window 0 && aerospace workspace 0 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+# Move window to workspace and follow (CAPS + SHIFT + number)
+ctrl-alt-cmd-shift-1 = 'exec-and-forget bash -c "aerospace move-node-to-workspace --focus-follows-window 1 && aerospace workspace 1 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-cmd-shift-2 = 'exec-and-forget bash -c "aerospace move-node-to-workspace --focus-follows-window 2 && aerospace workspace 2 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-cmd-shift-3 = 'exec-and-forget bash -c "aerospace move-node-to-workspace --focus-follows-window 3 && aerospace workspace 3 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-cmd-shift-4 = 'exec-and-forget bash -c "aerospace move-node-to-workspace --focus-follows-window 4 && aerospace workspace 4 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-cmd-shift-5 = 'exec-and-forget bash -c "aerospace move-node-to-workspace --focus-follows-window 5 && aerospace workspace 5 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-cmd-shift-6 = 'exec-and-forget bash -c "aerospace move-node-to-workspace --focus-follows-window 6 && aerospace workspace 6 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-cmd-shift-7 = 'exec-and-forget bash -c "aerospace move-node-to-workspace --focus-follows-window 7 && aerospace workspace 7 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-cmd-shift-8 = 'exec-and-forget bash -c "aerospace move-node-to-workspace --focus-follows-window 8 && aerospace workspace 8 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-cmd-shift-9 = 'exec-and-forget bash -c "aerospace move-node-to-workspace --focus-follows-window 9 && aerospace workspace 9 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-cmd-shift-0 = 'exec-and-forget bash -c "aerospace move-node-to-workspace --focus-follows-window 0 && aerospace workspace 0 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
 
-    # Move window to workspace without following (Custom binding: Ctrl+Shift+Alt+1-9)
+# Move window to workspace without following (Custom binding: Ctrl+Shift+Alt+1-9)
 
-    # Workspace cycling (CAPS + Tab / CAPS + SHIFT + Tab)
-    ctrl-alt-cmd-tab = 'exec-and-forget bash -c "aerospace workspace --wrap-around next && sleep 0.05 && aerospace move-mouse window-lazy-center"'
-    ctrl-alt-cmd-shift-tab = 'exec-and-forget bash -c "aerospace workspace --wrap-around prev && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+# Workspace cycling (CAPS + Tab / CAPS + SHIFT + Tab)
+ctrl-alt-cmd-tab = 'exec-and-forget bash -c "aerospace workspace --wrap-around next && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-cmd-shift-tab = 'exec-and-forget bash -c "aerospace workspace --wrap-around prev && sleep 0.05 && aerospace move-mouse window-lazy-center"'
 
-    # Workspace back-and-forth (CTRL + ALT + Tab)
-    ctrl-alt-tab = 'exec-and-forget bash -c "aerospace workspace-back-and-forth && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+# Workspace back-and-forth (CTRL + ALT + Tab)
+ctrl-alt-tab = 'exec-and-forget bash -c "aerospace workspace-back-and-forth && sleep 0.05 && aerospace move-mouse window-lazy-center"'
 
-    # Window controls (CAPS + letter)
-    ctrl-alt-cmd-t = 'layout floating tiling'  # Super+T → Ctrl+T
-    ctrl-alt-cmd-f = 'fullscreen'  # Super+F → Ctrl+F
+# Window controls (CAPS + letter)
+ctrl-alt-cmd-t = 'layout floating tiling' # Super+T → Ctrl+T
+ctrl-alt-cmd-f = 'fullscreen'             # Super+F → Ctrl+F
 
-    # Resize windows (CAPS + +/-)
-    ctrl-alt-cmd-equal = 'resize smart +100'
-    ctrl-alt-cmd-minus = 'resize smart -100'
-    ctrl-alt-cmd-shift-equal = 'resize smart +50'
-    ctrl-alt-cmd-shift-minus = 'resize smart -50'
+# Resize windows (CAPS + +/-)
+ctrl-alt-cmd-equal = 'resize smart +100'
+ctrl-alt-cmd-minus = 'resize smart -100'
+ctrl-alt-cmd-shift-equal = 'resize smart +50'
+ctrl-alt-cmd-shift-minus = 'resize smart -50'
 
-    # Layout management (CTRL + ALT + arrows)
-    ctrl-alt-left  = 'join-with left'
-    ctrl-alt-right = 'join-with right'
-    ctrl-alt-up    = 'join-with up'
-    ctrl-alt-down  = 'join-with down'
+# Layout management (CTRL + ALT + arrows)
+ctrl-alt-left = 'join-with left'
+ctrl-alt-right = 'join-with right'
+ctrl-alt-up = 'join-with up'
+ctrl-alt-down = 'join-with down'
 
-    # Move window to different monitor (CTRL + ALT + SHIFT + arrows)
-    ctrl-alt-shift-left  = 'exec-and-forget bash -c "aerospace move-node-to-monitor --wrap-around --focus-follows-window prev && sleep 0.05 && aerospace move-mouse window-lazy-center"'
-    ctrl-alt-shift-right = 'exec-and-forget bash -c "aerospace move-node-to-monitor --wrap-around --focus-follows-window next && sleep 0.05 && aerospace move-mouse window-lazy-center"'
-    ctrl-alt-shift-up    = 'exec-and-forget bash -c "aerospace move-node-to-monitor --wrap-around --focus-follows-window up && sleep 0.05 && aerospace move-mouse window-lazy-center"'
-    ctrl-alt-shift-down  = 'exec-and-forget bash -c "aerospace move-node-to-monitor --wrap-around --focus-follows-window down && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+# Move window to different monitor (CTRL + ALT + SHIFT + arrows)
+ctrl-alt-shift-left = 'exec-and-forget bash -c "aerospace move-node-to-monitor --wrap-around --focus-follows-window prev && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-shift-right = 'exec-and-forget bash -c "aerospace move-node-to-monitor --wrap-around --focus-follows-window next && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-shift-up = 'exec-and-forget bash -c "aerospace move-node-to-monitor --wrap-around --focus-follows-window up && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-shift-down = 'exec-and-forget bash -c "aerospace move-node-to-monitor --wrap-around --focus-follows-window down && sleep 0.05 && aerospace move-mouse window-lazy-center"'
 
-    # Move window to specific monitor by number (CTRL + ALT + SHIFT + number)
-    ctrl-alt-shift-1 = 'move-node-to-monitor 1'
-    ctrl-alt-shift-2 = 'move-node-to-monitor 2'
-    ctrl-alt-shift-3 = 'move-node-to-monitor 3'
+# Move window to specific monitor by number (CTRL + ALT + SHIFT + number)
+ctrl-alt-shift-1 = 'exec-and-forget bash -c "aerospace move-node-to-monitor --focus-follows-window 1 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-shift-2 = 'exec-and-forget bash -c "aerospace move-node-to-monitor --focus-follows-window 2 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-shift-3 = 'exec-and-forget bash -c "aerospace move-node-to-monitor --focus-follows-window 3 && sleep 0.05 && aerospace move-mouse window-lazy-center"'
 
-    # Configuration management (Custom bindings kept)
-    alt-shift-j = 'layout tiles horizontal vertical'
-    alt-shift-f = 'macos-native-fullscreen'
-    alt-shift-c = 'reload-config'
-    alt-shift-r = 'flatten-workspace-tree'
-    alt-shift-h = 'exec-and-forget /bin/bash -c "cp ~/.config/aerospace/aerospace-home.toml ~/.config/aerospace/aerospace.toml && aerospace reload-config && sketchybar --reload"'
-    alt-shift-w = 'exec-and-forget /bin/bash -c "cp ~/.config/aerospace/aerospace-office.toml ~/.config/aerospace/aerospace.toml && aerospace reload-config && sketchybar --reload"'
-    alt-shift-l = 'exec-and-forget /bin/bash -c "cp ~/.config/aerospace/aerospace-laptop.toml ~/.config/aerospace/aerospace.toml && aerospace reload-config && sketchybar --reload"'
-    alt-shift-m = 'exec-and-forget ~/.config/sketchybar/toggle_topmost.lua'
-    alt-shift-a = 'exec-and-forget /bin/bash ~/.config/AutoRaise/toggle_autoraise.sh'
+# Configuration management (Custom bindings kept)
+alt-shift-j = 'layout tiles horizontal vertical'
+alt-shift-f = 'macos-native-fullscreen'
+alt-shift-c = 'reload-config'
+alt-shift-r = 'flatten-workspace-tree'
+alt-shift-h = 'exec-and-forget /bin/bash -c "cp ~/.config/aerospace/aerospace-home.toml ~/.config/aerospace/aerospace.toml && aerospace reload-config && sketchybar --reload"'
+alt-shift-w = 'exec-and-forget /bin/bash -c "cp ~/.config/aerospace/aerospace-office.toml ~/.config/aerospace/aerospace.toml && aerospace reload-config && sketchybar --reload"'
+alt-shift-l = 'exec-and-forget /bin/bash -c "cp ~/.config/aerospace/aerospace-laptop.toml ~/.config/aerospace/aerospace.toml && aerospace reload-config && sketchybar --reload"'
+alt-shift-m = 'exec-and-forget ~/.config/sketchybar/toggle_topmost.lua'
+alt-shift-a = 'exec-and-forget /bin/bash ~/.config/AutoRaise/toggle_autoraise.sh'
 
 [[on-window-detected]]
 if.app-name-regex-substring = 'finder'
@@ -177,10 +180,6 @@ if.app-id = 'net.whatsapp.WhatsApp'
 
 [[on-window-detected]]
 if.app-id = 'com.apple.MobileSMS'
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-id = 'com.microsoft.teams2'
 run = 'layout floating'
 
 [[on-window-detected]]

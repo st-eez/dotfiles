@@ -40,7 +40,7 @@ return {
 	["FaceTime"] = ":facetime:",
 	["Figma"] = ":figma:",
 	["Filen Drive"] = ":filen_drive:",
-	["Finder"] = ":finder_thick:",
+	["Finder"] = ":finder:",
 	["Firefox Developer Edition"] = ":firefox:",
 	["Font Book"] = ":font_book:",
 	["Gemini"] = ":gemini:",

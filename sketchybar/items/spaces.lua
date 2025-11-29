@@ -162,11 +162,11 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
     })
 
     -- Front App (placed immediately after separator for deterministic ordering)
-    local front_app = sbar.add("item", "front_app", {
-      icon = { drawing = false },
-      label = {
-        font = {
-          family = settings.font.family,
+  local front_app = sbar.add("item", "front_app", {
+    icon = { drawing = false },
+    label = {
+      font = {
+        family = settings.font.family,
           style = settings.font.style_map.bold,
           size = 13.0,
         },
@@ -178,6 +178,17 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
 
     front_app:subscribe("front_app_switched", function(env)
       front_app:set({ label = env.INFO })
+      local target_space = current_workspace
+      if target_space and spaces[target_space] then
+        update_windows(target_space)
+      else
+        sbar.exec("aerospace list-workspaces --focused", function(f)
+          local sid = f and f:match("%S+")
+          if sid and spaces[sid] then
+            update_windows(sid)
+          end
+        end)
+      end
     end)
 
     front_app:subscribe("mouse.clicked", function(env)
