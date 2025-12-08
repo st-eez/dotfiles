@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(brew services list)",
+      "Bash(pgrep -fl 'yabai|skhd')",
+      "Bash(aerospace --help)",
+      "Bash(aerospace --config-path)",
+      "Bash(aerospace --version)",
+      "Bash(aerospace config -h)",
+      "Bash(aerospace config --config-path)",
+      "Read(//Applications/**)",
+      "Bash(open -a AeroSpace)",
+      "Bash(aerospace list-workspaces --all)",
+      "Bash(brew services restart sketchybar)",
+      "Bash(pgrep -fl sketchybar)",
+      "Bash(aerospace balance-sizes --help)",
+      "Bash(aerospace balance-sizes)",
+      "Bash(aerospace list-windows --workspace focused --format '%{window-id} | %{app-name} | floating: %{window-floating}')",
+      "Bash(aerospace flatten-workspace-tree)",
+      "Bash(aerospace list-windows --workspace focused --format '%{window-id} | %{app-name}')",
+      "WebSearch",
+      "WebFetch",
+      "TodoWrite"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
