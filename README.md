@@ -17,14 +17,8 @@ Reproducible macOS workstation: shell, editor, terminal, window management.
 ## Prerequisites
 
 ```bash
-# Xcode Command Line Tools
-xcode-select --install
-
-# Homebrew
+# Homebrew (will prompt for Xcode CLI tools if needed)
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-# Nerd Font (required for icons)
-brew install --cask font-jetbrains-mono-nerd-font
 ```
 
 ---
@@ -35,13 +29,24 @@ brew install --cask font-jetbrains-mono-nerd-font
 git clone https://github.com/st-eez/dotfiles.git ~/dotfiles
 cd ~/dotfiles
 
-# Backup existing configs (recommended)
+# Install Oh-My-Zsh
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+
+# Install Powerlevel10k theme
+git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ~/.oh-my-zsh/custom/themes/powerlevel10k
+
+# Install plugins
+git clone https://github.com/zsh-users/zsh-autosuggestions ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions
+git clone https://github.com/zsh-users/zsh-syntax-highlighting ~/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
+
+# Backup and remove existing configs
 BACKUP_DIR=~/dotfiles_backup_$(date +%Y%m%d_%H%M%S)
 mkdir -p "$BACKUP_DIR/.config"
-cp ~/.zshrc ~/.zprofile ~/.p10k.zsh ~/.tmux.conf "$BACKUP_DIR/" 2>/dev/null
-cp -r ~/.config/{aerospace,ghostty,karabiner,sketchybar,nvim,borders} "$BACKUP_DIR/.config/" 2>/dev/null
+mv ~/.zshrc ~/.zprofile ~/.p10k.zsh ~/.tmux.conf "$BACKUP_DIR/" 2>/dev/null
+mv ~/.config/{aerospace,ghostty,karabiner,sketchybar,nvim,borders} "$BACKUP_DIR/.config/" 2>/dev/null
 
 # Create symlinks
+mkdir -p ~/.config
 ln -s ~/dotfiles/zsh/.zshrc ~/.zshrc
 ln -s ~/dotfiles/zsh/.zprofile ~/.zprofile
 ln -s ~/dotfiles/zsh/.p10k.zsh ~/.p10k.zsh
@@ -52,13 +57,28 @@ ln -s ~/dotfiles/karabiner ~/.config/karabiner
 ln -s ~/dotfiles/sketchybar ~/.config/sketchybar
 ln -s ~/dotfiles/nvim ~/.config/nvim
 ln -s ~/dotfiles/borders ~/.config/borders
+ln -s ~/dotfiles/zsh/.oh-my-zsh/custom/aliases.zsh ~/.oh-my-zsh/custom/aliases.zsh
 
 # Install packages
 brew bundle --file Brewfile
 
-# Git config (edit placeholders after copying)
+# Git config (edit name/email after copying)
 cp ~/dotfiles/git/.gitconfig.template ~/.gitconfig
 ```
+
+---
+
+## Post-Install
+
+Restart your shell to apply changes:
+
+```bash
+exec zsh
+```
+
+**First launch:** Open **Aerospace** and **Karabiner Elements** — grant Accessibility access when prompted (System Settings → Privacy & Security → Accessibility).
+
+Edit `~/.gitconfig` with your name and email.
 
 ---
 
@@ -92,8 +112,16 @@ Three monitor configurations for Aerospace. Local edits use `skip-worktree` (won
 
 ## Private Config
 
-Keep sensitive data outside the repo:
+- `~/.secrets` – API keys, tokens (not tracked)
 
-- `~/.secrets` – API keys, tokens
-- `~/.gitconfig_local` – Git identity
-- `~/.gitconfig-WORK` – Work-specific config
+---
+
+## Tips
+
+- **Super key:** `option` is the main modifier for all keybinds
+- **View all keybinds:** Raycast → "Search Keybinds"
+- **Fuzzy find + open in Neovim:** `fnvim`
+- **Fuzzy find + cd:** `fcd`
+- **Smart cd:** Use `z` instead of `cd` (learns your habits)
+- **Git TUI:** `lazygit`
+- **Caps Lock:** Tap = Escape, Hold = Alt (hyper key)
