@@ -186,3 +186,7 @@ run = 'layout floating'
 [[on-window-detected]]
 if.app-id = 'com.bitwarden.desktop'
 run = 'layout floating'
+
+[[on-window-detected]]
+if.app-name-regex-substring = 'App Store'
+run = 'layout floating'

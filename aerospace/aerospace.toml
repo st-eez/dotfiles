@@ -13,7 +13,7 @@ on-focus-changed = [
 ]
 
 # Automatically change accordion to tiles when only one window
-# accordion-padding = 31
+# accordion-padding = 30
 
 after-login-command = []
 
@@ -44,18 +44,18 @@ outer.top = [
 ] # 12px for MacBook, 8px for externals
 outer.right = 10
 
-# Office setup - LG ULTRAWIDE and ASUS monitors
+# Home setup - BenQ, Pixio, and Built-in monitors
 [workspace-to-monitor-force-assignment]
-1 = 'LG ULTRAWIDE' # Main workspace on primary monitor
-2 = 'LG ULTRAWIDE' # Main workspace on primary monitor
-3 = 'LG ULTRAWIDE' # Main workspace on primary monitor
-4 = 'LG ULTRAWIDE' # Main workspace on primary monitor
-5 = 'built-in'     # MacBook display
-6 = 'built-in'     # MacBook display
-7 = 'built-in'     # MacBook display
-8 = 'built-in'     # MacBook display
-9 = 'ASUS VA24E'   # Secondary workspace on ASUS display
-0 = 'ASUS VA24E'
+1 = 'BenQ XL2411Z'            # Workspaces 1-4 on BenQ
+2 = 'BenQ XL2411Z'
+3 = 'BenQ XL2411Z'
+4 = 'BenQ XL2411Z'
+5 = 'Pixio PX248PS'           # Workspaces 5-8 on Pixio
+6 = 'Pixio PX248PS'
+7 = 'Pixio PX248PS'
+8 = 'Pixio PX248PS'
+9 = 'Built-in Retina Display' # Workspaces 9 and 0 on MacBook display
+0 = 'Built-in Retina Display'
 
 [mode.main.binding]
 # Window focus (CAPS + arrows)
@@ -64,12 +64,24 @@ alt-right = 'exec-and-forget bash -c "(aerospace focus right --boundaries-action
 alt-up = 'exec-and-forget bash -c "(aerospace focus up --boundaries-action fail || aerospace focus-monitor up) && aerospace move-mouse window-lazy-center"'
 alt-down = 'exec-and-forget bash -c "(aerospace focus down --boundaries-action fail || aerospace focus-monitor down) && aerospace move-mouse window-lazy-center"'
 
+# Window focus (CAPS + vim keys)
+alt-h = 'exec-and-forget bash -c "(aerospace focus left --boundaries-action fail || aerospace focus-monitor left) && aerospace move-mouse window-lazy-center"'
+alt-l = 'exec-and-forget bash -c "(aerospace focus right --boundaries-action fail || aerospace focus-monitor right) && aerospace move-mouse window-lazy-center"'
+alt-k = 'exec-and-forget bash -c "(aerospace focus up --boundaries-action fail || aerospace focus-monitor up) && aerospace move-mouse window-lazy-center"'
+alt-j = 'exec-and-forget bash -c "(aerospace focus down --boundaries-action fail || aerospace focus-monitor down) && aerospace move-mouse window-lazy-center"'
+
 # Swap windows with wrap-around (CAPS + SHIFT + arrows)
 # Moves within monitor, then wraps to adjacent monitor at boundaries
 alt-shift-left = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail left || aerospace move-node-to-monitor --wrap-around --focus-follows-window left) && aerospace move-mouse window-lazy-center"'
 alt-shift-right = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail right || aerospace move-node-to-monitor --wrap-around --focus-follows-window right) && aerospace move-mouse window-lazy-center"'
 alt-shift-up = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail up || aerospace move-node-to-monitor --wrap-around --focus-follows-window up) && aerospace move-mouse window-lazy-center"'
 alt-shift-down = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail down || aerospace move-node-to-monitor --wrap-around --focus-follows-window down) && aerospace move-mouse window-lazy-center"'
+
+# Swap windows with wrap-around (CAPS + SHIFT + vim keys)
+alt-shift-h = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail left || aerospace move-node-to-monitor --wrap-around --focus-follows-window left) && aerospace move-mouse window-lazy-center"'
+alt-shift-l = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail right || aerospace move-node-to-monitor --wrap-around --focus-follows-window right) && aerospace move-mouse window-lazy-center"'
+alt-shift-k = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail up || aerospace move-node-to-monitor --wrap-around --focus-follows-window up) && aerospace move-mouse window-lazy-center"'
+alt-shift-j = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail down || aerospace move-node-to-monitor --wrap-around --focus-follows-window down) && aerospace move-mouse window-lazy-center"'
 
 # Jump to workspace (CAPS + number)
 alt-1 = 'exec-and-forget bash -c "aerospace workspace 1 && aerospace move-mouse window-lazy-center"'
@@ -103,19 +115,6 @@ alt-shift-tab = 'exec-and-forget bash -c "aerospace workspace --no-stdin --wrap-
 
 # Workspace back-and-forth (CTRL + ALT + Tab)
 ctrl-alt-tab = 'exec-and-forget bash -c "aerospace workspace-back-and-forth && aerospace move-mouse window-lazy-center"'
-
-# Window focus (CAPS + vim keys)
-alt-h = 'exec-and-forget bash -c "(aerospace focus left --boundaries-action fail || aerospace focus-monitor left) && aerospace move-mouse window-lazy-center"'
-alt-l = 'exec-and-forget bash -c "(aerospace focus right --boundaries-action fail || aerospace focus-monitor right) && aerospace move-mouse window-lazy-center"'
-alt-k = 'exec-and-forget bash -c "(aerospace focus up --boundaries-action fail || aerospace focus-monitor up) && aerospace move-mouse window-lazy-center"'
-alt-j = 'exec-and-forget bash -c "(aerospace focus down --boundaries-action fail || aerospace focus-monitor down) && aerospace move-mouse window-lazy-center"'
-
-# Swap windows with wrap-around (CAPS + SHIFT + vim keys)
-# Moves within monitor, then wraps to adjacent monitor at boundaries
-alt-shift-h = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail left || aerospace move-node-to-monitor --wrap-around --focus-follows-window left) && aerospace move-mouse window-lazy-center"'
-alt-shift-l = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail right || aerospace move-node-to-monitor --wrap-around --focus-follows-window right) && aerospace move-mouse window-lazy-center"'
-alt-shift-k = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail up || aerospace move-node-to-monitor --wrap-around --focus-follows-window up) && aerospace move-mouse window-lazy-center"'
-alt-shift-j = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail down || aerospace move-node-to-monitor --wrap-around --focus-follows-window down) && aerospace move-mouse window-lazy-center"'
 
 # Window controls (CAPS + letter)
 alt-t = 'layout floating tiling' # Super+T → Ctrl+T
@@ -185,4 +184,8 @@ run = 'layout floating'
 
 [[on-window-detected]]
 if.app-id = 'com.bitwarden.desktop'
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-name-regex-substring = 'App Store'
 run = 'layout floating'
