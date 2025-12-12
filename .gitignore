@@ -29,6 +29,9 @@ sketchybar/AGENTS.md
 .gitconfig
 .gitconfig-*
 
+# Aerospace (generated from profile configs)
+aerospace/aerospace.toml
+
 # Backups
 *.backup
 *.bak
