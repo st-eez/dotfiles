@@ -131,6 +131,7 @@ return {
 	["Raycast Settings"] = ":raycast:",
 	["REAPER"] = ":reaper:",
 	["Rectangle"] = ":rectangle:",
+	["RustDesk"] = ":rustdesk:",
 	["Reminders"] = ":reminders:",
 	["Safari"] = ":safari:",
 	["Sequel Ace"] = ":sequel_ace:",

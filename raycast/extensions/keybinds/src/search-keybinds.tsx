@@ -314,10 +314,10 @@ const AEROSPACE_SECTIONS: ShortcutSection[] = [
   },
   {
     platform: "Aerospace",
-    title: "Aerospace - Monitor Controls",
+    title: "Aerospace - Monitor & Workspace Controls",
     entries: [
-      { binding: "ctrl-alt-shift-left", description: "Move window to left monitor" },
-      { binding: "ctrl-alt-shift-right", description: "Move window to right monitor" },
+      { binding: "ctrl-alt-shift-left", description: "Move window to previous workspace on current monitor" },
+      { binding: "ctrl-alt-shift-right", description: "Move window to next workspace on current monitor" },
       { binding: "ctrl-alt-shift-up", description: "Move window to upper monitor" },
       { binding: "ctrl-alt-shift-down", description: "Move window to lower monitor" },
       { binding: "ctrl-alt-shift-1", description: "Move window to monitor 1" },

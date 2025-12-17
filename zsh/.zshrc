@@ -113,6 +113,11 @@ fi
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+
+# PATH setup (before tools that depend on it)
+export PATH="$HOME/.local/bin:$PATH"
+
+# Initialize zoxide
 eval "$(zoxide init zsh)"
 
 
@@ -125,7 +130,6 @@ if command -v fzf >/dev/null; then
   [[ -f "$FZF_PREFIX/shell/key-bindings.zsh" ]] && source "$FZF_PREFIX/shell/key-bindings.zsh"
   [[ -f "$FZF_PREFIX/shell/completion.zsh" ]] && source "$FZF_PREFIX/shell/completion.zsh"
 fi
-export PATH="$HOME/.local/bin:$PATH"
 
 # Source local secrets (not tracked in git)
 [[ -f ~/.secrets ]] && source ~/.secrets 

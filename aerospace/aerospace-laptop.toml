@@ -135,9 +135,10 @@ ctrl-alt-right = 'join-with right'
 ctrl-alt-up = 'join-with up'
 ctrl-alt-down = 'join-with down'
 
-# Move window to different monitor (CTRL + ALT + SHIFT + arrows)
-ctrl-alt-shift-left = 'exec-and-forget bash -c "aerospace move-node-to-monitor --wrap-around --focus-follows-window prev && aerospace move-mouse window-lazy-center"'
-ctrl-alt-shift-right = 'exec-and-forget bash -c "aerospace move-node-to-monitor --wrap-around --focus-follows-window next && aerospace move-mouse window-lazy-center"'
+# Workspace cycling on current monitor (CTRL + ALT + SHIFT + left/right)
+ctrl-alt-shift-left = 'exec-and-forget bash -c "aerospace list-workspaces --monitor focused | aerospace move-node-to-workspace --stdin --wrap-around --focus-follows-window prev && aerospace move-mouse window-lazy-center"'
+ctrl-alt-shift-right = 'exec-and-forget bash -c "aerospace list-workspaces --monitor focused | aerospace move-node-to-workspace --stdin --wrap-around --focus-follows-window next && aerospace move-mouse window-lazy-center"'
+# Move window to different monitor (CTRL + ALT + SHIFT + up/down)
 ctrl-alt-shift-up = 'exec-and-forget bash -c "aerospace move-node-to-monitor --wrap-around --focus-follows-window up && aerospace move-mouse window-lazy-center"'
 ctrl-alt-shift-down = 'exec-and-forget bash -c "aerospace move-node-to-monitor --wrap-around --focus-follows-window down && aerospace move-mouse window-lazy-center"'
 
