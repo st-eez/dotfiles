@@ -7,11 +7,6 @@ enable-normalization-opposite-orientation-for-nested-containers = true
 # Default layout for new windows (tiles = BSP-like tiling)
 default-root-container-layout = 'tiles'
 
-# Mouse follows focus (like yabai mouse_follows_focus)
-on-focus-changed = [
-  "exec-and-forget /bin/bash -c '/opt/homebrew/opt/sketchybar/bin/sketchybar --trigger aerospace_workspace_change AEROSPACE_FOCUSED_WORKSPACE=$(aerospace list-workspaces --focused)'",
-]
-
 # Automatically change accordion to tiles when only one window
 # accordion-padding = 31
 
@@ -30,7 +25,7 @@ after-startup-command = [
 exec-on-workspace-change = [
   '/bin/bash',
   '-c',
-  '/opt/homebrew/opt/sketchybar/bin/sketchybar --trigger aerospace_workspace_change AEROSPACE_FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE AEROSPACE_PREV_WORKSPACE=$AEROSPACE_PREV_WORKSPACE',
+  '/opt/homebrew/opt/sketchybar/bin/sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE PREV_WORKSPACE=$AEROSPACE_PREV_WORKSPACE',
 ]
 
 [gaps]

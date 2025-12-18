@@ -13,6 +13,7 @@ local laptop_display = (settings.monitors and settings.monitors.laptop_display) 
 
 local spaces = {}
 local current_workspace = nil
+local window_cache = {} -- Cache icon strings to skip redundant item:set() calls
 
 -- Styling Constants
 local active_color = colors.white
@@ -22,6 +23,7 @@ local highlight_tint = colors.highlight or 0x337aa2f7 -- 20% Blue tint
 local transparent = colors.transparent
 
 -- Function to update window icons for a specific space
+-- Uses cache to skip item:set() when icons haven't changed
 local function update_windows(space_id)
   sbar.exec("aerospace list-windows --workspace " .. space_id .. " --format '%{app-name}'", function(apps)
     local icon_line = ""
@@ -31,22 +33,30 @@ local function update_windows(space_id)
         icon_line = icon_line .. " " .. icon
       end
     end
-    if spaces[space_id] then
+    -- Only update if changed (avoids redundant WindowServer constraint operations)
+    if spaces[space_id] and window_cache[space_id] ~= icon_line then
+      window_cache[space_id] = icon_line
       spaces[space_id]:set({ label = icon_line })
     end
   end)
 end
 
 -- Function to update highlighting (Focus/Unfocus)
+-- Optimized: only updates the 2 items that changed (prev unfocused, new focused)
+-- Exception: on first call (init), styles all items to set proper padding
 local function update_highlight(focused_sid)
+  local prev_workspace = current_workspace
   current_workspace = focused_sid
-  for sid, item in pairs(spaces) do
-    local is_selected = (tostring(sid) == tostring(focused_sid))
-    local icon_font = is_selected and { style = settings.font.style_map.bold, size = 18.0 }
-                                   or { style = settings.font.style_map.regular, size = 14.0 }
-    
-    item:set({
-      icon = { 
+
+  -- Helper to apply style to a single item
+  local function apply_style(sid, is_selected)
+    if not spaces[sid] then return end
+    local icon_font = is_selected
+      and { style = settings.font.style_map.bold, size = 16.0 }
+      or { style = settings.font.style_map.regular, size = 16.0 }
+
+    spaces[sid]:set({
+      icon = {
         highlight = is_selected,
         font = icon_font,
         padding_left = 12,
@@ -64,6 +74,20 @@ local function update_highlight(focused_sid)
       }
     })
   end
+
+  -- First call (init): style ALL items to establish proper padding
+  if not prev_workspace then
+    for sid, _ in pairs(spaces) do
+      apply_style(sid, tostring(sid) == tostring(focused_sid))
+    end
+    return
+  end
+
+  -- Subsequent calls: only update the 2 items that changed
+  if prev_workspace ~= focused_sid then
+    apply_style(prev_workspace, false)
+  end
+  apply_style(focused_sid, true)
 end
 
 -- Main Setup
