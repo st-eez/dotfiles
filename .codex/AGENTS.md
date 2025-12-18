@@ -10,9 +10,6 @@
 
 1. Context7: Fetch library docs via MCP before code generation
 2. No AI branding in commits (no signatures, co-authored-by, metadata)
-3. Keybind changes must update `~/Projects/Personal/dotfiles/raycast/extensions/k
-eybinds/src/search-keybinds.tsx`
-4. Use TodoWrite for plans and complex debugging
 
 ## Behavior
 
@@ -28,11 +25,6 @@ eybinds/src/search-keybinds.tsx`
 - Map/Reduce for datasets >100 records
 - SS2.1, relative imports, try/catch on search/record
 - Validate: `suitecloud project:deploy --validate`
-
-## Deep Dives
-
-@./docs/netsuite-governance.md
-@./docs/stack-patterns.md
 
 ## Output
 

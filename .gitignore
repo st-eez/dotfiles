@@ -45,3 +45,7 @@ raycast/extensions/prompt-optimizer/.gemini-clipboard/
 .secrets
 *.secrets
 zsh/.secrets
+
+# Gemini Clipboard
+.gemini-clipboard
+

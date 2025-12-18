@@ -1,37 +1,40 @@
-# CLAUDE.md
+# Prompt Optimizer (Raycast Extension)
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+A Raycast extension that optimizes prompts using multiple LLM CLI tools. Transforms casual user requests into structured, professional prompts.
 
 ## Commands
 
 ```bash
-# Development
-npm run dev       # Start Raycast extension in dev mode (hot reload)
-npm run build     # Build the extension
-
-# Code Quality
+npm run dev       # Start in dev mode (hot reload)
+npm run build     # Build for production
 npm run lint      # Run ESLint
-npm run fix-lint  # Run ESLint with auto-fix
-
-# Testing (manual)
-npx ts-node src/test-engines.ts  # Test all LLM engine integrations
+npm run fix-lint  # Auto-fix lint issues
+npx ts-node src/test-engines.ts  # Test all engine integrations
 ```
+
+## Prerequisites
+
+- Node.js (v18+)
+- Raycast app installed
+- CLI tools (`gemini`, `claude`, `codex`, `opencode`) installed and authenticated
 
 ## Architecture
 
-This is a Raycast extension that optimizes prompts using multiple LLM CLI tools. It transforms casual user requests into structured, professional prompts using a standardized template.
+### Directory Structure
+```
+/src
+  ├── optimize-prompt.tsx  # Main command - form UI, engine/model selection
+  ├── history.tsx          # History list with Markdown export
+  ├── test-engines.ts      # Engine integration tests
+  └── /utils
+      ├── engines.ts       # Engine definitions + system prompt
+      ├── exec.ts          # Safe CLI execution wrapper
+      └── history.ts       # LocalStorage management (last 100 items)
+```
 
-### Core Files
+### Engine Integration
 
-- `src/optimize-prompt.tsx` - Main command entry point. Form UI for prompt input, engine/model selection, and result display.
-- `src/history.tsx` - History list view with export to Downloads as Markdown.
-- `src/utils/engines.ts` - Engine definitions (Codex, Gemini, Opencode). Each engine defines CLI invocation and available models. Claude engine is disabled pending CLI auth bug fix.
-- `src/utils/history.ts` - LocalStorage-based history (last 100 items) with CRUD operations.
-- `src/utils/exec.ts` - Safe subprocess execution via `execa` with Homebrew PATH injection, timeout handling, and error normalization.
-
-### Engine Pattern
-
-Each engine in `engines.ts` implements the `Engine` interface:
+Each engine implements this interface:
 ```typescript
 interface Engine {
   name: string;
@@ -42,10 +45,27 @@ interface Engine {
 }
 ```
 
-The `run` method calls `safeExec` which wraps the CLI tool invocation. All engines use a shared meta-prompt template (`buildOptimizationPrompt`) that structures output with specific Markdown sections.
+| Engine | CLI Command | Default Model | Notes |
+|--------|-------------|---------------|-------|
+| Codex | `codex` | `gpt-5.1-codex-max` | Uses `model_reasoning_effort="medium"` |
+| Claude | `claude` | `sonnet` | Disabled pending CLI auth bug |
+| Gemini | `gemini` | `gemini-3-pro-preview` | Passes prompt via `-p` flag |
+| Opencode | `opencode` | `grok-code-fast-1` | |
 
 ### Key Patterns
 
-- **PATH Handling**: `safeExec` prepends `/opt/homebrew/bin` to PATH for Homebrew CLI access from Raycast runtime.
-- **Timeout**: Default 180s timeout on all engine calls.
-- **History**: Auto-saves last 100 optimizations with UUID, timestamp, engine, model, duration.
+- **PATH Handling**: `safeExec` prepends `/opt/homebrew/bin` for Homebrew CLI access from Raycast runtime
+- **Timeout**: 180s default on all engine calls
+- **History**: Auto-saves with UUID, timestamp, engine, model, duration
+
+## Coding Style
+
+- TypeScript (ES2020+), explicit types for props/return values
+- Prettier defaults, 2-space indent, single quotes
+- React components: PascalCase; helpers: camelCase; files: kebab-case
+- Linting: `@raycast/eslint-config` via `ray lint`
+
+## Commits
+
+- Concise imperative subject (e.g., "Add engine selection keyboard shortcut")
+- Include: behavior change, testing done (`ray develop`/`ray lint`), screenshots for UI
