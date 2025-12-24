@@ -7,7 +7,7 @@ This phase builds the foundational UI primitives for a consistent "Pro Dashboard
 - [x] Task: Create a `ui_playground.sh` to verify these logging functions produce a clean, aligned list.
 - [x] Task: Conductor - User Manual Verification 'Logging Style' (Protocol in workflow.md)
 
-## Phase 2: Splash Screen & Menu
+## Phase 2: Splash Screen & Menu [checkpoint: 2d25fba]
 This phase polishes the entry point of the installer.
 
 - [x] Task: Implement `ui_splash` in `lib/ui.sh` with ASCII art and system metadata.
@@ -17,7 +17,7 @@ This phase polishes the entry point of the installer.
 ## Phase 3: Installation Loop & Summary
 This phase applies the new design to the core logic.
 
-- [ ] Task: Refactor the main loop in `install.sh` to use `lib/logging.sh` functions instead of raw `gum` calls.
-- [ ] Task: Implement logic to track installation results in a CSV format (`/tmp/steez_install.csv`).
-- [ ] Task: Replace the text-based summary with a rich `gum table` rendered from the CSV.
-- [ ] Task: Conductor - User Manual Verification 'Final UI' (Protocol in workflow.md)
+- [x] Task: Refactor the main loop in `install.sh` to use `lib/logging.sh` functions instead of raw `gum` calls.
+- [x] Task: Implement logic to track installation results in a CSV format (`/tmp/steez_install.csv`).
+- [x] Task: Replace the text-based summary with a rich `gum table` rendered from the CSV.
+- [~] Task: Conductor - User Manual Verification 'Final UI' (Protocol in workflow.md)

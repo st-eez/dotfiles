@@ -85,13 +85,13 @@ main() {
         "Exit")
 
     if [[ "$action" == "Exit" ]]; then
-        gum style --foreground "$THEME_SUBTEXT" "Exiting..."
+        log_info "Installer" "Exiting..."
         exit 0
     fi
 
     if [[ "$action" == "Custom Selection" ]]; then
         if ! ui_select_packages; then
-            gum style --foreground "$THEME_WARNING" "No packages selected."
+            log_failure "Selection" "No packages selected"
             exit 0
         fi
     elif [[ "$action" == "Full Setup (Recommended)" ]]; then
@@ -126,31 +126,44 @@ main() {
             local run_timestamp
             run_timestamp=$(date +%Y%m%d_%H%M%S)
 
+            # Initialize CSV for summary
+            local csv_file="/tmp/steez_install.csv"
+            echo "Package,Binary,Config" > "$csv_file"
+
             # 4. Installation Loop
             for pkg in $SELECTED_PACKAGES; do
-                ui_header "Package: $pkg" ""
+                log_section "Package: $pkg"
                 local pkg_failed=false
+                local bin_status="Skipped"
+                local cfg_status="Skipped"
                 
                 # A. Install Binary
                 if is_installed "$pkg"; then
-                    gum style --foreground "$THEME_SUCCESS" "  ✔ Binary already installed"
+                    log_info "Binary" "Skipped (Installed)"
+                    bin_status="Installed (Pre)"
                 else
                     if install_package "$pkg"; then
-                        gum style --foreground "$THEME_SUCCESS" "  ✔ Installed successfully"
+                        log_success "Binary" "Installed"
+                        bin_status="Installed"
                     else
-                        gum style --foreground "$THEME_ERROR" "  ✘ Installation failed"
+                        log_failure "Binary" "Failed"
                         pkg_failed=true
+                        bin_status="Failed"
                     fi
                 fi
 
                 # B. Stow Configs
                 if stow_package "$pkg" "$run_timestamp"; then
-                    gum style --foreground "$THEME_SUCCESS" "  ✔ Configs linked"
+                    log_success "Config" "Linked"
+                    cfg_status="Linked"
                 else
-                     gum style --foreground "$THEME_ERROR" "  ✘ Linking failed"
+                     log_failure "Config" "Link Failed"
                      pkg_failed=true
+                     cfg_status="Failed"
                 fi
-                echo ""
+                
+                # Track in CSV
+                echo "$pkg,$bin_status,$cfg_status" >> "$csv_file"
 
                 if [[ "$pkg_failed" == true ]]; then
                     ((fail_count++))
@@ -160,16 +173,15 @@ main() {
             done
             
             # Summary
+            log_section "Installation Summary"
+            gum table --border normal --print --file "$csv_file"
+            
             echo ""
-            ui_header "Summary" ""
-            gum style --foreground "$THEME_SUCCESS" "  ✔ Successful: $success_count"
             if [[ $fail_count -gt 0 ]]; then
-                gum style --foreground "$THEME_ERROR" "  ✘ Failed:     $fail_count"
+                log_failure "Final Status" "Completed with Errors ($fail_count failed)"
             else
-                gum style --foreground "$THEME_SUBTEXT" "  ✘ Failed:     0"
+                log_success "Final Status" "Installation Complete!"
             fi
-            echo ""
-            gum style --foreground "$THEME_SUCCESS" --border normal --padding "1 2" "Installation Complete!"
 
     fi
 }
