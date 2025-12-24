@@ -4,11 +4,11 @@
 # Depends on: lib/theme.sh
 
 # Backup conflicting files/folders
-# Usage: backup_conflicts "package_name" "conflict_list_string"
+# Usage: backup_conflicts "package_name" "conflict_list_string" ["timestamp"]
 backup_conflicts() {
     local pkg="$1"
     local conflicts="$2"
-    local timestamp=$(date +%Y%m%d_%H%M%S)
+    local timestamp="${3:-$(date +%Y%m%d_%H%M%S)}"
     local backup_base="$DOTFILES_DIR/.backups/$timestamp"
     
     gum style --foreground "$THEME_SUBTEXT" "Backing up conflicts for $pkg..."

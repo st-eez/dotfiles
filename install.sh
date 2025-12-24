@@ -56,7 +56,10 @@ main() {
     # Pre-flight check for stow
     if ! command -v stow >/dev/null 2>&1; then
         if ui_confirm "GNU Stow is missing. Install it?"; then
-            install_package "stow"
+            if ! install_package "stow"; then
+                gum style --foreground "$THEME_ERROR" "Failed to install Stow. Exiting."
+                exit 1
+            fi
         else
             gum style --foreground "$THEME_ERROR" "Stow is required for dotfiles management. Exiting."
             exit 1
@@ -71,6 +74,10 @@ main() {
             # Counters
             local success_count=0
             local fail_count=0
+            
+            # Global timestamp for this run (for consistent backups)
+            local run_timestamp
+            run_timestamp=$(date +%Y%m%d_%H%M%S)
 
             # 4. Installation Loop
             for pkg in $SELECTED_PACKAGES; do
@@ -90,7 +97,7 @@ main() {
                 fi
 
                 # B. Stow Configs
-                if stow_package "$pkg"; then
+                if stow_package "$pkg" "$run_timestamp"; then
                     gum style --foreground "$THEME_SUCCESS" "  ✔ Configs linked"
                 else
                      gum style --foreground "$THEME_ERROR" "  ✘ Linking failed"

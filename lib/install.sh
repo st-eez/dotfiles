@@ -13,13 +13,15 @@ install_package() {
 
     # 1. Resolve Command based on OS
     if [[ "$OS" == "macos" ]]; then
-        local brew_args="${PKG_BREW_MAP[$pkg]:-}"
+        local brew_args
+        brew_args=$(get_brew_pkg "$pkg")
         if [[ -n "$brew_args" ]]; then
             cmd="brew install $brew_args"
             label="Brew: installing $pkg"
         fi
     elif [[ "$DISTRO" == "arch" ]]; then
-        local pacman_pkg="${PKG_PACMAN_MAP[$pkg]:-}"
+        local pacman_pkg
+        pacman_pkg=$(get_pacman_pkg "$pkg")
         if [[ -n "$pacman_pkg" ]]; then
             if [[ "$pacman_pkg" == aur:* ]]; then
                 local aur_pkg="${pacman_pkg#aur:}"
@@ -39,9 +41,9 @@ install_package() {
             fi
         fi
     elif [[ "$DISTRO" == "debian" ]]; then
-        # For now, we assume package name matches or map it manually if needed
-        # In a real scenario, we'd need a PKG_APT_MAP
-        cmd="sudo apt install -y $pkg"
+        local apt_pkg
+        apt_pkg=$(get_apt_pkg "$pkg")
+        cmd="sudo apt install -y $apt_pkg"
         label="Apt: installing $pkg"
     fi
 
@@ -64,14 +66,16 @@ install_package() {
 check_stow_conflicts() {
     local pkg="$1"
     # GNU Stow outputs conflicts to stderr. We want to catch items that are not symlinks.
-    stow --no --verbose --target="$HOME" "$pkg" 2>&1 | grep "existing target is not a symlink" | awk -F': ' '{print $2}' || true
+    # LC_ALL=C ensures consistent error messages for grep
+    LC_ALL=C stow --no --verbose --target="$HOME" "$pkg" 2>&1 | grep "existing target is not a symlink" | awk -F': ' '{print $2}' || true
 }
 
 # Stow a package (link configs)
-# Usage: stow_package "package_name"
+# Usage: stow_package "package_name" "backup_timestamp"
 # Returns: 0 on success, 1 on failure
 stow_package() {
     local pkg="$1"
+    local timestamp="${2:-}"
 
     if [[ ! -d "$DOTFILES_DIR/$pkg" ]]; then
         # Brew-only package, nothing to stow
@@ -87,7 +91,7 @@ stow_package() {
         if ui_confirm "Backup existing files and proceed?"; then
              # shellcheck disable=SC1090
              source "$DOTFILES_DIR/lib/utils.sh"
-             backup_conflicts "$pkg" "$conflicts"
+             backup_conflicts "$pkg" "$conflicts" "$timestamp"
         else
             gum style --foreground "$THEME_ERROR" "Skipping $pkg (conflicts)"
             return 1
@@ -107,9 +111,11 @@ stow_package() {
 # Usage: is_installed "package_name"
 is_installed() {
     local pkg="$1"
+    local bin_name
+    bin_name=$(get_binary_name "$pkg")
     
     # 1. Simple command check
-    if command -v "$pkg" >/dev/null 2>&1; then
+    if command -v "$bin_name" >/dev/null 2>&1; then
         return 0
     fi
 
