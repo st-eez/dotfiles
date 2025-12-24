@@ -1,5 +1,5 @@
-alias fcd='cd "$(dirname "$(fzf)")"'
-alias fnvim='nvim "$(fzf)"'
+alias fcd='file=$(fzf) && [[ -n "$file" ]] && cd "$(dirname "$file")"'
+alias fnvim='file=$(fzf) && [[ -n "$file" ]] && nvim "$file"'
 alias lg='lazygit'
 
 # eza alias (if installed)
