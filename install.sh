@@ -19,8 +19,8 @@ DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VERSION="2.0.0"
 
 # Package Groups (Stowed: has a folder in repo)
-readonly MACOS_PKGS=(aerospace autoraise bitwarden borders karabiner localsend raycast sketchybar)
-readonly TERMINAL_PKGS=(btop claude codex eza fd fzf gemini gh ghostty git lazygit lua nmap nvim node pnpm prettier ripgrep stow telnet wireguard-tools zoxide zsh)
+readonly MACOS_PKGS=(aerospace autoraise bitwarden borders karabiner localsend raycast sketchybar pnpm)
+readonly TERMINAL_PKGS=(btop claude codex eza fd fzf gemini gh ghostty git lazygit lua nmap nvim node prettier ripgrep stow telnet wireguard-tools zoxide zsh)
 readonly GIT_PKGS=()
 
 # Brew-only (installed via Brewfile, no config folder to stow)
@@ -58,6 +58,33 @@ declare -A PKG_BREW_MAP=(
   [nmap]="nmap"
   [telnet]="telnet"
   [wireguard-tools]="wireguard-tools"
+)
+
+# Pacman mappings: stow package → pacman/AUR package name
+# Packages prefixed with "aur:" require an AUR helper (yay/paru)
+declare -A PKG_PACMAN_MAP=(
+  [nvim]="neovim"
+  [btop]="btop"
+  [eza]="eza"
+  [fd]="fd"
+  [fzf]="fzf"
+  [gh]="github-cli"
+  [git]="git"
+  [lazygit]="lazygit"
+  [ripgrep]="ripgrep"
+  [zoxide]="zoxide"
+  [node]="nodejs"
+  [pnpm]="pnpm"
+  [prettier]="prettier"
+  [lua]="lua"
+  [stow]="stow"
+  [nmap]="nmap"
+  [telnet]="inetutils"
+  [wireguard-tools]="wireguard-tools"
+  [ghostty]="aur:ghostty"
+  [claude]="aur:claude-code-bin"
+  [codex]="aur:codex"
+  [gemini]="aur:gemini-cli"
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -643,10 +670,25 @@ confirm() {
 # OS Detection
 # ─────────────────────────────────────────────────────────────────────────────
 
+DISTRO=""
+
 detect_os() {
   case "$(uname -s)" in
     Darwin) OS="macos" ;;
-    Linux)  OS="linux" ;;
+    Linux)
+      OS="linux"
+      # Detect Linux distro
+      if [[ -f /etc/os-release ]]; then
+        # shellcheck disable=SC1091
+        source /etc/os-release
+        case "$ID" in
+          arch|endeavouros|manjaro|garuda) DISTRO="arch" ;;
+          ubuntu|debian|pop|linuxmint)     DISTRO="debian" ;;
+          fedora|rhel|centos)              DISTRO="fedora" ;;
+          *)                               DISTRO="unknown" ;;
+        esac
+      fi
+      ;;
     *)
       print_error "Unsupported OS: $(uname -s)"
       exit 1
@@ -659,6 +701,15 @@ detect_os() {
 # ─────────────────────────────────────────────────────────────────────────────
 
 check_homebrew() {
+  # On Linux, Homebrew is optional - we prefer native package managers
+  if [[ "$OS" == "linux" ]]; then
+    if command -v brew >/dev/null; then
+      print_success "Homebrew available (optional)"
+    fi
+    return 0
+  fi
+
+  # On macOS, Homebrew is required
   if ! command -v brew >/dev/null; then
     print_warning "Homebrew not installed"
     if confirm "Install Homebrew?"; then
@@ -682,22 +733,50 @@ check_homebrew() {
 }
 
 check_stow() {
-  if ! command -v stow >/dev/null; then
-    print_error "GNU Stow not installed"
-    if command -v brew >/dev/null; then
-      if confirm "Install stow via Homebrew?"; then
-        brew install stow
-        print_success "stow installed"
-        return 0
-      fi
-    fi
-    echo ""
-    print_info "Install manually:"
-    print_item "macOS:  brew install stow"
-    print_item "Ubuntu: sudo apt install stow"
-    print_item "Arch:   sudo pacman -S stow"
-    exit 1
+  if command -v stow >/dev/null; then
+    return 0
   fi
+
+  print_warning "GNU Stow not installed"
+
+  # Try native package manager first on Linux
+  if [[ "$OS" == "linux" ]]; then
+    case "$DISTRO" in
+      arch)
+        if confirm "Install stow via pacman?"; then
+          sudo pacman -S --noconfirm stow
+          command -v stow >/dev/null && print_success "stow installed" && return 0
+        fi
+        ;;
+      debian)
+        if confirm "Install stow via apt?"; then
+          sudo apt install -y stow
+          command -v stow >/dev/null && print_success "stow installed" && return 0
+        fi
+        ;;
+      fedora)
+        if confirm "Install stow via dnf?"; then
+          sudo dnf install -y stow
+          command -v stow >/dev/null && print_success "stow installed" && return 0
+        fi
+        ;;
+    esac
+  fi
+
+  # Fallback to Homebrew if available
+  if command -v brew >/dev/null; then
+    if confirm "Install stow via Homebrew?"; then
+      brew install stow
+      command -v stow >/dev/null && print_success "stow installed" && return 0
+    fi
+  fi
+
+  echo ""
+  print_error "stow is required. Install manually:"
+  print_item "macOS:  brew install stow"
+  print_item "Ubuntu: sudo apt install stow"
+  print_item "Arch:   sudo pacman -S stow"
+  exit 1
 }
 
 check_nerd_font() {
@@ -810,7 +889,7 @@ is_already_stowed() {
       fi
     elif [[ -d "$target" && -d "$src_path" ]]; then
       # If target is a directory, check if any file inside is a symlink to our repo
-      if find "$target" -maxdepth 1 -type l -ls 2>/dev/null | perl -ne 'print if /'"$DOTFILES_DIR"'/' | grep -q .; then
+      if find "$target" -maxdepth 1 -type l -ls 2>/dev/null | grep -qF "$DOTFILES_DIR"; then
         return 0
       fi
     fi
@@ -992,6 +1071,48 @@ install_pkg_brew() {
   spin_task "Brew: installing $pkg" "brew install $brew_cmd"
 }
 
+install_pkg_pacman() {
+  local pkg="$1"
+  local pacman_pkg="${PKG_PACMAN_MAP[$pkg]:-}"
+
+  [[ -z "$pacman_pkg" ]] && return 0
+
+  # Check if it's an AUR package
+  if [[ "$pacman_pkg" == aur:* ]]; then
+    local aur_pkg="${pacman_pkg#aur:}"
+    # Try yay first, then paru
+    if command -v yay >/dev/null; then
+      spin_task "AUR (yay): installing $pkg" "yay -S --noconfirm $aur_pkg"
+    elif command -v paru >/dev/null; then
+      spin_task "AUR (paru): installing $pkg" "paru -S --noconfirm $aur_pkg"
+    else
+      print_warning "No AUR helper found (yay/paru). Install $aur_pkg manually."
+      return 1
+    fi
+  else
+    spin_task "Pacman: installing $pkg" "sudo pacman -S --noconfirm $pacman_pkg"
+  fi
+}
+
+# Unified package installer - uses appropriate package manager
+install_pkg() {
+  local pkg="$1"
+
+  if [[ "$OS" == "macos" ]]; then
+    install_pkg_brew "$pkg"
+  elif [[ "$DISTRO" == "arch" ]]; then
+    install_pkg_pacman "$pkg"
+  else
+    # Fallback to brew if available
+    if command -v brew >/dev/null; then
+      install_pkg_brew "$pkg"
+    else
+      print_warning "No supported package manager for $pkg"
+      return 1
+    fi
+  fi
+}
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Backup System
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1040,8 +1161,11 @@ stow_packages() {
     # 1. Binary Status
     if [[ -z "$install_location" ]]; then
       printf "  ${C_ERROR}${CROSS}${NC} %-12s ${C_DIM}Binary:  ${NC}${C_ERROR}Not found${NC}\n" "$pkg"
-      if confirm "Install $pkg via Homebrew?" "y"; then
-        if ! install_pkg_brew "$pkg"; then
+      local pm_name="package manager"
+      [[ "$OS" == "macos" ]] && pm_name="Homebrew"
+      [[ "$DISTRO" == "arch" ]] && pm_name="pacman"
+      if confirm "Install $pkg via $pm_name?" "y"; then
+        if ! install_pkg "$pkg"; then
           ready=false
         else
           install_location=$(get_install_location "$pkg")
@@ -1085,8 +1209,14 @@ stow_packages() {
       ghostty|zsh)
         if ! check_nerd_font; then
           print_warning "JetBrainsMono Nerd Font not found"
-          if confirm "Install via Homebrew?" "y"; then
-            spin_task "Brew: installing font" "brew install --cask font-jetbrains-mono-nerd-font"
+          if [[ "$OS" == "macos" ]]; then
+            if confirm "Install via Homebrew?" "y"; then
+              spin_task "Brew: installing font" "brew install --cask font-jetbrains-mono-nerd-font"
+            fi
+          elif [[ "$DISTRO" == "arch" ]]; then
+            if confirm "Install via pacman?" "y"; then
+              spin_task "Pacman: installing font" "sudo pacman -S --noconfirm ttf-jetbrains-mono-nerd"
+            fi
           fi
         fi
         ;;
@@ -1286,7 +1416,8 @@ action_brew_bundle() {
 }
 
 action_full_steez() {
-  local stow_pkgs=("${TERMINAL_PKGS[@]}" "${MACOS_PKGS[@]}" "${GIT_PKGS[@]}")
+  local stow_pkgs=("${TERMINAL_PKGS[@]}" "${GIT_PKGS[@]}")
+  [[ "$OS" == "macos" ]] && stow_pkgs+=("${MACOS_PKGS[@]}")
   local all_pkgs=("${stow_pkgs[@]}" "${BREW_ONLY_PKGS[@]}")
 
   print_section "Full Setup"
