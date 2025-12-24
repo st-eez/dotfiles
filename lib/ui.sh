@@ -1,22 +1,51 @@
 #!/usr/bin/env bash
 
 # UI Components using Charm Gum
-# Depends on: lib/theme.sh
+# Depends on: lib/theme.sh, lib/logging.sh
 
-# Display a styled header
+# Ensure logging is available
+if ! declare -F log_title > /dev/null; then
+    source "$(dirname "${BASH_SOURCE[0]}")/logging.sh"
+fi
+
+# Splash screen with ASCII art and system info
+ui_splash() {
+    local version="${1:-2.0.0}"
+
+    # System metadata
+    local os_info=""
+    case "$OS" in
+        macos)
+            if command -v sw_vers >/dev/null; then
+                os_info="macOS $(sw_vers -productVersion 2>/dev/null || echo '')"
+            else
+                os_info="macOS"
+            fi
+            ;; 
+        linux)
+            if [[ -f /etc/os-release ]]; then
+                os_info=$(grep PRETTY_NAME /etc/os-release | cut -d'"' -f2)
+            else
+                os_info="Linux"
+            fi
+            ;; 
+        *)
+            os_info="${OS:-Unknown OS}"
+            ;; 
+    esac
+
+    local shell_info="${SHELL##*/}"
+    local term_info="${TERM:-unknown}"
+    local metadata="$os_info  •  $shell_info  •  $term_info"
+
+    # Delegate to the standardized title logger
+    log_title "Dotfiles Installer v$version" "$metadata"
+}
+
+# Display a styled header (Alias to log_section or log_title depending on use)
+# kept for compatibility but updated style
 ui_header() {
-    local title="$1"
-    local subtitle="${2:-}"
-
-    gum style \
-        --foreground "$THEME_PRIMARY" \
-        --border-foreground "$THEME_SECONDARY" \
-        --border double \
-        --align center \
-        --width 50 \
-        --margin "1 2" \
-        --padding "1 2" \
-        "$title" "$subtitle"
+    log_section "$1"
 }
 
 # Display a confirmation dialog
@@ -55,10 +84,6 @@ ui_select_packages() {
     done
 
     # 3. Use gum choose for selection
-    # We strip the "Category:" prefix for the result, but keep it for display if gum supported groups better.
-    # Since gum choose is simple, we'll just list them.
-    # To make it nicer, we pass the raw strings.
-    
     local selection
     selection=$(printf "%s\n" "${items[@]}" | gum choose --no-limit --height 20 --header "Select packages (Space to select, Enter to confirm)" --cursor.foreground "$THEME_PRIMARY" --item.foreground "$THEME_TEXT" --selected.foreground "$THEME_SUCCESS")
 

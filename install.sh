@@ -19,6 +19,7 @@ fi
 # Load Configuration & UI
 source "$DOTFILES_DIR/lib/config.sh"
 source "$DOTFILES_DIR/lib/theme.sh"
+source "$DOTFILES_DIR/lib/logging.sh"
 source "$DOTFILES_DIR/lib/ui.sh"
 source "$DOTFILES_DIR/lib/install.sh"
 source "$DOTFILES_DIR/lib/utils.sh"
@@ -50,8 +51,8 @@ main() {
         exit 1
     fi
 
-    # 3. UI Flow
-    ui_header "Steez Dotfiles v2" "Modern setup for macOS & Linux"
+    # 3. UI Flow - Splash Screen
+    ui_splash "2.0.0"
 
     # Pre-flight check for stow
     if ! command -v stow >/dev/null 2>&1; then
@@ -68,9 +69,20 @@ main() {
 
     echo ""
     
+    # Initialize global selection variable
+    SELECTED_PACKAGES=""
+    
     # Main Menu
     local action
-    action=$(gum choose --header "Choose an installation mode" --cursor.foreground "$THEME_PRIMARY" --item.foreground "$THEME_TEXT" "Full Setup (Recommended)" "Custom Selection" "Exit")
+    action=$(gum choose \
+        --header "Choose an installation mode" \
+        --header.foreground "$THEME_PRIMARY" \
+        --cursor.foreground "$THEME_PRIMARY" \
+        --item.foreground "$THEME_TEXT" \
+        --selected.foreground "$THEME_PRIMARY" \
+        "Full Setup (Recommended)" \
+        "Custom Selection" \
+        "Exit")
 
     if [[ "$action" == "Exit" ]]; then
         gum style --foreground "$THEME_SUBTEXT" "Exiting..."

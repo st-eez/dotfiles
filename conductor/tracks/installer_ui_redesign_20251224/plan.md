@@ -1,6 +1,6 @@
 # Track Plan: Modernize Installer UI
 
-## Phase 1: Component Library & Logging
+## Phase 1: Component Library & Logging [checkpoint: bd42b12]
 This phase builds the foundational UI primitives for a consistent "Pro Dashboard" look.
 
 - [x] Task: Create `lib/logging.sh` with standardized functions (`log_title`, `log_section`, `log_success`, `log_failure`, `log_info`) that use `gum style` and `printf` for perfect alignment. `log_failure` should support an optional error detail argument and use a distinct red theme.
@@ -12,7 +12,7 @@ This phase polishes the entry point of the installer.
 
 - [x] Task: Implement `ui_splash` in `lib/ui.sh` with ASCII art and system metadata.
 - [x] Task: Refine the Main Menu in `install.sh` to use the new splash screen and standardize prompts using `gum choose`, removing all legacy `read -p` commands.
-- [ ] Task: Conductor - User Manual Verification 'Splash & Menu' (Protocol in workflow.md)
+- [~] Task: Conductor - User Manual Verification 'Splash & Menu' (Protocol in workflow.md)
 
 ## Phase 3: Installation Loop & Summary
 This phase applies the new design to the core logic.
