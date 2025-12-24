@@ -45,11 +45,11 @@ outer.right = 10
 2 = 'BenQ XL2411Z'
 3 = 'BenQ XL2411Z'
 4 = 'BenQ XL2411Z'
-5 = 'Pixio PX248PS'           # Workspaces 5-8 on Pixio
+5 = 'Pixio PX248PS'           # Workspaces 5-7 on Pixio
 6 = 'Pixio PX248PS'
 7 = 'Pixio PX248PS'
-8 = 'Pixio PX248PS'
-9 = 'Built-in Retina Display' # Workspaces 9 and 0 on MacBook display
+8 = 'Built-in Retina Display' # Workspaces 8-0 on MacBook display
+9 = 'Built-in Retina Display'
 0 = 'Built-in Retina Display'
 
 [mode.main.binding]

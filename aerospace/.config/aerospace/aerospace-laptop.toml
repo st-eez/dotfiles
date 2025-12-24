@@ -41,16 +41,11 @@ outer.right = 10
 
 # Laptop-only setup - All workspaces on Built-in display
 [workspace-to-monitor-force-assignment]
-1 = 'built-in' # All 9 workspaces on MacBook display
+1 = 'built-in' # 5 workspaces on MacBook display
 2 = 'built-in'
 3 = 'built-in'
 4 = 'built-in'
 5 = 'built-in'
-6 = 'built-in'
-7 = 'built-in'
-8 = 'built-in'
-9 = 'built-in'
-0 = 'built-in'
 
 [mode.main.binding]
 # Window focus (CAPS + arrows)

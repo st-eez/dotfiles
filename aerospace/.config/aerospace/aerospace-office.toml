@@ -45,12 +45,12 @@ outer.right = 10
 2 = 'LG ULTRAWIDE' # Main workspace on primary monitor
 3 = 'LG ULTRAWIDE' # Main workspace on primary monitor
 4 = 'LG ULTRAWIDE' # Main workspace on primary monitor
-5 = 'built-in'     # MacBook display
-6 = 'built-in'     # MacBook display
-7 = 'built-in'     # MacBook display
+5 = 'ASUS VA24E'   # Secondary workspace on ASUS display
+6 = 'ASUS VA24E'   # Secondary workspace on ASUS display
+7 = 'ASUS VA24E'   # Secondary workspace on ASUS display
 8 = 'built-in'     # MacBook display
-9 = 'ASUS VA24E'   # Secondary workspace on ASUS display
-0 = 'ASUS VA24E'
+9 = 'built-in'     # MacBook display
+0 = 'built-in'     # MacBook display
 
 [mode.main.binding]
 # Window focus (CAPS + arrows)
