@@ -3,17 +3,17 @@
 ## Phase 1: Bootstrap & OS Detection
 This phase ensures the installer can detect the OS and install the `gum` dependency automatically.
 
-- [ ] Task: Create `lib/bootstrap.sh` to handle OS detection logic for macOS, Arch, and Ubuntu/Mint.
-- [ ] Task: Implement `install_gum()` in `lib/bootstrap.sh` using `brew`, `pacman`, or `apt` (including repo setup for apt).
-- [ ] Task: Create a new entry point script `install_v2.sh` that triggers the bootstrap and verifies `gum` availability.
-- [ ] Task: Conductor - User Manual Verification 'Bootstrap & OS Detection' (Protocol in workflow.md)
+- [x] Task: Create `lib/bootstrap.sh` to handle OS detection logic for macOS, Arch, and Ubuntu/Mint.
+- [x] Task: Implement `install_gum()` in `lib/bootstrap.sh` using `brew`, `pacman`, or `apt` (including repo setup for apt).
+- [x] Task: Create a new entry point script `install_v2.sh` that triggers the bootstrap and verifies `gum` availability.
+- [~] Task: Conductor - User Manual Verification 'Bootstrap & OS Detection' (Protocol in workflow.md)
 
 ## Phase 2: UI Refactor with Tokyo Night
 This phase replaces the custom Bash UI with themed Gum components.
 
 - [ ] Task: Define Tokyo Night hex color variables (Blue: #7aa2f7, Purple: #bb9af7, Red: #f7768e, etc.) in `lib/theme.sh`.
 - [ ] Task: Implement `ui_header()` and `ui_confirm()` using `gum style` and `gum confirm`.
-- [ ] Task: Implement `ui_select_packages()` using `gum choose --no-limit` for multi-OS package selection.
+- [ ] Task: Implement `ui_select_packages()` using `gum choose --no-limit`. Ensure the list is dynamically filtered to show only packages compatible with the detected OS (e.g., hide `sketchybar` on Linux).
 - [ ] Task: Connect the new UI flow to the main loop in `install_v2.sh`.
 - [ ] Task: Conductor - User Manual Verification 'UI Refactor with Tokyo Night' (Protocol in workflow.md)
 
