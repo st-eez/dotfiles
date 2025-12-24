@@ -67,12 +67,47 @@ main() {
     fi
 
     echo ""
-    if ui_confirm "Do you want to select packages to install?"; then
-        if ui_select_packages; then
-            echo ""
-            
-            # Counters
-            local success_count=0
+    
+    # Main Menu
+    local action
+    action=$(gum choose --header "Choose an installation mode" --cursor.foreground "$THEME_PRIMARY" --item.foreground "$THEME_TEXT" "Full Setup (Recommended)" "Custom Selection" "Exit")
+
+    if [[ "$action" == "Exit" ]]; then
+        gum style --foreground "$THEME_SUBTEXT" "Exiting..."
+        exit 0
+    fi
+
+    if [[ "$action" == "Custom Selection" ]]; then
+        if ! ui_select_packages; then
+            gum style --foreground "$THEME_WARNING" "No packages selected."
+            exit 0
+        fi
+    elif [[ "$action" == "Full Setup (Recommended)" ]]; then
+        # Auto-populate all compatible packages
+        SELECTED_PACKAGES=""
+        
+        # 1. macOS Packages
+        if [[ "$OS" == "macos" ]]; then
+            for pkg in "${MACOS_PKGS[@]}"; do
+                SELECTED_PACKAGES+="$pkg "
+            done
+        fi
+
+        # 2. Terminal Packages (All OS)
+        for pkg in "${TERMINAL_PKGS[@]}"; do
+            SELECTED_PACKAGES+="$pkg "
+        done
+        
+        # Trim trailing space
+        SELECTED_PACKAGES="${SELECTED_PACKAGES% }"
+    fi
+
+    # Proceed if we have packages
+    if [[ -n "$SELECTED_PACKAGES" ]]; then
+        echo ""
+        
+        # Counters
+        local success_count=0
             local fail_count=0
             
             # Global timestamp for this run (for consistent backups)
@@ -124,11 +159,6 @@ main() {
             echo ""
             gum style --foreground "$THEME_SUCCESS" --border normal --padding "1 2" "Installation Complete!"
 
-        else
-            echo "No packages selected."
-        fi
-    else
-        echo "Skipping selection."
     fi
 }
 
