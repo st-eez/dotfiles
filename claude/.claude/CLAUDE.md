@@ -10,6 +10,7 @@
 
 1. Context7: Fetch library docs via MCP before code generation
 2. No AI branding in commits (no signatures, co-authored-by, metadata)
+3. Web searches: Use current year from env "Today's date" field (e.g., if 2025-12-23, search with "2025" not "2024")
 
 ## Behavior
 

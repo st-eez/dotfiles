@@ -20,7 +20,7 @@
 - neofetch – ~/.config/neofetch/config.conf (system info display order).
 - htop – ~/.config/htop/ (process monitor overrides).
 - Chai - Keep mac awake
-- Homebrew tools – reinstall borders, btop, htop, neofetch, screenresolution, fzf, ripgrep, powershell, codex, cava, cmatrix, etc.
+- Homebrew tools – reinstall borders, btop, htop, neofetch, screenresolution, fzf, ripgrep, codex, cava, cmatrix, etc.
 
 ## Other Apps
 - Bitwarden – Password manager 

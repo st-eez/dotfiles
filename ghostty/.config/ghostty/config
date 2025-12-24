@@ -7,3 +7,6 @@ keybind = shift+enter=text:\n
 # Split appearance - match JankyBorders active color
 split-divider-color = #c0caf5
 unfocused-split-opacity = 0.5
+
+# Disable paste protection warning
+clipboard-paste-protection = false

@@ -19,6 +19,11 @@ Reproducible macOS workstation: shell, editor, terminal, window management.
 ```bash
 # Homebrew (will prompt for Xcode CLI tools if needed)
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# GNU Stow
+brew install stow  # macOS
+# sudo apt install stow  # Ubuntu/Debian
+# sudo pacman -S stow    # Arch
 ```
 
 ---
@@ -39,31 +44,31 @@ git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ~/.oh-my-zsh/cu
 git clone https://github.com/zsh-users/zsh-autosuggestions ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions
 git clone https://github.com/zsh-users/zsh-syntax-highlighting ~/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
 
-# Backup and remove existing configs
-BACKUP_DIR=~/dotfiles_backup_$(date +%Y%m%d_%H%M%S)
-mkdir -p "$BACKUP_DIR/.config"
-mv ~/.zshrc ~/.zprofile ~/.p10k.zsh ~/.tmux.conf "$BACKUP_DIR/" 2>/dev/null
-mv ~/.config/{aerospace,ghostty,karabiner,sketchybar,nvim,borders} "$BACKUP_DIR/.config/" 2>/dev/null
+# Install dotfiles (uses GNU Stow)
+./install.sh
 
-# Create symlinks
-mkdir -p ~/.config
-ln -s ~/dotfiles/zsh/.zshrc ~/.zshrc
-ln -s ~/dotfiles/zsh/.zprofile ~/.zprofile
-ln -s ~/dotfiles/zsh/.p10k.zsh ~/.p10k.zsh
-ln -s ~/dotfiles/tmux/.tmux.conf ~/.tmux.conf
-ln -s ~/dotfiles/aerospace ~/.config/aerospace
-ln -s ~/dotfiles/ghostty ~/.config/ghostty
-ln -s ~/dotfiles/karabiner ~/.config/karabiner
-ln -s ~/dotfiles/sketchybar ~/.config/sketchybar
-ln -s ~/dotfiles/nvim ~/.config/nvim
-ln -s ~/dotfiles/borders ~/.config/borders
-ln -s ~/dotfiles/zsh/.oh-my-zsh/custom/aliases.zsh ~/.oh-my-zsh/custom/aliases.zsh
-
-# Install packages
+# Install packages (macOS)
 brew bundle --file Brewfile
 
 # Git config (edit name/email after copying)
 cp ~/dotfiles/git/.gitconfig.template ~/.gitconfig
+```
+
+### Machine-Specific Config
+
+Create `~/.zshrc.local` for paths specific to this machine:
+
+```bash
+# Example for Mac with Bitwarden SSH agent
+export PATH="$HOME/.antigravity/antigravity/bin:$PATH"
+export SSH_AUTH_SOCK="$HOME/Library/Containers/com.bitwarden.desktop/Data/.bitwarden-ssh-agent.sock"
+```
+
+### Linux-Only Install
+
+```bash
+cd ~/dotfiles
+stow zsh tmux nvim ghostty
 ```
 
 ---

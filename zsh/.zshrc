@@ -5,6 +5,12 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
+# OS detection
+case "$(uname -s)" in
+  Darwin) IS_MACOS=true ;;
+  *)      IS_MACOS=false ;;
+esac
+
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH
 
@@ -121,15 +127,33 @@ export PATH="$HOME/.local/bin:$PATH"
 eval "$(zoxide init zsh)"
 
 
-# Added by Antigravity
-export PATH="/Users/stevedimakos/.antigravity/antigravity/bin:$PATH"
-
-# fzf keybindings and completion (Homebrew)
+# fzf keybindings and completion (cross-platform)
 if command -v fzf >/dev/null; then
-  FZF_PREFIX="$(brew --prefix fzf 2>/dev/null || dirname "$(dirname "$(command -v fzf)")")"
-  [[ -f "$FZF_PREFIX/shell/key-bindings.zsh" ]] && source "$FZF_PREFIX/shell/key-bindings.zsh"
-  [[ -f "$FZF_PREFIX/shell/completion.zsh" ]] && source "$FZF_PREFIX/shell/completion.zsh"
+  if $IS_MACOS && command -v brew >/dev/null; then
+    FZF_PREFIX="$(brew --prefix fzf 2>/dev/null)"
+    [[ -n "$FZF_PREFIX" ]] && source "$FZF_PREFIX/shell/key-bindings.zsh" 2>/dev/null
+    [[ -n "$FZF_PREFIX" ]] && source "$FZF_PREFIX/shell/completion.zsh" 2>/dev/null
+  else
+    # Linux: Arch
+    [[ -f /usr/share/fzf/key-bindings.zsh ]] && source /usr/share/fzf/key-bindings.zsh
+    [[ -f /usr/share/fzf/completion.zsh ]] && source /usr/share/fzf/completion.zsh
+    # Linux: Debian/Ubuntu
+    [[ -f /usr/share/doc/fzf/examples/key-bindings.zsh ]] && source /usr/share/doc/fzf/examples/key-bindings.zsh
+    [[ -f /usr/share/doc/fzf/examples/completion.zsh ]] && source /usr/share/doc/fzf/examples/completion.zsh
+  fi
 fi
 
 # Source local secrets (not tracked in git)
-[[ -f ~/.secrets ]] && source ~/.secrets 
+[[ -f ~/.secrets ]] && source ~/.secrets
+
+# Source machine-specific config (not tracked)
+[[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
+
+# Prevent sudo nvim from breaking plugin permissions
+sudo() {
+  if [[ "$1" == "nvim" ]]; then
+    command sudo -H "$@"
+  else
+    command sudo "$@"
+  fi
+}

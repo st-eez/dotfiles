@@ -25,18 +25,22 @@ Temporary Items
 # Personal notes and configs
 WORKING_NOTES*.md
 PROJECT_NOTES*.md
-sketchybar/AGENTS.md
+sketchybar/.config/sketchybar/AGENTS.md
 .gitconfig
 .gitconfig-*
 
+# Machine-specific (not tracked)
+.zshrc.local
+
 # Aerospace (generated from profile configs)
-aerospace/aerospace.toml
+aerospace/.config/aerospace/aerospace.toml
 
 # Backups
 *.backup
 *.bak
 backups/
-karabiner/automatic_backups/
+.backups/
+karabiner/.config/karabiner/automatic_backups/
 
 # Clipboard cache
 raycast/extensions/prompt-optimizer/.gemini-clipboard/

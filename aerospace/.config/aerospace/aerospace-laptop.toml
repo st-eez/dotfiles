@@ -8,7 +8,7 @@ enable-normalization-opposite-orientation-for-nested-containers = true
 default-root-container-layout = 'tiles'
 
 # Automatically change accordion to tiles when only one window
-# accordion-padding = 31
+# accordion-padding = 30
 
 after-login-command = []
 
@@ -28,11 +28,6 @@ exec-on-workspace-change = [
   '/opt/homebrew/opt/sketchybar/bin/sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE PREV_WORKSPACE=$AEROSPACE_PREV_WORKSPACE',
 ]
 
-# Trigger sketchybar on focus change (updates workspace icons when windows open/close)
-on-focus-changed = [
-  'exec-and-forget /opt/homebrew/opt/sketchybar/bin/sketchybar --trigger aerospace_workspace_change',
-]
-
 [gaps]
 inner.horizontal = 10
 inner.vertical = 10
@@ -44,18 +39,18 @@ outer.top = [
 ] # 12px for MacBook, 8px for externals
 outer.right = 10
 
-# Office setup - LG ULTRAWIDE and ASUS monitors
+# Laptop-only setup - All workspaces on Built-in display
 [workspace-to-monitor-force-assignment]
-1 = 'LG ULTRAWIDE' # Main workspace on primary monitor
-2 = 'LG ULTRAWIDE' # Main workspace on primary monitor
-3 = 'LG ULTRAWIDE' # Main workspace on primary monitor
-4 = 'LG ULTRAWIDE' # Main workspace on primary monitor
-5 = 'built-in'     # MacBook display
-6 = 'built-in'     # MacBook display
-7 = 'built-in'     # MacBook display
-8 = 'built-in'     # MacBook display
-9 = 'ASUS VA24E'   # Secondary workspace on ASUS display
-0 = 'ASUS VA24E'
+1 = 'built-in' # All 9 workspaces on MacBook display
+2 = 'built-in'
+3 = 'built-in'
+4 = 'built-in'
+5 = 'built-in'
+6 = 'built-in'
+7 = 'built-in'
+8 = 'built-in'
+9 = 'built-in'
+0 = 'built-in'
 
 [mode.main.binding]
 # Window focus (CAPS + arrows)
@@ -83,6 +78,7 @@ alt-8 = 'exec-and-forget bash -c "aerospace workspace 8 && aerospace move-mouse 
 alt-9 = 'exec-and-forget bash -c "aerospace workspace 9 && aerospace move-mouse window-lazy-center"'
 alt-0 = 'exec-and-forget bash -c "aerospace workspace 0 && aerospace move-mouse window-lazy-center"'
 
+
 # Move window to workspace and follow (CAPS + SHIFT + number)
 alt-shift-1 = 'exec-and-forget bash -c "aerospace move-node-to-workspace --focus-follows-window 1 && aerospace workspace 1 && aerospace move-mouse window-lazy-center"'
 alt-shift-2 = 'exec-and-forget bash -c "aerospace move-node-to-workspace --focus-follows-window 2 && aerospace workspace 2 && aerospace move-mouse window-lazy-center"'
@@ -94,6 +90,7 @@ alt-shift-7 = 'exec-and-forget bash -c "aerospace move-node-to-workspace --focus
 alt-shift-8 = 'exec-and-forget bash -c "aerospace move-node-to-workspace --focus-follows-window 8 && aerospace workspace 8 && aerospace move-mouse window-lazy-center"'
 alt-shift-9 = 'exec-and-forget bash -c "aerospace move-node-to-workspace --focus-follows-window 9 && aerospace workspace 9 && aerospace move-mouse window-lazy-center"'
 alt-shift-0 = 'exec-and-forget bash -c "aerospace move-node-to-workspace --focus-follows-window 0 && aerospace workspace 0 && aerospace move-mouse window-lazy-center"'
+
 
 # Move window to workspace without following (Custom binding: Ctrl+Shift+Alt+1-9)
 

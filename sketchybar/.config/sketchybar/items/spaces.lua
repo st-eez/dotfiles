@@ -252,13 +252,23 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
       else
         update_highlight(focused_workspace)
 
-        if prev_workspace and spaces[prev_workspace] then
+        if prev_workspace and prev_workspace ~= focused_workspace and spaces[prev_workspace] then
           update_windows(prev_workspace)
         end
         if spaces[focused_workspace] then
           update_windows(focused_workspace)
         end
       end
+    end)
+
+    -- Refresh the focused workspace when windows are created/destroyed
+    spacer_observer:subscribe("space_windows_change", function(env)
+      sbar.exec("aerospace list-workspaces --focused", function(f)
+        local sid = f and f:match("%S+")
+        if sid and spaces[sid] then
+          update_windows(sid)
+        end
+      end)
     end)
 
     -- Initial Trigger
