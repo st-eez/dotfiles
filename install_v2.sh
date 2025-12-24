@@ -42,7 +42,8 @@ main() {
             echo ""
             gum style \
                 --foreground "$THEME_SUCCESS" \
-                --border "$THEME_SUCCESS" \
+                --border normal \
+                --border-foreground "$THEME_SUCCESS" \
                 --padding "1 2" \
                 "Selected packages: $SELECTED_PACKAGES"
         else
