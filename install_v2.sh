@@ -16,6 +16,11 @@ else
     exit 1
 fi
 
+# Load Configuration & UI
+source "$DOTFILES_DIR/lib/config.sh"
+source "$DOTFILES_DIR/lib/theme.sh"
+source "$DOTFILES_DIR/lib/ui.sh"
+
 # Main execution flow
 main() {
     # 1. Bootstrap
@@ -28,11 +33,24 @@ main() {
         exit 1
     fi
 
-    # For now, just a placeholder to show it works
-    gum style \
-        --foreground 212 --border-foreground 212 --border double \
-        --align center --width 50 --margin "1 2" --padding "2 4" \
-        "Steez Dotfiles v2" "Gum is ready!"
+    # 3. UI Flow
+    ui_header "Steez Dotfiles v2" "Modern setup for macOS & Linux"
+
+    echo ""
+    if ui_confirm "Do you want to select packages to install?"; then
+        if ui_select_packages; then
+            echo ""
+            gum style \
+                --foreground "$THEME_SUCCESS" \
+                --border "$THEME_SUCCESS" \
+                --padding "1 2" \
+                "Selected packages: $SELECTED_PACKAGES"
+        else
+            echo "No packages selected."
+        fi
+    else
+        echo "Skipping selection."
+    fi
 }
 
 main "$@"
