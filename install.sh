@@ -154,17 +154,32 @@ run_installation() {
     log_section "Post-Installation Setup"
 
     # 1. Fonts (Universal)
-    install_nerd_fonts
+    if install_nerd_fonts; then
+        log_success "Fonts" "Nerd Fonts installed/verified"
+    else
+        log_failure "Fonts" "Installation failed"
+        ((fail_count++))
+    fi
 
     # 2. Zsh Configuration
     # Check if zsh was in the list OR if we are just ensuring environment
     if [[ " ${pkg_array[*]} " =~ " zsh " ]] || [[ "$SHELL" == */zsh ]]; then
-        setup_zsh_env
+        if setup_zsh_env; then
+            log_success "Zsh Setup" "Environment configured"
+        else
+            log_failure "Zsh Setup" "Failed"
+            ((fail_count++))
+        fi
     fi
 
     # 3. Git Configuration
     if [[ " ${pkg_array[*]} " =~ " git " ]]; then
-        setup_git_config
+        if setup_git_config; then
+            log_success "Git Setup" "Config generated"
+        else
+            log_failure "Git Setup" "Failed"
+            ((fail_count++))
+        fi
     fi
 
     # Summary with detailed stats

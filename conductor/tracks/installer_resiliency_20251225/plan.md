@@ -11,7 +11,7 @@
     - Clone Oh-My-Zsh if `~/.oh-my-zsh` is missing.
     - Clone `zsh-autosuggestions` and `zsh-syntax-highlighting` to `$ZSH_CUSTOM/plugins`.
     - Clone `powerlevel10k` to `$ZSH_CUSTOM/themes/powerlevel10k`.
-- [x] Task: Update `zsh/.zshrc` template with guards for `zoxide`, `thefuck`, and other CLI tool initializations.
+- [x] Task: Update `zsh/.zshrc` template with guards for `zoxide` and other CLI tool initializations.
 - [x] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)
 
 ## Phase 3: Visual & Configuration Parity [checkpoint: cce3fb8]
@@ -26,8 +26,19 @@
     - Write result to `~/.gitconfig`.
 - [ ] Task: Conductor - User Manual Verification 'Phase 3' (Protocol in workflow.md)
 
-## Phase 4: Integration & Verification
+## Phase 4: Integration & Verification [checkpoint: 68b752d]
 - [x] Task: Update main `install.sh` to call the new Zsh and Git setup steps during the installation flow.
 - [x] Task: Add a conflict check for `~/.zshrc` that offers to backup before `stow` runs.
 - [x] Task: Verify the full flow on a clean (simulated or real) Arch/Omarchy environment.
 - [x] Task: Conductor - User Manual Verification 'Phase 4' (Protocol in workflow.md)
+
+## Phase 5: Resilience & Idempotency Fixes
+- [x] Task: Fix `mktemp` safety in `bootstrap_aur_helper` (installer/install.sh).
+- [x] Task: Make Zsh setup fail fast & report errors (installer/zsh_setup.sh).
+- [x] Task: Propagate Zsh setup failure to main flow (install.sh).
+- [x] Task: Propagate Git setup failure to main flow (install.sh).
+- [x] Task: Propagate Nerd Fonts failure to main flow (install.sh).
+- [x] Task: Respect `ensure_backup` result in `stow_package` (installer/install.sh).
+- [x] Task: Improve Debian Nerd Fonts logic: robust check, curl/fc-cache guards (installer/install.sh).
+- [x] Task: Sanity Check (bash -n) and Verification.
+- [x] Task: Conductor - User Manual Verification 'Phase 5' (Protocol in workflow.md)

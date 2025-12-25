@@ -20,16 +20,16 @@ bootstrap_aur_helper() {
 
     local tmp_dir
     tmp_dir=$(mktemp -d)
-    git clone https://aur.archlinux.org/yay.git "$tmp_dir/yay" || return 1
+    local build_success=0
+
+    if ! git clone https://aur.archlinux.org/yay.git "$tmp_dir/yay"; then
+        build_success=1
+    elif ! (cd "$tmp_dir/yay" && makepkg -si --noconfirm); then
+        build_success=1
+    fi
     
-    (
-        cd "$tmp_dir/yay" || exit 1
-        makepkg -si --noconfirm || exit 1
-    )
-    
-    local res=$?
     rm -rf "$tmp_dir"
-    return $res
+    return $build_success
 }
 
 # Install Nerd Fonts (JetBrains Mono) for proper icon support
@@ -64,16 +64,24 @@ install_nerd_fonts() {
             return 0
         fi
 
+        if ! command -v curl >/dev/null 2>&1; then
+             gum style --foreground "$THEME_ERROR" "curl is required for font installation."
+             return 1
+        fi
+
         mkdir -p "$font_dir"
         local url="https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.tar.xz"
-        
+        local tmp_file
+        tmp_file=$(mktemp)
+
         if gum spin --spinner dot --title "Downloading & Installing JetBrainsMono Nerd Font..." -- \
-            bash -c "curl -L -f -o /tmp/JetBrainsMono.tar.xz '$url' && \
-                     tar -xf /tmp/JetBrainsMono.tar.xz -C '$font_dir' && \
-                     fc-cache -f && \
-                     rm /tmp/JetBrainsMono.tar.xz"; then
+            bash -c "curl -L -f -o '$tmp_file' '$url' && \
+                     tar -xf '$tmp_file' -C '$font_dir' && \
+                     fc-cache -f"; then
+             rm -f "$tmp_file"
              gum style --foreground "$THEME_SUCCESS" "  Font installed successfully."
         else
+             rm -f "$tmp_file"
              gum style --foreground "$THEME_ERROR" "  Failed to install font."
              return 1
         fi
@@ -267,7 +275,10 @@ stow_package() {
     # 0. Pre-flight: Check specific critical files
     case "$pkg" in
         zsh)
-            ensure_backup "$HOME/.zshrc" "zsh"
+            if ! ensure_backup "$HOME/.zshrc" "zsh"; then
+                 gum style --foreground "$THEME_ERROR" "Backup cancelled. Skipping $pkg config."
+                 return 1
+            fi
             ;;
     esac
 
