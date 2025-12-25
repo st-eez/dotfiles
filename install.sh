@@ -11,21 +11,21 @@ readonly VERSION="2.1.0"
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Load bootstrap logic
-if [[ -f "$DOTFILES_DIR/lib/bootstrap.sh" ]]; then
+if [[ -f "$DOTFILES_DIR/installer/bootstrap.sh" ]]; then
     # shellcheck disable=SC1091
-    source "$DOTFILES_DIR/lib/bootstrap.sh"
+    source "$DOTFILES_DIR/installer/bootstrap.sh"
 else
-    echo "Error: lib/bootstrap.sh not found."
+    echo "Error: installer/bootstrap.sh not found."
     exit 1
 fi
 
 # Load Configuration & UI
-source "$DOTFILES_DIR/lib/config.sh"
-source "$DOTFILES_DIR/lib/theme.sh"
-source "$DOTFILES_DIR/lib/logging.sh"
-source "$DOTFILES_DIR/lib/ui.sh"
-source "$DOTFILES_DIR/lib/install.sh"
-source "$DOTFILES_DIR/lib/utils.sh"
+source "$DOTFILES_DIR/installer/config.sh"
+source "$DOTFILES_DIR/installer/theme.sh"
+source "$DOTFILES_DIR/installer/logging.sh"
+source "$DOTFILES_DIR/installer/ui.sh"
+source "$DOTFILES_DIR/installer/install.sh"
+source "$DOTFILES_DIR/installer/utils.sh"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # SIGNAL HANDLING

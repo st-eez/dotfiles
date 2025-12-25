@@ -3,9 +3,36 @@
 # Installation Logic
 # Depends on: lib/bootstrap.sh, lib/config.sh, lib/ui.sh
 
+# Bootstrap an AUR helper (yay) if none exists
+bootstrap_aur_helper() {
+    if [[ "$DISTRO" != "arch" ]]; then
+        return 0
+    fi
+
+    if command -v yay >/dev/null 2>&1 || command -v paru >/dev/null 2>&1; then
+        return 0
+    fi
+
+    gum style --foreground "$THEME_SECONDARY" "No AUR helper found. Bootstrapping yay..."
+
+    # Ensure base-devel and git are installed
+    sudo pacman -S --needed --noconfirm base-devel git || return 1
+
+    local tmp_dir
+    tmp_dir=$(mktemp -d)
+    git clone https://aur.archlinux.org/yay.git "$tmp_dir/yay" || return 1
+    
+    (
+        cd "$tmp_dir/yay" || exit 1
+        makepkg -si --noconfirm || exit 1
+    )
+    
+    local res=$?
+    rm -rf "$tmp_dir"
+    return $res
+}
+
 # Install a single package using the system package manager or alternative method
-# Usage: install_package "package_name"
-# Returns: 0 on success, 1 on failure
 install_package() {
     local pkg="$1"
     local cmd=""
@@ -21,25 +48,36 @@ install_package() {
 
         case "$method" in
             npm)
-                if command -v npm >/dev/null 2>&1; then
-                    cmd="npm install -g $target"
-                    label="npm: installing $pkg"
-                else
-                    gum style --foreground "$THEME_WARNING" "Skipping $pkg: npm not available"
-                    return 1
+                if ! command -v npm >/dev/null 2>&1; then
+                    gum style --foreground "$THEME_SECONDARY" "Runtime 'node' missing for $pkg. Installing..."
+                    install_package "node" || return 1
                 fi
+                cmd="npm install -g $target"
+                label="npm: installing $pkg"
                 ;;
             corepack)
+                if ! command -v corepack >/dev/null 2>&1 && ! command -v npm >/dev/null 2>&1; then
+                    gum style --foreground "$THEME_SECONDARY" "Runtime 'node' missing for $pkg. Installing..."
+                    install_package "node" || return 1
+                fi
+                
                 if command -v corepack >/dev/null 2>&1; then
                     cmd="corepack enable $target"
                     label="Corepack: enabling $pkg"
-                elif command -v npm >/dev/null 2>&1; then
+                else
                     cmd="npm install -g $target"
                     label="npm: installing $pkg (corepack unavailable)"
-                else
-                    gum style --foreground "$THEME_WARNING" "Skipping $pkg: corepack/npm not available"
-                    return 1
                 fi
+                ;;
+            pip)
+                if ! command -v pip >/dev/null 2>&1 && ! command -v pip3 >/dev/null 2>&1; then
+                    gum style --foreground "$THEME_SECONDARY" "Runtime 'python' missing for $pkg. Installing..."
+                    install_package "python" || return 1
+                fi
+                local pip_cmd="pip"
+                command -v pip3 >/dev/null 2>&1 && pip_cmd="pip3"
+                cmd="$pip_cmd install --user $target"
+                label="pip: installing $pkg"
                 ;;
             native)
                 gum style --foreground "$THEME_SECONDARY" "Using native installer for $pkg..."
@@ -73,15 +111,16 @@ install_package() {
             if [[ -n "$pacman_pkg" ]]; then
                 if [[ "$pacman_pkg" == aur:* ]]; then
                     local aur_pkg="${pacman_pkg#aur:}"
-                    if command -v yay >/dev/null; then
+                    if ! command -v yay >/dev/null 2>&1 && ! command -v paru >/dev/null 2>&1; then
+                        bootstrap_aur_helper || return 1
+                    fi
+
+                    if command -v yay >/dev/null 2>&1; then
                         cmd="yay -S --noconfirm --needed $aur_pkg"
                         label="AUR (yay): installing $pkg"
-                    elif command -v paru >/dev/null; then
+                    elif command -v paru >/dev/null 2>&1; then
                         cmd="paru -S --noconfirm --needed $aur_pkg"
                         label="AUR (paru): installing $pkg"
-                    else
-                        gum style --foreground "$THEME_WARNING" "Skipping $pkg: No AUR helper found (yay/paru)"
-                        return 1
                     fi
                 else
                     cmd="sudo pacman -S --noconfirm --needed $pacman_pkg"

@@ -16,6 +16,8 @@ export MACOS_PKGS=(
 )
 
 export TERMINAL_PKGS=(
+    node
+    python
     btop
     claude
     codex
@@ -30,7 +32,6 @@ export TERMINAL_PKGS=(
     lua
     nmap
     nvim
-    node
     pnpm
     prettier
     ripgrep
@@ -71,6 +72,7 @@ get_pacman_pkg() {
         nvim)      echo "neovim" ;;
         gh)        echo "github-cli" ;;
         node)      echo "nodejs" ;;
+        python)    echo "python" ;;
         telnet)    echo "inetutils" ;;
         ghostty)   echo "ghostty" ;;              # Now in official repo (was AUR)
         claude)    echo "aur:claude-code-bin" ;;
@@ -90,6 +92,7 @@ get_apt_pkg() {
         fd)        echo "fd-find" ;;
         gh)        echo "gh" ;; # requires gh repo
         node)      echo "nodejs" ;;
+        python)    echo "python3" ;;
         ghostty)   echo "" ;;   # No apt package - needs manual install
         claude)    echo "" ;;   # Use native installer
         codex)     echo "" ;;   # Use npm
@@ -130,6 +133,8 @@ get_alt_install_method() {
         pnpm)      echo "corepack:pnpm" ;;
         codex)     echo "npm:@openai/codex" ;;
         gemini)    echo "npm:@google/gemini-cli" ;;
+        # Example of pip package if needed in future
+        # somepkg) echo "pip:somepkg" ;;
         claude)
             # Only use native installer on non-macOS (brew handles macOS)
             [[ "$OS" != "macos" ]] && echo "native:curl -fsSL https://claude.ai/install.sh | bash"
