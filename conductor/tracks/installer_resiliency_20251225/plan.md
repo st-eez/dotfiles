@@ -6,20 +6,20 @@
 - [x] Task: Implement `bootstrap_aur_helper` in `installer/install.sh` to auto-install `yay` if missing on Arch-based systems.
 - [ ] Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)
 
-## Phase 2: Zsh & Theme Robustness
+## Phase 2: Zsh & Theme Robustness [checkpoint: 545c2b7]
 - [x] Task: Create `installer/zsh_setup.sh` (or update `installer/install.sh`) to:
     - Clone Oh-My-Zsh if `~/.oh-my-zsh` is missing.
     - Clone `zsh-autosuggestions` and `zsh-syntax-highlighting` to `$ZSH_CUSTOM/plugins`.
     - Clone `powerlevel10k` to `$ZSH_CUSTOM/themes/powerlevel10k`.
 - [x] Task: Update `zsh/.zshrc` template with guards for `zoxide`, `thefuck`, and other CLI tool initializations.
-- [ ] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)
 
 ## Phase 3: Visual & Configuration Parity
-- [ ] Task: Implement `install_nerd_fonts` in `installer/install.sh`:
+- [x] Task: Implement `install_nerd_fonts` in `installer/install.sh`:
     - Arch: `yay -S ttf-jetbrains-mono-nerd`
     - macOS: `brew install --cask font-jetbrains-mono-nerd-font`
     - Ubuntu/Debian: Manual download from GitHub releases to `~/.local/share/fonts`.
-- [ ] Task: Create `installer/git_setup.sh`:
+- [x] Task: Create `installer/git_setup.sh`:
     - Read `git/.gitconfig.template`.
     - Detect `gh` path via `which gh`.
     - Replace `{{GH_PATH}}` and `{{HOME_DIR}}` placeholders.

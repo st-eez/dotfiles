@@ -2,12 +2,12 @@
 	defaultBranch = master
 [credential "https://github.com"]
 	helper =
-	helper = !/opt/homebrew/bin/gh auth git-credential
+	helper = !{{GH_PATH}} auth git-credential
 [credential "https://gist.github.com"]
 	helper =
-	helper = !/opt/homebrew/bin/gh auth git-credential
+	helper = !{{GH_PATH}} auth git-credential
 [user]
 	name = YOUR_GITHUB_USERNAME
 	email = your.email@example.com
-[includeIf "gitdir:/Users/YOUR_USERNAME/Projects/COMPANY_NAME/"]
-	path = /Users/YOUR_USERNAME/.gitconfig-COMPANY_NAME
+[includeIf "gitdir:{{HOME_DIR}}/Projects/COMPANY_NAME/"]
+	path = {{HOME_DIR}}/.gitconfig-COMPANY_NAME

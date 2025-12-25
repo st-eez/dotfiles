@@ -32,6 +32,56 @@ bootstrap_aur_helper() {
     return $res
 }
 
+# Install Nerd Fonts (JetBrains Mono) for proper icon support
+install_nerd_fonts() {
+    gum style --foreground "$THEME_ACCENT" "Installing Nerd Fonts (JetBrains Mono)..."
+
+    if [[ "$OS" == "macos" ]]; then
+        if ! brew list --cask font-jetbrains-mono-nerd-font &>/dev/null; then
+            gum spin --spinner dot --title "Brew: installing font-jetbrains-mono-nerd-font" -- \
+                brew install --cask font-jetbrains-mono-nerd-font
+        else
+            gum style --foreground "$THEME_SUBTEXT" "  Already installed."
+        fi
+    elif [[ "$DISTRO" == "arch" ]]; then
+        if ! pacman -Qi ttf-jetbrains-mono-nerd &>/dev/null; then
+             if ! command -v yay >/dev/null 2>&1 && ! command -v paru >/dev/null 2>&1; then
+                bootstrap_aur_helper || return 1
+            fi
+            
+            local aur_helper="yay"
+            command -v paru >/dev/null 2>&1 && aur_helper="paru"
+            
+            gum spin --spinner dot --title "AUR ($aur_helper): installing ttf-jetbrains-mono-nerd" -- \
+                $aur_helper -S --noconfirm --needed ttf-jetbrains-mono-nerd
+        else
+             gum style --foreground "$THEME_SUBTEXT" "  Already installed."
+        fi
+    elif [[ "$DISTRO" == "debian" ]]; then
+        local font_dir="$HOME/.local/share/fonts"
+        if [[ -f "$font_dir/JetBrainsMonoNerdFont-Regular.ttf" ]]; then
+            gum style --foreground "$THEME_SUBTEXT" "  Already installed."
+            return 0
+        fi
+
+        mkdir -p "$font_dir"
+        local url="https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.tar.xz"
+        
+        if gum spin --spinner dot --title "Downloading & Installing JetBrainsMono Nerd Font..." -- \
+            bash -c "curl -L -f -o /tmp/JetBrainsMono.tar.xz '$url' && \
+                     tar -xf /tmp/JetBrainsMono.tar.xz -C '$font_dir' && \
+                     fc-cache -f && \
+                     rm /tmp/JetBrainsMono.tar.xz"; then
+             gum style --foreground "$THEME_SUCCESS" "  Font installed successfully."
+        else
+             gum style --foreground "$THEME_ERROR" "  Failed to install font."
+             return 1
+        fi
+    else
+        gum style --foreground "$THEME_WARNING" "Skipping Nerd Font installation (unsupported OS/Distro: $OS/$DISTRO)"
+    fi
+}
+
 # Install a single package using the system package manager or alternative method
 install_package() {
     local pkg="$1"
