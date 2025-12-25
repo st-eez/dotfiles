@@ -14,7 +14,7 @@ This phase polishes the entry point of the installer.
 - [x] Task: Refine the Main Menu in `install.sh` to use the new splash screen and standardize prompts using `gum choose`, removing all legacy `read -p` commands.
 - [~] Task: Conductor - User Manual Verification 'Splash & Menu' (Protocol in workflow.md)
 
-## Phase 3: Installation Loop & Summary
+## Phase 3: Installation Loop & Summary [checkpoint: edd6e0f]
 This phase applies the new design to the core logic.
 
 - [x] Task: Refactor the main loop in `install.sh` to use `lib/logging.sh` functions instead of raw `gum` calls.

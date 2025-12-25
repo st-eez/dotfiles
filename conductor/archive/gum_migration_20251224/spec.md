@@ -28,6 +28,9 @@ The script must detect and support:
 *   **Spinners:** Use `gum spin` for all long-running tasks (installing packages, backing up files).
 *   **Confirmation:** Use `gum confirm` for "Proceed?" dialogs.
 *   **Selection:** Use `gum choose --no-limit` (multi-select) for package selection.
+    *   **Dynamic Filtering:** The list of available packages must be filtered based on the detected OS.
+        *   **macOS:** Show all packages (including `aerospace`, `sketchybar`, `borders`).
+        *   **Linux:** Filter out macOS-specific tools and show only cross-platform compatible packages (e.g., `nvim`, `zsh`, `ghostty`).
 *   **Styling:**
     *   Primary Color: `#7aa2f7` (Blue)
     *   Secondary Color: `#bb9af7` (Purple)

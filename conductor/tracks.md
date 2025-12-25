@@ -4,5 +4,12 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-## [ ] Track: Migrate `install.sh` to Gum
-*Link: [./conductor/tracks/gum_migration_20251224/](./conductor/tracks/gum_migration_20251224/)*
+# Archive
+
+## [x] Track: Modernize Installer UI
+*Link: [./conductor/archive/installer_ui_redesign_20251224/](./conductor/archive/installer_ui_redesign_20251224/)*
+
+---
+
+## [x] Track: Migrate `install.sh` to Gum
+*Link: [./conductor/archive/gum_migration_20251224/](./conductor/archive/gum_migration_20251224/)*

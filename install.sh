@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 
-# Steez Dotfiles Installer v2
-# Modernized installer using Charm Gum
+# ╔════════════════════════════════════════════════════════════════════════════╗
+# ║  STEEZ DOTFILES INSTALLER                                                  ║
+# ║  Terminal Neo-Noir Edition                                                 ║
+# ╚════════════════════════════════════════════════════════════════════════════╝
 
 set -uo pipefail
 
+readonly VERSION="2.1.0"
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Load bootstrap logic
@@ -24,20 +27,175 @@ source "$DOTFILES_DIR/lib/ui.sh"
 source "$DOTFILES_DIR/lib/install.sh"
 source "$DOTFILES_DIR/lib/utils.sh"
 
-# Main execution flow
+# ═══════════════════════════════════════════════════════════════════════════════
+# SIGNAL HANDLING
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Cleanup function for graceful exit
+cleanup() {
+    local exit_code=$?
+    # Restore cursor and terminal state
+    tput cnorm 2>/dev/null
+    stty echo 2>/dev/null
+    if [[ $exit_code -ne 0 ]]; then
+        echo ""
+        if command -v gum >/dev/null 2>&1; then
+            gum style --foreground "$THEME_WARNING" "  ⚠ Installation interrupted"
+        else
+            echo "Installation interrupted."
+        fi
+        echo ""
+    fi
+    exit $exit_code
+}
+
+trap cleanup EXIT
+trap 'exit 130' INT   # Ctrl+C
+trap 'exit 143' TERM  # kill
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# INSTALLATION FLOW
+# ═══════════════════════════════════════════════════════════════════════════════
+
+run_installation() {
+    local packages="$1"
+    local run_timestamp
+    run_timestamp=$(date +%Y%m%d_%H%M%S)
+
+    # Convert to array for counting (proper quoting to avoid word splitting)
+    local pkg_array=()
+    IFS=' ' read -ra pkg_array <<< "$packages"
+    local total=${#pkg_array[@]}
+    local current=0
+
+    # Detailed counters
+    local bin_new=0      # Newly installed binaries
+    local bin_exists=0   # Already installed binaries
+    local cfg_new=0      # Newly linked configs
+    local cfg_exists=0   # Already linked configs
+    local fail_count=0   # Failed packages
+
+    # Initialize CSV for summary
+    local csv_file="${TMPDIR:-/tmp}/steez_install.csv"
+    echo "Package,Binary,Config" > "$csv_file"
+
+    echo ""
+    log_section "Installing Packages"
+
+    # Installation loop with progress
+    for pkg in "${pkg_array[@]}"; do
+        ((current++))
+
+        # Progress header
+        log_progress "$current" "$total" "$pkg"
+
+        local pkg_failed=false
+        local bin_status="—"
+        local cfg_status="—"
+
+        # A. Install Binary
+        if is_installed "$pkg"; then
+            log_info "Binary" "Already installed"
+            bin_status="Exists"
+            ((bin_exists++))
+        else
+            if install_package "$pkg"; then
+                log_success "Binary" "Installed"
+                bin_status="Installed"
+                ((bin_new++))
+            else
+                log_failure "Binary" "Failed"
+                pkg_failed=true
+                bin_status="Failed"
+            fi
+        fi
+
+        # B. Stow Configs
+        stow_package "$pkg" "$run_timestamp"
+        local stow_result=$?
+
+        case $stow_result in
+            0)
+                log_success "Config" "Linked"
+                cfg_status="Linked"
+                ((cfg_new++))
+                ;;
+            2)
+                log_info "Config" "No config"
+                cfg_status="—"
+                ;;
+            3)
+                log_info "Config" "Already linked"
+                cfg_status="Exists"
+                ((cfg_exists++))
+                ;;
+            *)
+                log_failure "Config" "Failed"
+                pkg_failed=true
+                cfg_status="Failed"
+                ;;
+        esac
+
+        # Track in CSV
+        echo "$pkg,$bin_status,$cfg_status" >> "$csv_file"
+
+        if [[ "$pkg_failed" == true ]]; then
+            ((fail_count++))
+        fi
+    done
+
+    # Summary with detailed stats
+    ui_summary "$bin_new" "$bin_exists" "$cfg_new" "$cfg_exists" "$fail_count" "$csv_file"
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# MAIN
+# ═══════════════════════════════════════════════════════════════════════════════
+
 main() {
-    # Handle flags
+    # Handle flags (with gum fallback for pre-bootstrap invocation)
     if [[ "${1:-}" == "--version" || "${1:-}" == "-v" ]]; then
-        echo "Steez Dotfiles v2.0.0"
+        if command -v gum >/dev/null 2>&1; then
+            echo ""
+            gum style --foreground "$THEME_PRIMARY" --bold "  ◆ Steez Dotfiles v$VERSION"
+            echo ""
+        else
+            echo "Steez Dotfiles v$VERSION"
+        fi
         exit 0
     fi
 
     if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
-        echo "Usage: ./install.sh [options]"
-        echo ""
-        echo "Options:"
-        echo "  -v, --version   Show version"
-        echo "  -h, --help      Show this help message"
+        if command -v gum >/dev/null 2>&1; then
+            echo ""
+            gum style --foreground "$THEME_PRIMARY" --bold "  ◆ Steez Dotfiles v$VERSION"
+            echo ""
+            gum style --foreground "$THEME_SUBTEXT" "  ╭─ USAGE ──────────────────────────────────────────╮"
+            gum style --foreground "$THEME_SUBTEXT" "  │                                                  │"
+            gum style --foreground "$THEME_TEXT" "$(printf "  │  %-48s│" "./install.sh [options]")"
+            gum style --foreground "$THEME_SUBTEXT" "  │                                                  │"
+            gum style --foreground "$THEME_SUBTEXT" "  ├─ OPTIONS ────────────────────────────────────────┤"
+            gum style --foreground "$THEME_SUBTEXT" "  │                                                  │"
+            gum style --foreground "$THEME_SUBTEXT" "$(printf "  │  %-48s│" "-v, --version   Show version")"
+            gum style --foreground "$THEME_SUBTEXT" "$(printf "  │  %-48s│" "-h, --help      Show this help")"
+            gum style --foreground "$THEME_SUBTEXT" "  │                                                  │"
+            gum style --foreground "$THEME_SUBTEXT" "  ╰──────────────────────────────────────────────────╯"
+            echo ""
+            gum style --foreground "$THEME_SUBTEXT" --faint "  https://github.com/steez/dotfiles"
+            echo ""
+        else
+            cat << EOF
+Steez Dotfiles v$VERSION
+
+Usage: ./install.sh [options]
+
+Options:
+  -v, --version   Show version
+  -h, --help      Show this help message
+
+https://github.com/steez/dotfiles
+EOF
+        fi
         exit 0
     fi
 
@@ -51,138 +209,76 @@ main() {
         exit 1
     fi
 
-    # 3. UI Flow - Splash Screen
-    ui_splash "2.0.0"
+    # 3. Splash Screen
+    ui_splash "$VERSION"
 
-    # Pre-flight check for stow
+    # 4. Pre-flight check for stow
     if ! command -v stow >/dev/null 2>&1; then
-        if ui_confirm "GNU Stow is missing. Install it?"; then
+        echo ""
+        log_warn "Dependency" "GNU Stow not found"
+        if ui_confirm "Install GNU Stow now?"; then
             if ! install_package "stow"; then
-                gum style --foreground "$THEME_ERROR" "Failed to install Stow. Exiting."
+                log_failure "Stow" "Installation failed"
+                ui_error "Cannot proceed without Stow"
                 exit 1
             fi
+            log_success "Stow" "Installed"
         else
-            gum style --foreground "$THEME_ERROR" "Stow is required for dotfiles management. Exiting."
+            ui_error "Stow is required. Exiting."
             exit 1
         fi
     fi
 
-    echo ""
-    
-    # Initialize global selection variable
+    # 5. Initialize global selection variable
     SELECTED_PACKAGES=""
-    
-    # Main Menu
+
+    # 6. Main Menu
     local action
-    action=$(gum choose \
-        --header "Choose an installation mode" \
-        --header.foreground "$THEME_PRIMARY" \
-        --cursor.foreground "$THEME_PRIMARY" \
-        --item.foreground "$THEME_TEXT" \
-        --selected.foreground "$THEME_PRIMARY" \
-        "Full Setup (Recommended)" \
-        "Custom Selection" \
-        "Exit")
+    action=$(ui_main_menu)
 
-    if [[ "$action" == "Exit" ]]; then
-        log_info "Installer" "Exiting..."
-        exit 0
-    fi
-
-    if [[ "$action" == "Custom Selection" ]]; then
-        if ! ui_select_packages; then
-            log_failure "Selection" "No packages selected"
+    case "$action" in
+        "exit")
+            ui_exit "Goodbye. Run ./install.sh anytime to continue."
             exit 0
-        fi
-    elif [[ "$action" == "Full Setup (Recommended)" ]]; then
-        # Auto-populate all compatible packages
-        SELECTED_PACKAGES=""
-        
-        # 1. macOS Packages
-        if [[ "$OS" == "macos" ]]; then
-            for pkg in "${MACOS_PKGS[@]}"; do
-                SELECTED_PACKAGES+="$pkg "
-            done
-        fi
+            ;;
+        "custom")
+            if ! ui_select_packages; then
+                ui_cancelled "No packages selected"
+                exit 0
+            fi
+            ;;
+        "full")
+            # Auto-populate all compatible packages
+            SELECTED_PACKAGES=""
 
-        # 2. Terminal Packages (All OS)
-        for pkg in "${TERMINAL_PKGS[@]}"; do
-            SELECTED_PACKAGES+="$pkg "
-        done
-        
-        # Trim trailing space
-        SELECTED_PACKAGES="${SELECTED_PACKAGES% }"
-    fi
-
-    # Proceed if we have packages
-    if [[ -n "$SELECTED_PACKAGES" ]]; then
-        echo ""
-        
-        # Counters
-        local success_count=0
-            local fail_count=0
-            
-            # Global timestamp for this run (for consistent backups)
-            local run_timestamp
-            run_timestamp=$(date +%Y%m%d_%H%M%S)
-
-            # Initialize CSV for summary
-            local csv_file="/tmp/steez_install.csv"
-            echo "Package,Binary,Config" > "$csv_file"
-
-            # 4. Installation Loop
-            for pkg in $SELECTED_PACKAGES; do
-                log_section "Package: $pkg"
-                local pkg_failed=false
-                local bin_status="Skipped"
-                local cfg_status="Skipped"
-                
-                # A. Install Binary
-                if is_installed "$pkg"; then
-                    log_info "Binary" "Skipped (Installed)"
-                    bin_status="Installed (Pre)"
-                else
-                    if install_package "$pkg"; then
-                        log_success "Binary" "Installed"
-                        bin_status="Installed"
-                    else
-                        log_failure "Binary" "Failed"
-                        pkg_failed=true
-                        bin_status="Failed"
-                    fi
-                fi
-
-                # B. Stow Configs
-                if stow_package "$pkg" "$run_timestamp"; then
-                    log_success "Config" "Linked"
-                    cfg_status="Linked"
-                else
-                     log_failure "Config" "Link Failed"
-                     pkg_failed=true
-                     cfg_status="Failed"
-                fi
-                
-                # Track in CSV
-                echo "$pkg,$bin_status,$cfg_status" >> "$csv_file"
-
-                if [[ "$pkg_failed" == true ]]; then
-                    ((fail_count++))
-                else
-                    ((success_count++))
-                fi
-            done
-            
-            # Summary
-            log_section "Installation Summary"
-            gum table --border normal --print --file "$csv_file"
-            
-            echo ""
-            if [[ $fail_count -gt 0 ]]; then
-                log_failure "Final Status" "Completed with Errors ($fail_count failed)"
-            else
-                log_success "Final Status" "Installation Complete!"
+            if [[ "$OS" == "macos" ]]; then
+                for pkg in "${MACOS_PKGS[@]}"; do
+                    SELECTED_PACKAGES+="$pkg "
+                done
             fi
 
+            for pkg in "${TERMINAL_PKGS[@]}"; do
+                SELECTED_PACKAGES+="$pkg "
+            done
+
+            SELECTED_PACKAGES="${SELECTED_PACKAGES% }"
+            ;;
+    esac
+
+    # 7. Run installation if we have packages
+    if [[ -n "$SELECTED_PACKAGES" ]]; then
+        # Count packages
+        local pkg_count
+        pkg_count=$(echo "$SELECTED_PACKAGES" | wc -w | tr -d ' ')
+
+        # Pre-flight summary
+        ui_preflight "$pkg_count"
+
+        if ui_confirm "Proceed with installation?"; then
+            run_installation "$SELECTED_PACKAGES"
+        else
+            ui_cancelled "Installation cancelled"
+        fi
     fi
 }
 

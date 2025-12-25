@@ -13,14 +13,17 @@ backup_conflicts() {
     
     gum style --foreground "$THEME_SUBTEXT" "Backing up conflicts for $pkg..."
 
-    for rel_path in $conflicts; do
+    # Read newline-separated conflicts properly (avoids word splitting issues)
+    while IFS= read -r rel_path; do
+        [[ -z "$rel_path" ]] && continue
+
         local target="$HOME/$rel_path"
         local backup_path="$backup_base/$pkg/$rel_path"
-        
+
         if [[ -e "$target" && ! -L "$target" ]]; then
             mkdir -p "$(dirname "$backup_path")"
             mv "$target" "$backup_path"
             gum style --foreground "$THEME_SUBTEXT" --faint "  Moved: ~/$rel_path -> .backups/.../$rel_path"
         fi
-    done
+    done <<< "$conflicts"
 }

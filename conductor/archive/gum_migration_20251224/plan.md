@@ -17,7 +17,7 @@ This phase replaces the custom Bash UI with themed Gum components.
 - [x] Task: Connect the new UI flow to the main loop in `install_v2.sh`.
 - [~] Task: Conductor - User Manual Verification 'UI Refactor with Tokyo Night' (Protocol in workflow.md)
 
-## Phase 3: Core Logic & Safety (Backups)
+## Phase 3: Core Logic & Safety (Backups) [checkpoint: 485951c]
 This phase implements the actual installation and file management logic across all OSs.
 
 - [x] Task: Implement `install_package()` helper that abstracts `brew`, `pacman`, and `apt` commands behind a `gum spin` interface.
@@ -26,10 +26,10 @@ This phase implements the actual installation and file management logic across a
 - [x] Task: Verify the installation loop works for both "Brew-only" and "Stow-compatible" packages.
 - [~] Task: Conductor - User Manual Verification 'Core Logic & Safety' (Protocol in workflow.md)
 
-## Phase 4: Finalization & Cutover
+## Phase 4: Finalization & Cutover [checkpoint: e39d51e]
 This phase performs the final polish and replaces the old script.
 
-- [ ] Task: Add a final "Summary" screen using `gum style` showing success/failure counts.
-- [ ] Task: Perform a full dry-run on macOS and a Linux VM (if possible) to verify cross-platform parity.
-- [ ] Task: Replace the original `install.sh` with the new version.
-- [ ] Task: Conductor - User Manual Verification 'Finalization & Cleanup' (Protocol in workflow.md)
+- [x] Task: Add a final "Summary" screen using `gum style` showing success/failure counts.
+- [x] Task: Perform a full dry-run on macOS and a Linux VM (if possible) to verify cross-platform parity.
+- [x] Task: Replace the original `install.sh` with the new version.
+- [~] Task: Conductor - User Manual Verification 'Finalization & Cleanup' (Protocol in workflow.md)
