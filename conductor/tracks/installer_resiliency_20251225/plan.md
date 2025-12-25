@@ -14,7 +14,7 @@
 - [x] Task: Update `zsh/.zshrc` template with guards for `zoxide`, `thefuck`, and other CLI tool initializations.
 - [x] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)
 
-## Phase 3: Visual & Configuration Parity
+## Phase 3: Visual & Configuration Parity [checkpoint: cce3fb8]
 - [x] Task: Implement `install_nerd_fonts` in `installer/install.sh`:
     - Arch: `yay -S ttf-jetbrains-mono-nerd`
     - macOS: `brew install --cask font-jetbrains-mono-nerd-font`
@@ -27,7 +27,7 @@
 - [ ] Task: Conductor - User Manual Verification 'Phase 3' (Protocol in workflow.md)
 
 ## Phase 4: Integration & Verification
-- [ ] Task: Update main `install.sh` to call the new Zsh and Git setup steps during the installation flow.
-- [ ] Task: Add a conflict check for `~/.zshrc` and `~/.config/starship.toml` that offers to backup before `stow` runs.
-- [ ] Task: Verify the full flow on a clean (simulated or real) Arch/Omarchy environment.
-- [ ] Task: Conductor - User Manual Verification 'Phase 4' (Protocol in workflow.md)
+- [x] Task: Update main `install.sh` to call the new Zsh and Git setup steps during the installation flow.
+- [x] Task: Add a conflict check for `~/.zshrc` that offers to backup before `stow` runs.
+- [x] Task: Verify the full flow on a clean (simulated or real) Arch/Omarchy environment.
+- [x] Task: Conductor - User Manual Verification 'Phase 4' (Protocol in workflow.md)

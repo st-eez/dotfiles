@@ -264,7 +264,14 @@ stow_package() {
         return 2
     fi
 
-    # 0. Check if already stowed
+    # 0. Pre-flight: Check specific critical files
+    case "$pkg" in
+        zsh)
+            ensure_backup "$HOME/.zshrc" "zsh"
+            ;;
+    esac
+
+    # 1. Check if already stowed
     if is_stowed "$pkg"; then
         return 3
     fi

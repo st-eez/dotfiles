@@ -26,6 +26,8 @@ source "$DOTFILES_DIR/installer/logging.sh"
 source "$DOTFILES_DIR/installer/ui.sh"
 source "$DOTFILES_DIR/installer/install.sh"
 source "$DOTFILES_DIR/installer/utils.sh"
+source "$DOTFILES_DIR/installer/zsh_setup.sh"
+source "$DOTFILES_DIR/installer/git_setup.sh"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # SIGNAL HANDLING
@@ -143,6 +145,27 @@ run_installation() {
             ((fail_count++))
         fi
     done
+
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # POST-INSTALLATION SETUP
+    # ═══════════════════════════════════════════════════════════════════════════════
+    
+    echo ""
+    log_section "Post-Installation Setup"
+
+    # 1. Fonts (Universal)
+    install_nerd_fonts
+
+    # 2. Zsh Configuration
+    # Check if zsh was in the list OR if we are just ensuring environment
+    if [[ " ${pkg_array[*]} " =~ " zsh " ]] || [[ "$SHELL" == */zsh ]]; then
+        setup_zsh_env
+    fi
+
+    # 3. Git Configuration
+    if [[ " ${pkg_array[*]} " =~ " git " ]]; then
+        setup_git_config
+    fi
 
     # Summary with detailed stats
     ui_summary "$bin_new" "$bin_exists" "$cfg_new" "$cfg_exists" "$fail_count" "$csv_file"
