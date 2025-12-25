@@ -1,17 +1,17 @@
 # Plan: Cross-Platform Installer Resiliency & Linux Compatibility
 
-## Phase 1: Foundation & Dependency Management
+## Phase 1: Foundation & Dependency Management [checkpoint: d36b54c]
 - [x] Task: Reorder `TERMINAL_PKGS` in `installer/config.sh` to place `node` and `python` at the top.
 - [x] Task: Update `installer/install.sh` -> `install_package` to check for runtime availability (node/npm/pip) before attempting global package installs.
 - [x] Task: Implement `bootstrap_aur_helper` in `installer/install.sh` to auto-install `yay` if missing on Arch-based systems.
 - [ ] Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)
 
 ## Phase 2: Zsh & Theme Robustness
-- [ ] Task: Create `installer/zsh_setup.sh` (or update `installer/install.sh`) to:
+- [x] Task: Create `installer/zsh_setup.sh` (or update `installer/install.sh`) to:
     - Clone Oh-My-Zsh if `~/.oh-my-zsh` is missing.
     - Clone `zsh-autosuggestions` and `zsh-syntax-highlighting` to `$ZSH_CUSTOM/plugins`.
     - Clone `powerlevel10k` to `$ZSH_CUSTOM/themes/powerlevel10k`.
-- [ ] Task: Update `zsh/.zshrc` template with guards for `zoxide`, `thefuck`, and other CLI tool initializations.
+- [x] Task: Update `zsh/.zshrc` template with guards for `zoxide`, `thefuck`, and other CLI tool initializations.
 - [ ] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)
 
 ## Phase 3: Visual & Configuration Parity
