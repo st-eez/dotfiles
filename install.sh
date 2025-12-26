@@ -181,6 +181,16 @@ run_installation() {
         fi
     fi
 
+    # 4. Ghostty Desktop Integration (Debian/Ubuntu/Mint only)
+    if [[ " ${pkg_array[*]} " =~ " ghostty " ]] && [[ "$DISTRO" == "debian" ]]; then
+        if setup_ghostty_desktop; then
+            log_success "Ghostty" "OK"
+        else
+            log_failure "Ghostty" "Setup failed"
+            ((fail_count++))
+        fi
+    fi
+
     # Summary with detailed stats
     ui_summary "$bin_new" "$bin_exists" "$cfg_new" "$cfg_exists" "$fail_count" "$csv_file"
 }

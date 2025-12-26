@@ -108,51 +108,58 @@ install_nvim_tarball() {
 # See: https://ghostty.org/docs/install/binary
 install_ghostty_appimage() {
     local install_dir="$HOME/.local/bin"
-    local installed_now=false
 
-    # Only download if not already installed
-    if ! command -v ghostty >/dev/null 2>&1; then
-        # 1. Get latest release version
-        gum style --foreground "$THEME_SECONDARY" "  Fetching latest Ghostty AppImage..."
-        local version
-        version=$(curl -fsSL "https://api.github.com/repos/pkgforge-dev/ghostty-appimage/releases/latest" | \
-            grep -oP '"tag_name":\s*"\K[^"]+' 2>/dev/null)
-        if [[ -z "$version" ]]; then
-            gum style --foreground "$THEME_ERROR" "  Failed to get AppImage version"
+    # 1. Get latest release version
+    gum style --foreground "$THEME_SECONDARY" "  Fetching latest Ghostty AppImage..."
+    local version
+    version=$(curl -fsSL "https://api.github.com/repos/pkgforge-dev/ghostty-appimage/releases/latest" | \
+        grep -oP '"tag_name":\s*"\K[^"]+' 2>/dev/null)
+    if [[ -z "$version" ]]; then
+        gum style --foreground "$THEME_ERROR" "  Failed to get AppImage version"
+        return 1
+    fi
+    local version_num="${version#v}"
+    gum style --foreground "$THEME_SUBTEXT" "  Latest: $version"
+
+    # 2. Determine CPU architecture
+    local arch
+    arch=$(uname -m)
+    case "$arch" in
+        x86_64|aarch64) ;;
+        *)
+            gum style --foreground "$THEME_ERROR" "  Unsupported architecture: $arch"
             return 1
-        fi
-        local version_num="${version#v}"
-        gum style --foreground "$THEME_SUBTEXT" "  Latest: $version"
+            ;;
+    esac
 
-        # 2. Determine CPU architecture
-        local arch
-        arch=$(uname -m)
-        case "$arch" in
-            x86_64|aarch64) ;;
-            *)
-                gum style --foreground "$THEME_ERROR" "  Unsupported architecture: $arch"
-                return 1
-                ;;
-        esac
-
-        # 3. Download AppImage
-        local url="https://github.com/pkgforge-dev/ghostty-appimage/releases/download/${version}/Ghostty-${version_num}-${arch}.AppImage"
-        gum style --foreground "$THEME_SECONDARY" "  Downloading..."
-        mkdir -p "$install_dir"
-        if ! curl --connect-timeout 15 --max-time 300 -fSL -o "$install_dir/ghostty" "$url"; then
-            gum style --foreground "$THEME_ERROR" "  Failed to download AppImage"
-            return 1
-        fi
-
-        # 4. Make executable
-        chmod +x "$install_dir/ghostty"
-        installed_now=true
+    # 3. Download AppImage
+    local url="https://github.com/pkgforge-dev/ghostty-appimage/releases/download/${version}/Ghostty-${version_num}-${arch}.AppImage"
+    gum style --foreground "$THEME_SECONDARY" "  Downloading..."
+    mkdir -p "$install_dir"
+    if ! curl --connect-timeout 15 --max-time 300 -fSL -o "$install_dir/ghostty" "$url"; then
+        gum style --foreground "$THEME_ERROR" "  Failed to download AppImage"
+        return 1
     fi
 
-    # 5. Create desktop entry for app menu (always ensure exists)
+    # 4. Make executable
+    chmod +x "$install_dir/ghostty"
+
+    gum style --foreground "$THEME_SUCCESS" "  Installed Ghostty to ~/.local/bin"
+    return 0
+}
+
+# Post-install setup for Ghostty on Debian/Ubuntu/Mint
+# Creates .desktop entry and ensures PATH is set
+setup_ghostty_desktop() {
+    gum style --foreground "$THEME_PRIMARY" "  ◆ Setting up Ghostty desktop integration..."
+
+    local modified=false
+
+    # 1. Create desktop entry for app menu
     local desktop_dir="$HOME/.local/share/applications"
-    mkdir -p "$desktop_dir"
-    cat > "$desktop_dir/ghostty.desktop" << EOF
+    if [[ ! -f "$desktop_dir/ghostty.desktop" ]]; then
+        mkdir -p "$desktop_dir"
+        cat > "$desktop_dir/ghostty.desktop" << EOF
 [Desktop Entry]
 Name=Ghostty
 Comment=A fast, feature-rich terminal emulator
@@ -162,19 +169,22 @@ Terminal=false
 Type=Application
 Categories=System;TerminalEmulator;
 EOF
+        modified=true
+    fi
 
-    # 6. Ensure ~/.local/bin is in PATH for bash users
+    # 2. Ensure ~/.local/bin is in PATH for bash users
     local path_line='export PATH="$HOME/.local/bin:$PATH"'
     if [[ -f "$HOME/.bashrc" ]] && ! grep -q '\.local/bin' "$HOME/.bashrc"; then
         echo "" >> "$HOME/.bashrc"
         echo "# Added by dotfiles installer" >> "$HOME/.bashrc"
         echo "$path_line" >> "$HOME/.bashrc"
+        modified=true
     fi
 
-    if [[ "$installed_now" == true ]]; then
-        gum style --foreground "$THEME_SUCCESS" "  Installed Ghostty to ~/.local/bin"
+    if [[ "$modified" == true ]]; then
+        gum style --foreground "$THEME_SUCCESS" "  Desktop integration configured"
     else
-        gum style --foreground "$THEME_SUBTEXT" "  Ghostty already installed"
+        gum style --foreground "$THEME_SUBTEXT" "  Already configured"
     fi
     return 0
 }
