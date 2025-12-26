@@ -14,9 +14,10 @@ setup_git_config() {
         return 0
     fi
 
-    # 2. Check if gh is authenticated
+    # 2. Check if gh is authenticated (optional - credential helper is a convenience)
     if ! gh auth status >/dev/null 2>&1; then
-        gum style --foreground "$THEME_WARNING" "  'gh' not authenticated - run 'gh auth login' first"
+        gum style --foreground "$THEME_WARNING" "  'gh' not authenticated (optional)"
+        gum style --foreground "$THEME_SUBTEXT" "    Run 'gh auth login' to enable git credential helper"
         return 0
     fi
 

@@ -5,12 +5,14 @@
 
 # Backup conflicting files/folders
 # Usage: backup_conflicts "package_name" "conflict_list_string" ["timestamp"]
+# Returns: 0 if all backups succeeded, 1 if any failed
 backup_conflicts() {
     local pkg="$1"
     local conflicts="$2"
     local timestamp="${3:-$(date +%Y%m%d_%H%M%S)}"
     local backup_base="$DOTFILES_DIR/.backups/$timestamp"
-    
+    local failed=0
+
     gum style --foreground "$THEME_SUBTEXT" "Backing up conflicts for $pkg..."
 
     # Read newline-separated conflicts properly (avoids word splitting issues)
@@ -21,11 +23,21 @@ backup_conflicts() {
         local backup_path="$backup_base/$pkg/$rel_path"
 
         if [[ -e "$target" && ! -L "$target" ]]; then
-            mkdir -p "$(dirname "$backup_path")"
-            mv "$target" "$backup_path"
-            gum style --foreground "$THEME_SUBTEXT" --faint "  Moved: ~/$rel_path -> .backups/.../$rel_path"
+            if ! mkdir -p "$(dirname "$backup_path")"; then
+                gum style --foreground "$THEME_ERROR" "  Failed to create backup dir: $rel_path"
+                ((failed++))
+                continue
+            fi
+            if mv "$target" "$backup_path"; then
+                gum style --foreground "$THEME_SUBTEXT" --faint "  Moved: ~/$rel_path"
+            else
+                gum style --foreground "$THEME_ERROR" "  Failed to backup: $rel_path"
+                ((failed++))
+            fi
         fi
     done <<< "$conflicts"
+
+    return $((failed > 0 ? 1 : 0))
 }
 
 # Pre-emptively backup a file if it exists and is not a symlink

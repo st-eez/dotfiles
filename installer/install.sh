@@ -146,11 +146,21 @@ install_ghostty_from_source() {
     trap "rm -rf '$tmp_dir'" EXIT
 
     gum style --foreground "$THEME_SECONDARY" "  Downloading Zig ${zig_version}..."
-    if ! gum spin --spinner dot --title "Downloading Zig..." -- \
-        curl -fsSL -o "$tmp_dir/zig.tar.xz" "$zig_url"; then
+    local curl_err
+    curl_err=$(mktemp)
+    # Download without gum spin to capture real-time progress and errors
+    if ! curl --connect-timeout 15 --max-time 300 -fSL \
+        -o "$tmp_dir/zig.tar.xz" "$zig_url" 2>"$curl_err"; then
         gum style --foreground "$THEME_ERROR" "  Failed to download Zig"
+        # Show actual curl error
+        if [[ -s "$curl_err" ]]; then
+            gum style --foreground "$THEME_SUBTEXT" "  Error: $(cat "$curl_err")"
+        fi
+        gum style --foreground "$THEME_SUBTEXT" "  Try: sudo apt update && sudo apt install -y ca-certificates"
+        rm -f "$curl_err"
         return 1
     fi
+    rm -f "$curl_err"
 
     if ! tar -xf "$tmp_dir/zig.tar.xz" -C "$tmp_dir"; then
         gum style --foreground "$THEME_ERROR" "  Failed to extract Zig"
@@ -562,9 +572,15 @@ install_package() {
                         sudo -v  # Prompt for password before spinner hides it
                         gum spin --spinner dot --title "Pacman: installing npm" -- \
                             sudo pacman -S --noconfirm npm || return 1
+                    elif [[ "$DISTRO" == "debian" ]]; then
+                        # Debian/Ubuntu/Mint: nodejs and npm are separate packages
+                        sudo -v
+                        gum spin --spinner dot --title "Apt: installing npm" -- \
+                            sudo apt install -y npm || return 1
                     else
+                        # macOS: homebrew node includes npm
                         install_package "node" || return 1
-                        hash -r  # Refresh command hash after node install
+                        hash -r
                     fi
                 fi
                 # On Linux, npm global install requires sudo (prefix is /usr)
@@ -583,9 +599,15 @@ install_package() {
                         sudo -v  # Prompt for password before spinner hides it
                         gum spin --spinner dot --title "Pacman: installing npm" -- \
                             sudo pacman -S --noconfirm npm || return 1
+                    elif [[ "$DISTRO" == "debian" ]]; then
+                        # Debian/Ubuntu/Mint: nodejs and npm are separate packages
+                        sudo -v
+                        gum spin --spinner dot --title "Apt: installing npm" -- \
+                            sudo apt install -y npm || return 1
                     else
+                        # macOS: homebrew node includes npm
                         install_package "node" || return 1
-                        hash -r  # Refresh command hash after node install
+                        hash -r
                     fi
                 fi
 
@@ -800,7 +822,10 @@ stow_package() {
         done
         echo ""
         if ui_confirm "Backup these files and proceed?"; then
-             backup_conflicts "$pkg" "$conflicts" "$timestamp"
+            if ! backup_conflicts "$pkg" "$conflicts" "$timestamp"; then
+                gum style --foreground "$THEME_ERROR" "Backup failed - cannot stow $pkg"
+                return 1
+            fi
         else
             gum style --foreground "$THEME_ERROR" "Skipping $pkg (conflicts)"
             return 1
