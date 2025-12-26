@@ -32,7 +32,7 @@
 - [x] Task: Verify the full flow on a clean (simulated or real) Arch/Omarchy environment.
 - [x] Task: Conductor - User Manual Verification 'Phase 4' (Protocol in workflow.md)
 
-## Phase 5: Resilience & Idempotency Fixes
+## Phase 5: Resilience & Idempotency Fixes [checkpoint: 543b165]
 - [x] Task: Fix `mktemp` safety in `bootstrap_aur_helper` (installer/install.sh).
 - [x] Task: Make Zsh setup fail fast & report errors (installer/zsh_setup.sh).
 - [x] Task: Propagate Zsh setup failure to main flow (install.sh).

@@ -18,6 +18,8 @@ i want to change my install.sh to use gum. we will need to make sure we load / i
 - **Automated Dependency Management**: Self-bootstrapping installer that handles its own prerequisites.
 - **Self-Healing Runtime Environments**: Automatically detects and installs missing runtimes (Node.js, Python) before attempting to install global packages (npm, pip).
 - **Smart Arch Linux Support**: Automatically bootstraps the `yay` AUR helper if no helper is found.
+- **Robust Shell Configuration**: Automatic setup of Oh-My-Zsh, Powerlevel10k, and plugins with fail-safe error handling.
 - **Universal Font Setup**: Automates the installation of Nerd Fonts (JetBrains Mono) across macOS, Arch, and Debian-based systems.
+- **Portable Git Configuration**: Dynamically generates `~/.gitconfig` with correct paths for credential helpers across different OS environments.
 - **Tokyo Night Visuals**: Custom `gum` styling to align with the project's color palette.
 - **Modular Installer Logic**: Refactored script structure for better maintainability and error handling.
