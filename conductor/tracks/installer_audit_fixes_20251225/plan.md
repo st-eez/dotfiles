@@ -1,6 +1,6 @@
 # Plan: Installer Resiliency Audit Fixes
 
-## Phase 1: Safety & Idempotency [checkpoint: 494e970]
+## Phase 1: Safety & Idempotency [checkpoint: f8da32c]
 - [x] Task: Fix `mktemp` safety in `bootstrap_aur_helper` and `install_nerd_fonts` (installer/install.sh).
 - [x] Task: Improve Debian font idempotency and `fc-cache` resilience (installer/install.sh).
 - [x] Task: Add strict error handling to `setup_git_config` (installer/git_setup.sh).
