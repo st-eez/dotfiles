@@ -243,8 +243,9 @@ _log_item() {
     if [[ $dots_len -lt 3 ]]; then dots_len=3; fi
 
     # Build dot leader with fade effect (solid → dim)
+    # Note: Use sed instead of tr for UTF-8 compatibility on Linux
     local dots
-    dots=$(printf '%*s' "$dots_len" '' | tr ' ' '·')
+    dots=$(printf '%*s' "$dots_len" '' | sed 's/ /·/g')
 
     # Compose the line with proper spacing
     printf "    %s %s %s %s\n" \
