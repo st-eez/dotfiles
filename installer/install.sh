@@ -49,6 +49,28 @@ bootstrap_aur_helper() {
     return $build_success
 }
 
+# Install Node.js via NodeSource (Debian/Ubuntu/Mint)
+# System repos have Node 18; npm packages like gemini/codex need Node 20+
+install_node_nodesource() {
+    gum style --foreground "$THEME_SECONDARY" "  Adding NodeSource repo for Node 20..."
+
+    # Add NodeSource repo
+    if ! curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - >/dev/null 2>&1; then
+        gum style --foreground "$THEME_ERROR" "  Failed to add NodeSource repo"
+        return 1
+    fi
+
+    # Install Node.js
+    gum style --foreground "$THEME_SECONDARY" "  Installing Node.js 20..."
+    if ! sudo apt install -y nodejs >/dev/null 2>&1; then
+        gum style --foreground "$THEME_ERROR" "  Failed to install Node.js"
+        return 1
+    fi
+
+    gum style --foreground "$THEME_SUCCESS" "  Installed Node.js $(node --version)"
+    return 0
+}
+
 # Install Neovim from official tarball (Debian/Ubuntu)
 # Ubuntu/Mint repos ship outdated versions; LazyVim v15 requires 0.11.2+
 install_nvim_tarball() {

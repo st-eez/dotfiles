@@ -147,6 +147,10 @@ get_alt_install_method() {
             # Only use native installer on non-macOS (brew handles macOS)
             [[ "$OS" != "macos" ]] && echo "native:curl -fsSL https://claude.ai/install.sh | bash"
             ;;
+        node)
+            # Ubuntu/Mint repos have Node 18; npm packages need Node 20+
+            [[ "$DISTRO" == "debian" ]] && echo "native:install_node_nodesource"
+            ;;
         nvim)
             # Ubuntu/Mint repos have outdated neovim; LazyVim v15 requires 0.11.2+
             [[ "$DISTRO" == "debian" ]] && echo "native:install_nvim_tarball"
