@@ -49,6 +49,60 @@ bootstrap_aur_helper() {
     return $build_success
 }
 
+# Install Neovim from official tarball (Debian/Ubuntu)
+# Ubuntu/Mint repos ship outdated versions; LazyVim v15 requires 0.11.2+
+install_nvim_tarball() {
+    local version="0.11.2"
+    local arch
+    arch=$(uname -m)
+
+    # Map uname arch to release asset name
+    case "$arch" in
+        x86_64)  arch="x86_64" ;;
+        aarch64) arch="arm64" ;;
+        *)
+            gum style --foreground "$THEME_ERROR" "  Unsupported architecture: $arch"
+            return 1
+            ;;
+    esac
+
+    local url="https://github.com/neovim/neovim/releases/download/v${version}/nvim-linux-${arch}.tar.gz"
+    local install_dir="$HOME/.local"
+    local extract_dir="$install_dir/nvim-linux-${arch}"
+    local tarball
+    tarball=$(mktemp) || return 1
+
+    # Ensure ~/.local/bin exists (for symlink)
+    mkdir -p "$install_dir/bin"
+
+    # Download with spinner
+    if ! gum spin --spinner dot --title "Downloading neovim v${version}..." -- \
+        curl -fsSL -o "$tarball" "$url"; then
+        rm -f "$tarball"
+        gum style --foreground "$THEME_ERROR" "  Failed to download neovim v${version}"
+        return 1
+    fi
+
+    # Remove old extraction if exists (clean upgrade)
+    [[ -d "$extract_dir" ]] && rm -rf "$extract_dir"
+
+    # Extract with spinner
+    if ! gum spin --spinner dot --title "Extracting neovim..." -- \
+        tar -C "$install_dir" -xzf "$tarball"; then
+        rm -f "$tarball"
+        gum style --foreground "$THEME_ERROR" "  Failed to extract neovim"
+        return 1
+    fi
+
+    rm -f "$tarball"
+
+    # Symlink to ~/.local/bin/nvim
+    ln -sf "$extract_dir/bin/nvim" "$install_dir/bin/nvim"
+
+    gum style --foreground "$THEME_SUCCESS" "  Installed neovim v${version} to ~/.local"
+    return 0
+}
+
 # Merge nvim plugins into Omarchy's config
 # Strategy: Copy ALL user plugins EXCEPT theme-related ones (blacklist approach)
 # Returns: 0 on success, 1 on any failure
@@ -682,7 +736,19 @@ is_installed() {
     local pkg="$1"
     local bin_name
     bin_name=$(get_binary_name "$pkg")
-    
+
+    # Special case: nvim requires minimum version for LazyVim
+    if [[ "$pkg" == "nvim" && "$DISTRO" == "debian" ]]; then
+        if command -v nvim >/dev/null 2>&1; then
+            local nvim_ver
+            nvim_ver=$(nvim --version | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "0.0.0")
+            # Return false (not installed) if version < 0.11.2
+            if [[ "$(printf '%s\n' "0.11.2" "$nvim_ver" | sort -V | head -1)" != "0.11.2" ]]; then
+                return 1  # Version too old, treat as not installed
+            fi
+        fi
+    fi
+
     # 1. Simple command check
     if command -v "$bin_name" >/dev/null 2>&1; then
         return 0

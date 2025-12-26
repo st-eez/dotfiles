@@ -87,9 +87,9 @@ get_pacman_pkg() {
 # Return empty string for packages that need alternative installation
 get_apt_pkg() {
     case "$1" in
-        nvim)      echo "neovim" ;;
+        nvim)      echo "" ;;   # Use tarball (apt version too old for LazyVim)
         fd)        echo "fd-find" ;;
-        gh)        echo "gh" ;; # requires gh repo
+        gh)        echo "gh" ;;
         node)      echo "nodejs" ;;
         python)    echo "python3" ;;
         ghostty)   echo "" ;;   # No apt package - needs manual install
@@ -145,6 +145,10 @@ get_alt_install_method() {
         claude)
             # Only use native installer on non-macOS (brew handles macOS)
             [[ "$OS" != "macos" ]] && echo "native:curl -fsSL https://claude.ai/install.sh | bash"
+            ;;
+        nvim)
+            # Ubuntu/Mint repos have outdated neovim; LazyVim v15 requires 0.11.2+
+            [[ "$DISTRO" == "debian" ]] && echo "native:install_nvim_tarball"
             ;;
         ghostty)
             # Only need manual install on Debian (Arch has package, macOS has cask)
