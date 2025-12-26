@@ -19,7 +19,7 @@ bootstrap_aur_helper() {
     sudo pacman -S --needed --noconfirm base-devel git || return 1
 
     local tmp_dir
-    tmp_dir=$(mktemp -d)
+    tmp_dir=$(mktemp -d) || return 1
     local build_success=0
 
     if ! git clone https://aur.archlinux.org/yay.git "$tmp_dir/yay"; then
@@ -28,7 +28,7 @@ bootstrap_aur_helper() {
         build_success=1
     fi
     
-    rm -rf "$tmp_dir"
+    [[ -n "$tmp_dir" ]] && rm -rf "$tmp_dir"
     return $build_success
 }
 
@@ -59,7 +59,8 @@ install_nerd_fonts() {
         fi
     elif [[ "$DISTRO" == "debian" ]]; then
         local font_dir="$HOME/.local/share/fonts"
-        if [[ -f "$font_dir/JetBrainsMonoNerdFont-Regular.ttf" ]]; then
+        # Idempotency: Pattern check for any JetBrainsMono Nerd Font file
+        if compgen -G "$font_dir/JetBrainsMono*NerdFont-*.ttf" > /dev/null; then
             gum style --foreground "$THEME_SUBTEXT" "  Already installed."
             return 0
         fi
@@ -72,12 +73,19 @@ install_nerd_fonts() {
         mkdir -p "$font_dir"
         local url="https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.tar.xz"
         local tmp_file
-        tmp_file=$(mktemp)
+        tmp_file=$(mktemp) || return 1
+
+        local fc_cmd="true"
+        if command -v fc-cache >/dev/null 2>&1; then
+            fc_cmd="fc-cache -f"
+        else
+            gum style --foreground "$THEME_WARNING" "  Warning: fc-cache not found. Fonts installed but cache not updated."
+        fi
 
         if gum spin --spinner dot --title "Downloading & Installing JetBrainsMono Nerd Font..." -- \
             bash -c "curl -L -f -o '$tmp_file' '$url' && \
                      tar -xf '$tmp_file' -C '$font_dir' && \
-                     fc-cache -f"; then
+                     $fc_cmd"; then
              rm -f "$tmp_file"
              gum style --foreground "$THEME_SUCCESS" "  Font installed successfully."
         else
