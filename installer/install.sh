@@ -138,7 +138,7 @@ install_ghostty_from_source() {
             ;;
     esac
 
-    local zig_url="https://ziglang.org/download/${zig_version}/zig-linux-${arch}-${zig_version}.tar.xz"
+    local zig_url="https://ziglang.org/download/${zig_version}/zig-${arch}-linux-${zig_version}.tar.xz"
     local tmp_dir
     tmp_dir=$(mktemp -d) || return 1
 
@@ -167,7 +167,7 @@ install_ghostty_from_source() {
         return 1
     fi
 
-    local zig_bin="$tmp_dir/zig-linux-${arch}-${zig_version}/zig"
+    local zig_bin="$tmp_dir/zig-${arch}-linux-${zig_version}/zig"
 
     # 3. Clone Ghostty
     gum style --foreground "$THEME_SECONDARY" "  Cloning Ghostty..."
@@ -731,10 +731,12 @@ check_stow_conflicts() {
     if echo "$stow_output" | grep -qE "would cause conflicts|existing target|cannot stow"; then
         # Extract paths using multiple patterns for different stow versions:
         # - stow 2.3.x: "existing target is not a symlink: path"
+        # - stow 2.3.x: "existing target is neither a link nor a directory: path"
         # - stow 2.4+:  "cannot stow ... over existing target path since ..."
         echo "$stow_output" | \
             grep -E "(existing target|cannot stow)" | \
             sed -E 's/.*existing target is not a symlink: ([^ ]+).*/\1/' | \
+            sed -E 's/.*existing target is neither a link nor a directory: ([^ ]+).*/\1/' | \
             sed -E 's/.*over existing target ([^ ]+) since.*/\1/' | \
             grep -v "^$" | sort -u
     fi
