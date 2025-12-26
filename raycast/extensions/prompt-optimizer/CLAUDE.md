@@ -16,7 +16,7 @@ npx ts-node src/test-engines.ts  # Test all engine integrations
 
 - Node.js (v18+)
 - Raycast app installed
-- CLI tools (`gemini`, `claude`, `codex`, `opencode`) installed and authenticated
+- CLI tools (`gemini`, `claude`, `codex`) installed and authenticated
 
 ## Architecture
 
@@ -47,10 +47,10 @@ interface Engine {
 
 | Engine | CLI Command | Default Model | Notes |
 |--------|-------------|---------------|-------|
-| Codex | `codex` | `gpt-5.1-codex-max` | Uses `model_reasoning_effort="medium"` |
+| Codex | `codex` | `gpt-5.2-codex` | Uses `model_reasoning_effort="high"` |
 | Claude | `claude` | `sonnet` | Disabled pending CLI auth bug |
-| Gemini | `gemini` | `gemini-3-pro-preview` | Passes prompt via `-p` flag |
-| Opencode | `opencode` | `grok-code-fast-1` | |
+| Gemini | `gemini` | `gemini-3-flash-preview` | Passes prompt via `-p` flag |
+
 
 ### Key Patterns
 

@@ -192,17 +192,14 @@ export const engines: Engine[] = [
     name: "codex",
     displayName: "Codex",
     icon: Icon.Code,
-    defaultModel: "gpt-5.1-codex-max",
+    defaultModel: "gpt-5.2-codex",
     models: [
-      { id: "gpt-5.1-codex-max", label: "gpt-5.1-codex-max" },
-      { id: "gpt-5.1-codex", label: "gpt-5.1-codex" },
-      { id: "gpt-5.1-codex-mini", label: "gpt-5.1-codex-mini" },
-      { id: "gpt-5.1", label: "gpt-5.1" },
+      { id: "gpt-5.2-codex", label: "gpt-5.2-codex" },
     ],
-    run: async (prompt, model = "gpt-5.1-codex-max", mode = "quick") => {
+    run: async (prompt, model = "gpt-5.2-codex", mode = "quick") => {
       return safeExec(
         "codex",
-        ["exec", "-m", model, "--config", `model_reasoning_effort="medium"`, "--skip-git-repo-check"],
+        ["exec", "-m", model, "--config", `model_reasoning_effort="high"`, "--skip-git-repo-check"],
         buildOptimizationPrompt(prompt, mode),
       );
     },
@@ -231,23 +228,14 @@ export const engines: Engine[] = [
     name: "gemini",
     displayName: "Gemini",
     icon: Icon.Stars,
-    defaultModel: "gemini-3-pro-preview",
+    defaultModel: "gemini-3-flash-preview",
     models: [
-      { id: "gemini-3-pro-preview", label: "gemini-3-pro-preview" },
-      { id: "gemini-2.5-pro", label: "gemini-2.5-pro" },
-      { id: "gemini-2.5-flash", label: "gemini-2.5-flash" },
-      { id: "gemini-2.5-flash-lite", label: "gemini-2.5-flash-lite" },
+      { id: "gemini-3-flash-preview", label: "Gemini 3 Flash" },
+      { id: "gemini-3-pro", label: "Gemini 3 Pro" },
     ],
-    run: async (prompt, model = "gemini-3-pro-preview", mode = "quick") => {
+    run: async (prompt, model = "gemini-3-flash-preview", mode = "quick") => {
       return safeExec("gemini", ["-p", buildOptimizationPrompt(prompt, mode), "--model", model]);
     },
   },
-  {
-    name: "opencode",
-    displayName: "Opencode",
-    icon: Icon.Terminal,
-    run: async (prompt, _model, mode = "quick") => {
-      return safeExec("opencode", ["-p", "-m", "grok-code-fast-1"], buildOptimizationPrompt(prompt, mode));
-    },
-  },
+
 ];
