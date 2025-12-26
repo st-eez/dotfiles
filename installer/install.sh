@@ -150,6 +150,28 @@ install_ghostty_appimage() {
     # 4. Make executable
     chmod +x "$install_dir/ghostty"
 
+    # 5. Create desktop entry for app menu
+    local desktop_dir="$HOME/.local/share/applications"
+    mkdir -p "$desktop_dir"
+    cat > "$desktop_dir/ghostty.desktop" << EOF
+[Desktop Entry]
+Name=Ghostty
+Comment=A fast, feature-rich terminal emulator
+Exec=$HOME/.local/bin/ghostty
+Icon=utilities-terminal
+Terminal=false
+Type=Application
+Categories=System;TerminalEmulator;
+EOF
+
+    # 6. Ensure ~/.local/bin is in PATH for bash users
+    local path_line='export PATH="$HOME/.local/bin:$PATH"'
+    if [[ -f "$HOME/.bashrc" ]] && ! grep -q '\.local/bin' "$HOME/.bashrc"; then
+        echo "" >> "$HOME/.bashrc"
+        echo "# Added by dotfiles installer" >> "$HOME/.bashrc"
+        echo "$path_line" >> "$HOME/.bashrc"
+    fi
+
     gum style --foreground "$THEME_SUCCESS" "  Installed Ghostty $version to ~/.local/bin"
     return 0
 }
