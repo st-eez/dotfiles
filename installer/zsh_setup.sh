@@ -54,8 +54,8 @@ setup_zsh_env() {
         changes_made=true
     fi
 
-    # 4. Aliases file
-    if [[ ! -f "$zsh_custom/aliases.zsh" ]]; then
+    # 4. Aliases file (skip if symlink exists from stow)
+    if [[ ! -e "$zsh_custom/aliases.zsh" && ! -L "$zsh_custom/aliases.zsh" ]]; then
         if ! touch "$zsh_custom/aliases.zsh"; then
              gum style --foreground "$THEME_ERROR" "  Failed to create aliases.zsh"
              return 1

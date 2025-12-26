@@ -103,6 +103,90 @@ install_nvim_tarball() {
     return 0
 }
 
+# Build Ghostty from source (Debian/Ubuntu/Mint)
+# Requires: libgtk-4-dev, libadwaita-1-dev, git, curl
+# Note: gtk4-layer-shell compiled from source via -fno-sys flag (not packaged on Ubuntu 24.04/Mint 22)
+install_ghostty_from_source() {
+    local zig_version="0.14.1"
+    local install_dir="$HOME/.local"
+
+    # Skip if already installed
+    if command -v ghostty >/dev/null 2>&1; then
+        gum style --foreground "$THEME_SUBTEXT" "  Ghostty already installed"
+        return 0
+    fi
+
+    # 1. Install build dependencies
+    # Note: libgtk4-layer-shell-dev not available on Ubuntu 24.04/Mint 22 - compiled from source instead
+    gum style --foreground "$THEME_SECONDARY" "  Installing build dependencies..."
+    local deps="libgtk-4-dev libadwaita-1-dev gettext libxml2-utils git curl"
+    if ! gum spin --spinner dot --title "Apt: installing ghostty build deps" -- \
+        sudo apt install -y $deps; then
+        gum style --foreground "$THEME_ERROR" "  Failed to install build dependencies"
+        return 1
+    fi
+
+    # 2. Download Zig
+    local arch
+    arch=$(uname -m)
+    case "$arch" in
+        x86_64)  arch="x86_64" ;;
+        aarch64) arch="aarch64" ;;
+        *)
+            gum style --foreground "$THEME_ERROR" "  Unsupported architecture: $arch"
+            return 1
+            ;;
+    esac
+
+    local zig_url="https://ziglang.org/download/${zig_version}/zig-linux-${arch}-${zig_version}.tar.xz"
+    local tmp_dir
+    tmp_dir=$(mktemp -d) || return 1
+
+    # Cleanup on exit
+    trap "rm -rf '$tmp_dir'" EXIT
+
+    gum style --foreground "$THEME_SECONDARY" "  Downloading Zig ${zig_version}..."
+    if ! gum spin --spinner dot --title "Downloading Zig..." -- \
+        curl -fsSL -o "$tmp_dir/zig.tar.xz" "$zig_url"; then
+        gum style --foreground "$THEME_ERROR" "  Failed to download Zig"
+        return 1
+    fi
+
+    if ! tar -xf "$tmp_dir/zig.tar.xz" -C "$tmp_dir"; then
+        gum style --foreground "$THEME_ERROR" "  Failed to extract Zig"
+        return 1
+    fi
+
+    local zig_bin="$tmp_dir/zig-linux-${arch}-${zig_version}/zig"
+
+    # 3. Clone Ghostty
+    gum style --foreground "$THEME_SECONDARY" "  Cloning Ghostty..."
+    if ! gum spin --spinner dot --title "Cloning Ghostty..." -- \
+        git clone --depth=1 https://github.com/ghostty-org/ghostty.git "$tmp_dir/ghostty"; then
+        gum style --foreground "$THEME_ERROR" "  Failed to clone Ghostty"
+        return 1
+    fi
+
+    # 4. Build and install
+    # -fno-sys=gtk4-layer-shell: compile gtk4-layer-shell from source (not packaged on Mint/Ubuntu 24.04)
+    gum style --foreground "$THEME_SECONDARY" "  Building Ghostty (this may take a few minutes)..."
+    mkdir -p "$install_dir/bin"
+
+    if ! (cd "$tmp_dir/ghostty" && \
+        gum spin --spinner dot --title "Building Ghostty..." -- \
+        "$zig_bin" build -p "$install_dir" -Doptimize=ReleaseFast -fno-sys=gtk4-layer-shell); then
+        gum style --foreground "$THEME_ERROR" "  Failed to build Ghostty"
+        return 1
+    fi
+
+    # Cleanup trap will handle tmp_dir
+    trap - EXIT
+    rm -rf "$tmp_dir"
+
+    gum style --foreground "$THEME_SUCCESS" "  Installed Ghostty to ~/.local"
+    return 0
+}
+
 # Merge nvim plugins into Omarchy's config
 # Strategy: Copy ALL user plugins EXCEPT theme-related ones (blacklist approach)
 # Returns: 0 on success, 1 on any failure
@@ -480,6 +564,7 @@ install_package() {
                             sudo pacman -S --noconfirm npm || return 1
                     else
                         install_package "node" || return 1
+                        hash -r  # Refresh command hash after node install
                     fi
                 fi
                 # On Linux, npm global install requires sudo (prefix is /usr)
@@ -500,6 +585,7 @@ install_package() {
                             sudo pacman -S --noconfirm npm || return 1
                     else
                         install_package "node" || return 1
+                        hash -r  # Refresh command hash after node install
                     fi
                 fi
 

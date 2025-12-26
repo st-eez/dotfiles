@@ -92,7 +92,8 @@ get_apt_pkg() {
         gh)        echo "gh" ;;
         node)      echo "nodejs" ;;
         python)    echo "python3" ;;
-        ghostty)   echo "" ;;   # No apt package - needs manual install
+        lua)       echo "lua5.4" ;;
+        ghostty)   echo "" ;;   # No apt package - build from source
         claude)    echo "" ;;   # Use native installer
         codex)     echo "" ;;   # Use npm
         gemini)    echo "" ;;   # Use npm
@@ -151,8 +152,9 @@ get_alt_install_method() {
             [[ "$DISTRO" == "debian" ]] && echo "native:install_nvim_tarball"
             ;;
         ghostty)
-            # Only need manual install on Debian (Arch has package, macOS has cask)
-            [[ "$DISTRO" == "debian" ]] && echo "manual:https://ghostty.org/docs/install"
+            # Debian: build from source (no official apt package)
+            # Arch has official package, macOS has cask
+            [[ "$DISTRO" == "debian" ]] && echo "native:install_ghostty_from_source"
             ;;
         *)         echo "" ;;
     esac
