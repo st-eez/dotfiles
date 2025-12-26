@@ -118,7 +118,7 @@ install_ghostty_from_source() {
     # 1. Install build dependencies
     # Note: libgtk4-layer-shell-dev not available on Ubuntu 24.04/Mint 22 - compiled from source instead
     gum style --foreground "$THEME_SECONDARY" "  Installing build dependencies..."
-    local deps="libgtk-4-dev libadwaita-1-dev gettext libxml2-utils git curl jq"
+    local deps="libgtk-4-dev libadwaita-1-dev gettext libxml2-utils curl"
     if ! gum spin --spinner dot --title "Apt: installing ghostty build deps" -- \
         sudo apt install -y $deps; then
         gum style --foreground "$THEME_ERROR" "  Failed to install build dependencies"
@@ -131,13 +131,32 @@ install_ghostty_from_source() {
     # Cleanup on exit
     trap "rm -rf '$tmp_dir'" EXIT
 
-    # 2. Clone Ghostty first (to read required Zig version)
-    gum style --foreground "$THEME_SECONDARY" "  Cloning Ghostty..."
-    if ! gum spin --spinner dot --title "Cloning Ghostty..." -- \
-        git clone --depth=1 https://github.com/ghostty-org/ghostty.git "$tmp_dir/ghostty"; then
-        gum style --foreground "$THEME_ERROR" "  Failed to clone Ghostty"
+    # 2. Download Ghostty release tarball (NOT git clone - release has pre-compiled UI files)
+    # Git checkout requires blueprint-compiler 0.16.0+ which isn't packaged on Mint/Ubuntu
+    # See: https://ghostty.org/docs/install/build
+    gum style --foreground "$THEME_SECONDARY" "  Fetching latest Ghostty release..."
+    local ghostty_version
+    ghostty_version=$(curl -fsSL "https://api.github.com/repos/ghostty-org/ghostty/releases/latest" | \
+        grep -oP '"tag_name":\s*"\K[^"]+' 2>/dev/null)
+    if [[ -z "$ghostty_version" ]]; then
+        gum style --foreground "$THEME_ERROR" "  Failed to get Ghostty release version"
         return 1
     fi
+    gum style --foreground "$THEME_SUBTEXT" "  Latest release: $ghostty_version"
+
+    local tarball_url="https://github.com/ghostty-org/ghostty/releases/download/${ghostty_version}/ghostty-source.tar.gz"
+    gum style --foreground "$THEME_SECONDARY" "  Downloading Ghostty source..."
+    if ! curl --connect-timeout 15 --max-time 300 -fSL -o "$tmp_dir/ghostty.tar.gz" "$tarball_url"; then
+        gum style --foreground "$THEME_ERROR" "  Failed to download Ghostty release"
+        return 1
+    fi
+
+    if ! tar -xzf "$tmp_dir/ghostty.tar.gz" -C "$tmp_dir"; then
+        gum style --foreground "$THEME_ERROR" "  Failed to extract Ghostty"
+        return 1
+    fi
+    # Release tarball extracts to ghostty-source/
+    mv "$tmp_dir/ghostty-source" "$tmp_dir/ghostty"
 
     # 3. Read required Zig version from build.zig.zon
     local zig_version
