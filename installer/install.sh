@@ -421,31 +421,49 @@ install_package() {
                 if ! command -v npm >/dev/null 2>&1; then
                     gum style --foreground "$THEME_SECONDARY" "Runtime 'npm' missing for $pkg. Installing..."
                     if [[ "$DISTRO" == "arch" ]]; then
+                        sudo -v  # Prompt for password before spinner hides it
                         gum spin --spinner dot --title "Pacman: installing npm" -- \
                             sudo pacman -S --noconfirm npm || return 1
                     else
                         install_package "node" || return 1
                     fi
                 fi
-                cmd="npm install -g $target"
+                # On Linux, npm global install requires sudo (prefix is /usr)
+                if [[ "$OS" == "linux" ]]; then
+                    sudo -v  # Prompt for password before spinner hides it
+                    cmd="sudo npm install -g $target"
+                else
+                    cmd="npm install -g $target"
+                fi
                 label="npm: installing $pkg"
                 ;;
             corepack)
                 if ! command -v corepack >/dev/null 2>&1 && ! command -v npm >/dev/null 2>&1; then
                     gum style --foreground "$THEME_SECONDARY" "Runtime 'npm' missing for $pkg. Installing..."
                     if [[ "$DISTRO" == "arch" ]]; then
+                        sudo -v  # Prompt for password before spinner hides it
                         gum spin --spinner dot --title "Pacman: installing npm" -- \
                             sudo pacman -S --noconfirm npm || return 1
                     else
                         install_package "node" || return 1
                     fi
                 fi
-                
+
                 if command -v corepack >/dev/null 2>&1; then
-                    cmd="corepack enable $target"
+                    if [[ "$OS" == "linux" ]]; then
+                        sudo -v
+                        cmd="sudo corepack enable $target"
+                    else
+                        cmd="corepack enable $target"
+                    fi
                     label="Corepack: enabling $pkg"
                 else
-                    cmd="npm install -g $target"
+                    if [[ "$OS" == "linux" ]]; then
+                        sudo -v
+                        cmd="sudo npm install -g $target"
+                    else
+                        cmd="npm install -g $target"
+                    fi
                     label="npm: installing $pkg (corepack unavailable)"
                 fi
                 ;;
