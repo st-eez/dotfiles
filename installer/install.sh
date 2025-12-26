@@ -103,11 +103,11 @@ install_nvim_tarball() {
     return 0
 }
 
-# Build Ghostty from source (Debian/Ubuntu/Mint)
-# Requires: libgtk-4-dev, libadwaita-1-dev, git, curl
-# Note: gtk4-layer-shell compiled from source via -fno-sys flag (not packaged on Ubuntu 24.04/Mint 22)
-install_ghostty_from_source() {
-    local install_dir="$HOME/.local"
+# Install Ghostty via AppImage (Debian/Ubuntu/Mint)
+# Source: https://github.com/pkgforge-dev/ghostty-appimage (community-maintained)
+# See: https://ghostty.org/docs/install/binary
+install_ghostty_appimage() {
+    local install_dir="$HOME/.local/bin"
 
     # Skip if already installed
     if command -v ghostty >/dev/null 2>&1; then
@@ -115,128 +115,42 @@ install_ghostty_from_source() {
         return 0
     fi
 
-    # 1. Install build dependencies
-    # Note: libgtk4-layer-shell-dev not available on Ubuntu 24.04/Mint 22 - compiled from source instead
-    gum style --foreground "$THEME_SECONDARY" "  Installing build dependencies..."
-    local deps="libgtk-4-dev libadwaita-1-dev gettext libxml2-utils curl"
-    if ! gum spin --spinner dot --title "Apt: installing ghostty build deps" -- \
-        sudo apt install -y $deps; then
-        gum style --foreground "$THEME_ERROR" "  Failed to install build dependencies"
-        return 1
-    fi
-
-    local tmp_dir
-    tmp_dir=$(mktemp -d) || return 1
-
-    # Cleanup on exit
-    trap "rm -rf '$tmp_dir'" EXIT
-
-    # 2. Download Ghostty release tarball (NOT git clone - release has pre-compiled UI files)
-    # Git checkout requires blueprint-compiler 0.16.0+ which isn't packaged on Mint/Ubuntu
-    # See: https://ghostty.org/docs/install/build
-    gum style --foreground "$THEME_SECONDARY" "  Fetching latest Ghostty release..."
-    local ghostty_version
-    ghostty_version=$(curl -fsSL "https://api.github.com/repos/ghostty-org/ghostty/releases/latest" | \
+    # 1. Get latest release version
+    gum style --foreground "$THEME_SECONDARY" "  Fetching latest Ghostty AppImage..."
+    local version
+    version=$(curl -fsSL "https://api.github.com/repos/pkgforge-dev/ghostty-appimage/releases/latest" | \
         grep -oP '"tag_name":\s*"\K[^"]+' 2>/dev/null)
-    if [[ -z "$ghostty_version" ]]; then
-        gum style --foreground "$THEME_ERROR" "  Failed to get Ghostty release version"
+    if [[ -z "$version" ]]; then
+        gum style --foreground "$THEME_ERROR" "  Failed to get AppImage version"
         return 1
     fi
-    gum style --foreground "$THEME_SUBTEXT" "  Latest release: $ghostty_version"
+    local version_num="${version#v}"
+    gum style --foreground "$THEME_SUBTEXT" "  Latest: $version"
 
-    local tarball_url="https://github.com/ghostty-org/ghostty/releases/download/${ghostty_version}/ghostty-source.tar.gz"
-    gum style --foreground "$THEME_SECONDARY" "  Downloading Ghostty source..."
-    if ! curl --connect-timeout 15 --max-time 300 -fSL -o "$tmp_dir/ghostty.tar.gz" "$tarball_url"; then
-        gum style --foreground "$THEME_ERROR" "  Failed to download Ghostty release"
-        return 1
-    fi
-
-    if ! tar -xzf "$tmp_dir/ghostty.tar.gz" -C "$tmp_dir"; then
-        gum style --foreground "$THEME_ERROR" "  Failed to extract Ghostty"
-        return 1
-    fi
-    # Release tarball extracts to ghostty-source/
-    mv "$tmp_dir/ghostty-source" "$tmp_dir/ghostty"
-
-    # 3. Read required Zig version from build.zig.zon
-    local zig_version
-    if [[ -f "$tmp_dir/ghostty/build.zig.zon" ]]; then
-        # Extract minimum_zig_version from ZON file (format: .minimum_zig_version = "0.14.0",)
-        zig_version=$(grep -oP 'minimum_zig_version\s*=\s*"\K[^"]+' "$tmp_dir/ghostty/build.zig.zon" 2>/dev/null)
-    fi
-    if [[ -z "$zig_version" ]]; then
-        # Fallback if parsing fails
-        zig_version="0.14.1"
-        gum style --foreground "$THEME_WARNING" "  Could not detect Zig version, using fallback: $zig_version"
-    else
-        gum style --foreground "$THEME_SUBTEXT" "  Ghostty requires Zig $zig_version"
-    fi
-
-    # 4. Download Zig
+    # 2. Determine CPU architecture
     local arch
     arch=$(uname -m)
     case "$arch" in
-        x86_64)  arch="x86_64" ;;
-        aarch64) arch="aarch64" ;;
+        x86_64|aarch64) ;;
         *)
             gum style --foreground "$THEME_ERROR" "  Unsupported architecture: $arch"
             return 1
             ;;
     esac
 
-    local zig_url="https://ziglang.org/download/${zig_version}/zig-${arch}-linux-${zig_version}.tar.xz"
-
-    gum style --foreground "$THEME_SECONDARY" "  Downloading Zig ${zig_version}..."
-    local curl_err
-    curl_err=$(mktemp)
-    # Download without gum spin to capture real-time progress and errors
-    if ! curl --connect-timeout 15 --max-time 300 -fSL \
-        -o "$tmp_dir/zig.tar.xz" "$zig_url" 2>"$curl_err"; then
-        gum style --foreground "$THEME_ERROR" "  Failed to download Zig"
-        # Show actual curl error
-        if [[ -s "$curl_err" ]]; then
-            gum style --foreground "$THEME_SUBTEXT" "  Error: $(cat "$curl_err")"
-        fi
-        gum style --foreground "$THEME_SUBTEXT" "  Try: sudo apt update && sudo apt install -y ca-certificates"
-        rm -f "$curl_err"
-        return 1
-    fi
-    rm -f "$curl_err"
-
-    if ! tar -xf "$tmp_dir/zig.tar.xz" -C "$tmp_dir"; then
-        gum style --foreground "$THEME_ERROR" "  Failed to extract Zig"
+    # 3. Download AppImage
+    local url="https://github.com/pkgforge-dev/ghostty-appimage/releases/download/${version}/Ghostty-${version_num}-${arch}.AppImage"
+    gum style --foreground "$THEME_SECONDARY" "  Downloading..."
+    mkdir -p "$install_dir"
+    if ! curl --connect-timeout 15 --max-time 300 -fSL -o "$install_dir/ghostty" "$url"; then
+        gum style --foreground "$THEME_ERROR" "  Failed to download AppImage"
         return 1
     fi
 
-    local zig_bin="$tmp_dir/zig-${arch}-linux-${zig_version}/zig"
+    # 4. Make executable
+    chmod +x "$install_dir/ghostty"
 
-    # 5. Build and install
-    # -fno-sys=gtk4-layer-shell: compile gtk4-layer-shell from source (not packaged on Mint/Ubuntu 24.04)
-    gum style --foreground "$THEME_SECONDARY" "  Building Ghostty (this may take a few minutes)..."
-    mkdir -p "$install_dir/bin"
-
-    local build_log
-    build_log=$(mktemp)
-    if ! (cd "$tmp_dir/ghostty" && \
-        "$zig_bin" build -p "$install_dir" -Doptimize=ReleaseFast -fno-sys=gtk4-layer-shell 2>&1 | tee "$build_log"); then
-        gum style --foreground "$THEME_ERROR" "  Failed to build Ghostty"
-        # Show last 20 lines of build output
-        if [[ -s "$build_log" ]]; then
-            gum style --foreground "$THEME_SUBTEXT" "  Build output (last 20 lines):"
-            tail -20 "$build_log" | while IFS= read -r line; do
-                gum style --foreground "$THEME_SUBTEXT" "    $line"
-            done
-        fi
-        rm -f "$build_log"
-        return 1
-    fi
-    rm -f "$build_log"
-
-    # Cleanup trap will handle tmp_dir
-    trap - EXIT
-    rm -rf "$tmp_dir"
-
-    gum style --foreground "$THEME_SUCCESS" "  Installed Ghostty to ~/.local"
+    gum style --foreground "$THEME_SUCCESS" "  Installed Ghostty $version to ~/.local/bin"
     return 0
 }
 

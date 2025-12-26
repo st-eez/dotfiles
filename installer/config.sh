@@ -152,9 +152,9 @@ get_alt_install_method() {
             [[ "$DISTRO" == "debian" ]] && echo "native:install_nvim_tarball"
             ;;
         ghostty)
-            # Debian: build from source (no official apt package)
+            # Debian/Ubuntu/Mint: use AppImage (no official apt package)
             # Arch has official package, macOS has cask
-            [[ "$DISTRO" == "debian" ]] && echo "native:install_ghostty_from_source"
+            [[ "$DISTRO" == "debian" ]] && echo "native:install_ghostty_appimage"
             ;;
         *)         echo "" ;;
     esac
