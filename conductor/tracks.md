@@ -25,4 +25,4 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ## [x] Track: Installer Resiliency Audit Fixes
 
-*Link: [./conductor/tracks/installer_audit_fixes_20251225/](./conductor/tracks/installer_audit_fixes_20251225/)*
+*Link: [./conductor/archive/installer_audit_fixes_20251225/](./conductor/archive/installer_audit_fixes_20251225/)*
