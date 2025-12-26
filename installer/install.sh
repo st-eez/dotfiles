@@ -419,16 +419,26 @@ install_package() {
         case "$method" in
             npm)
                 if ! command -v npm >/dev/null 2>&1; then
-                    gum style --foreground "$THEME_SECONDARY" "Runtime 'node' missing for $pkg. Installing..."
-                    install_package "node" || return 1
+                    gum style --foreground "$THEME_SECONDARY" "Runtime 'npm' missing for $pkg. Installing..."
+                    if [[ "$DISTRO" == "arch" ]]; then
+                        gum spin --spinner dot --title "Pacman: installing npm" -- \
+                            sudo pacman -S --noconfirm npm || return 1
+                    else
+                        install_package "node" || return 1
+                    fi
                 fi
                 cmd="npm install -g $target"
                 label="npm: installing $pkg"
                 ;;
             corepack)
                 if ! command -v corepack >/dev/null 2>&1 && ! command -v npm >/dev/null 2>&1; then
-                    gum style --foreground "$THEME_SECONDARY" "Runtime 'node' missing for $pkg. Installing..."
-                    install_package "node" || return 1
+                    gum style --foreground "$THEME_SECONDARY" "Runtime 'npm' missing for $pkg. Installing..."
+                    if [[ "$DISTRO" == "arch" ]]; then
+                        gum spin --spinner dot --title "Pacman: installing npm" -- \
+                            sudo pacman -S --noconfirm npm || return 1
+                    else
+                        install_package "node" || return 1
+                    fi
                 fi
                 
                 if command -v corepack >/dev/null 2>&1; then
