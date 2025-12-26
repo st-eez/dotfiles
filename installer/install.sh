@@ -182,12 +182,22 @@ install_ghostty_from_source() {
     gum style --foreground "$THEME_SECONDARY" "  Building Ghostty (this may take a few minutes)..."
     mkdir -p "$install_dir/bin"
 
+    local build_log
+    build_log=$(mktemp)
     if ! (cd "$tmp_dir/ghostty" && \
-        gum spin --spinner dot --title "Building Ghostty..." -- \
-        "$zig_bin" build -p "$install_dir" -Doptimize=ReleaseFast -fno-sys=gtk4-layer-shell); then
+        "$zig_bin" build -p "$install_dir" -Doptimize=ReleaseFast -fno-sys=gtk4-layer-shell 2>&1 | tee "$build_log"); then
         gum style --foreground "$THEME_ERROR" "  Failed to build Ghostty"
+        # Show last 20 lines of build output
+        if [[ -s "$build_log" ]]; then
+            gum style --foreground "$THEME_SUBTEXT" "  Build output (last 20 lines):"
+            tail -20 "$build_log" | while IFS= read -r line; do
+                gum style --foreground "$THEME_SUBTEXT" "    $line"
+            done
+        fi
+        rm -f "$build_log"
         return 1
     fi
+    rm -f "$build_log"
 
     # Cleanup trap will handle tmp_dir
     trap - EXIT
