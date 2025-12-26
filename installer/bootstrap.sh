@@ -6,6 +6,7 @@
 # Global variables to store system info
 OS=""
 DISTRO=""
+export IS_OMARCHY=false
 
 # Detect Operating System and Distribution
 detect_os() {
@@ -40,6 +41,23 @@ detect_os() {
             exit 1
             ;;
     esac
+}
+
+# Detect Omarchy environment (DHH's Arch Linux + Hyprland)
+# Must be called AFTER install_gum (uses gum for styled output)
+detect_omarchy() {
+    [[ "$DISTRO" != "arch" ]] && return
+
+    # Guard: gum required for styled output
+    command -v gum >/dev/null || return
+
+    local omarchy_root="${HOME:?}/.local/share/omarchy"
+
+    # Verify actual Omarchy install (both root and bin directories present)
+    if [[ -d "$omarchy_root" && -d "$omarchy_root/bin" ]]; then
+        IS_OMARCHY=true
+        gum style --foreground "${THEME_ACCENT:-#73daca}" "  Detected: Omarchy environment"
+    fi
 }
 
 # Check for sudo access (prompts once if needed)

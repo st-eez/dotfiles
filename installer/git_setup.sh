@@ -1,60 +1,46 @@
 #!/usr/bin/env bash
 
 # Git Configuration Setup
-# Generates ~/.gitconfig from template with dynamic paths
+# Configures git credential helper and sets sensible defaults
 
 setup_git_config() {
     gum style --foreground "$THEME_PRIMARY" "  ◆ Setting up Git configuration..."
 
-    local template_path="$DOTFILES_DIR/git/.gitconfig.template"
-    local config_path="$HOME/.gitconfig"
-    local gh_path
-    
-    # 1. Detect 'gh' path
-    if ! gh_path=$(command -v gh); then
-        gum style --foreground "$THEME_WARNING" "  'gh' CLI not found. Defaulting to 'gh' in PATH."
-        gh_path="gh"
+    local changes_made=false
+
+    # 1. Check if gh is installed
+    if ! command -v gh >/dev/null 2>&1; then
+        gum style --foreground "$THEME_WARNING" "  'gh' not found - skipping credential setup"
+        return 0
     fi
 
-    # 2. Read and Replace
-    if [[ -f "$template_path" ]]; then
-        local content
-        if ! content=$(<"$template_path"); then
-             gum style --foreground "$THEME_ERROR" "Failed to read template: $template_path"
-             return 1
-        fi
-        
-        # Replace {{GH_PATH}}
-        content="${content//\{\{GH_PATH\}\}/$gh_path}"
-        
-        # Replace {{HOME_DIR}}
-        content="${content//\{\{HOME_DIR\}\}/$HOME}"
+    # 2. Check if gh is authenticated
+    if ! gh auth status >/dev/null 2>&1; then
+        gum style --foreground "$THEME_WARNING" "  'gh' not authenticated - run 'gh auth login' first"
+        return 0
+    fi
 
-        # 3. Write to ~/.gitconfig
-        # Check if existing file is a symlink (stow) or regular file
-        if [[ -L "$config_path" ]]; then
-            gum style --foreground "$THEME_SUBTEXT" "  Removing existing symlink ~/.gitconfig..."
-            if ! rm "$config_path"; then
-                gum style --foreground "$THEME_ERROR" "Failed to remove existing symlink"
-                return 1
-            fi
-        elif [[ -f "$config_path" ]]; then
-             local backup="$config_path.bak.$(date +%Y%m%d_%H%M%S)"
-             if ! mv "$config_path" "$backup"; then
-                 gum style --foreground "$THEME_ERROR" "Failed to backup existing .gitconfig"
-                 return 1
-             fi
-             gum style --foreground "$THEME_SUBTEXT" "  Backed up existing .gitconfig to $backup"
-        fi
+    # 3. Use GitHub's official command to configure git credential helper
+    gh auth setup-git
 
-        if echo "$content" > "$config_path"; then
-            gum style --foreground "$THEME_SUCCESS" "  Generated ~/.gitconfig (gh: $gh_path)"
-        else
-            gum style --foreground "$THEME_ERROR" "Failed to write to $config_path"
-            return 1
-        fi
+    # 4. Set default branch if not already configured
+    if ! git config --global init.defaultBranch >/dev/null 2>&1; then
+        git config --global init.defaultBranch main
+        changes_made=true
+    fi
+
+    # 5. Warn if user info missing
+    if ! git config --global user.name >/dev/null 2>&1; then
+        gum style --foreground "$THEME_WARNING" "  Missing: git config --global user.name 'Your Name'"
+    fi
+    if ! git config --global user.email >/dev/null 2>&1; then
+        gum style --foreground "$THEME_WARNING" "  Missing: git config --global user.email 'you@example.com'"
+    fi
+
+    # Summary
+    if [[ "$changes_made" == true ]]; then
+        gum style --foreground "$THEME_SUCCESS" "  Configured"
     else
-        gum style --foreground "$THEME_ERROR" "  Template not found: $template_path"
-        return 1
+        gum style --foreground "$THEME_SUBTEXT" "  Already configured"
     fi
 }

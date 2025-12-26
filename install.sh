@@ -19,15 +19,14 @@ else
     exit 1
 fi
 
-# Load Configuration & UI
-source "$DOTFILES_DIR/installer/config.sh"
-source "$DOTFILES_DIR/installer/theme.sh"
-source "$DOTFILES_DIR/installer/logging.sh"
-source "$DOTFILES_DIR/installer/ui.sh"
-source "$DOTFILES_DIR/installer/install.sh"
-source "$DOTFILES_DIR/installer/utils.sh"
-source "$DOTFILES_DIR/installer/zsh_setup.sh"
-source "$DOTFILES_DIR/installer/git_setup.sh"
+# Load Configuration & UI (all modules required)
+for module in config theme logging ui install utils zsh_setup git_setup; do
+    # shellcheck disable=SC1090
+    source "$DOTFILES_DIR/installer/${module}.sh" || {
+        echo "Error: installer/${module}.sh not found or failed to load."
+        exit 1
+    }
+done
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # SIGNAL HANDLING
@@ -155,7 +154,7 @@ run_installation() {
 
     # 1. Fonts (Universal)
     if install_nerd_fonts; then
-        log_success "Fonts" "Nerd Fonts installed/verified"
+        log_success "Fonts" "OK"
     else
         log_failure "Fonts" "Installation failed"
         ((fail_count++))
@@ -165,9 +164,9 @@ run_installation() {
     # Check if zsh was in the list OR if we are just ensuring environment
     if [[ " ${pkg_array[*]} " =~ " zsh " ]] || [[ "$SHELL" == */zsh ]]; then
         if setup_zsh_env; then
-            log_success "Zsh Setup" "Environment configured"
+            log_success "Zsh" "OK"
         else
-            log_failure "Zsh Setup" "Failed"
+            log_failure "Zsh" "Setup failed"
             ((fail_count++))
         fi
     fi
@@ -175,9 +174,9 @@ run_installation() {
     # 3. Git Configuration
     if [[ " ${pkg_array[*]} " =~ " git " ]]; then
         if setup_git_config; then
-            log_success "Git Setup" "Config generated"
+            log_success "Git" "OK"
         else
-            log_failure "Git Setup" "Failed"
+            log_failure "Git" "Setup failed"
             ((fail_count++))
         fi
     fi
@@ -240,6 +239,7 @@ EOF
     # 1. Bootstrap
     detect_os
     install_gum
+    detect_omarchy  # Must run after install_gum (uses gum for styled output)
 
     # 2. Verify gum
     if ! command -v gum >/dev/null 2>&1; then

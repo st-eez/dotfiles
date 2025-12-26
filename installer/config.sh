@@ -36,7 +36,6 @@ export TERMINAL_PKGS=(
     prettier
     ripgrep
     stow
-    telnet
     wireguard-tools
     zoxide
     zsh
@@ -118,6 +117,14 @@ get_binary_name() {
                 echo "fdfind"
             else
                 echo "fd"
+            fi
+            ;;
+        python)
+            # macOS/Debian use python3, Arch uses python
+            if [[ "$DISTRO" == "arch" ]]; then
+                echo "python"
+            else
+                echo "python3"
             fi
             ;;
         *)               echo "$1" ;;

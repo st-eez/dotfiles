@@ -20,6 +20,19 @@ bootstrap_aur_helper() {
 
     local tmp_dir
     tmp_dir=$(mktemp -d) || return 1
+
+    # Save original traps and set cleanup trap for this function
+    local old_int_trap old_term_trap
+    old_int_trap=$(trap -p INT)
+    old_term_trap=$(trap -p TERM)
+
+    # Cleanup helper for interrupt handling
+    _aur_cleanup() { [[ -n "${tmp_dir:-}" ]] && rm -rf "$tmp_dir"; }
+
+    # Trap INT/TERM to cleanup temp dir before propagating signal
+    trap '_aur_cleanup; trap - INT TERM; kill -INT $$' INT
+    trap '_aur_cleanup; trap - INT TERM; kill -TERM $$' TERM
+
     local build_success=0
 
     if ! git clone https://aur.archlinux.org/yay.git "$tmp_dir/yay"; then
@@ -27,47 +40,337 @@ bootstrap_aur_helper() {
     elif ! (cd "$tmp_dir/yay" && makepkg -si --noconfirm); then
         build_success=1
     fi
-    
-    [[ -n "$tmp_dir" ]] && rm -rf "$tmp_dir"
+
+    # Restore original traps and cleanup
+    eval "${old_int_trap:-trap - INT}"
+    eval "${old_term_trap:-trap - TERM}"
+    _aur_cleanup
+    unset -f _aur_cleanup
     return $build_success
+}
+
+# Merge nvim plugins into Omarchy's config
+# Strategy: Copy ALL user plugins EXCEPT theme-related ones (blacklist approach)
+# Returns: 0 on success, 1 on any failure
+merge_nvim_plugins() {
+    # Save and set nullglob for safe glob expansion
+    local old_nullglob
+    old_nullglob=$(shopt -p nullglob)
+    shopt -s nullglob
+
+    # Verify DOTFILES_DIR is set (should be set by install.sh)
+    if [[ -z "${DOTFILES_DIR:-}" ]]; then
+        gum style --foreground "${THEME_ERROR:-#f7768e}" "  DOTFILES_DIR not set - cannot merge"
+        eval "$old_nullglob"
+        return 1
+    fi
+
+    local src_plugins="$DOTFILES_DIR/nvim/.config/nvim/lua/plugins"
+    local dst_plugins="${HOME:?}/.config/nvim/lua/plugins"
+
+    # Verify source exists
+    if [[ ! -d "$src_plugins" ]]; then
+        gum style --foreground "${THEME_WARNING:-#e0af68}" "  No nvim plugins found in dotfiles"
+        eval "$old_nullglob"
+        return 0
+    fi
+
+    # Ensure destination directory exists
+    if [[ ! -d "$dst_plugins" ]]; then
+        gum style --foreground "${THEME_WARNING:-#e0af68}" "  Omarchy nvim plugins dir missing, skipping merge"
+        eval "$old_nullglob"
+        return 0
+    fi
+
+    # Blacklist: files that conflict with Omarchy's theme system or are templates
+    # These are the ONLY files we skip - everything else is copied
+    local -a blacklist=(tokyonight.lua example.lua)
+
+    # Counters - declared at function scope
+    local copied=0
+    local skipped=0
+    local unchanged=0
+    local failures=0
+    local src filename dst is_blacklisted blocked
+
+    # Iterate over ALL .lua files in source plugins directory
+    for src in "$src_plugins"/*.lua; do
+        filename="${src##*/}"
+        dst="$dst_plugins/$filename"
+
+        # Skip blacklisted files
+        is_blacklisted=false
+        for blocked in "${blacklist[@]}"; do
+            if [[ "$filename" == "$blocked" ]]; then
+                is_blacklisted=true
+                gum style --foreground "${THEME_SUBTEXT:-#565f89}" "  Skipped: $filename (preserves Omarchy theming)"
+                ((skipped++))
+                break
+            fi
+        done
+        [[ "$is_blacklisted" == true ]] && continue
+
+        # Compare and copy if different or new
+        if [[ -f "$dst" ]]; then
+            if cmp -s "$src" "$dst"; then
+                ((unchanged++))
+            else
+                # File differs - overwrite with user's version
+                if cp "$src" "$dst"; then
+                    gum style --foreground "${THEME_SUCCESS:-#9ece6a}" "  Updated: $filename"
+                    ((copied++))
+                else
+                    gum style --foreground "${THEME_ERROR:-#f7768e}" "  Failed to update: $filename"
+                    ((failures++))
+                fi
+            fi
+        else
+            # New file - copy it
+            if cp "$src" "$dst"; then
+                gum style --foreground "${THEME_SUCCESS:-#9ece6a}" "  Copied: $filename"
+                ((copied++))
+            else
+                gum style --foreground "${THEME_ERROR:-#f7768e}" "  Failed to copy: $filename"
+                ((failures++))
+            fi
+        fi
+    done
+
+    # Summary
+    if ((failures > 0)); then
+        gum style --foreground "${THEME_ERROR:-#f7768e}" "  Summary: $copied copied/updated, $unchanged unchanged, $skipped skipped, $failures FAILED"
+    else
+        gum style --foreground "${THEME_SUBTEXT:-#565f89}" "  Summary: $copied copied/updated, $unchanged unchanged, $skipped skipped"
+    fi
+
+    # Language extras reminder - only show on first run (when we copied something)
+    if [[ $copied -gt 0 ]]; then
+        echo ""
+        gum style --foreground "${THEME_SECONDARY:-#7dcfff}" "  ┌─ MANUAL STEP ─────────────────────────────────┐"
+        gum style --foreground "${THEME_SUBTEXT:-#565f89}"   "  │ Add language extras to Omarchy's lazy.lua:   │"
+        gum style --foreground "${THEME_SUBTEXT:-#565f89}"   "  │   ~/.config/nvim/lua/config/lazy.lua         │"
+        gum style --foreground "${THEME_SUBTEXT:-#565f89}"   "  │                                              │"
+        gum style --foreground "${THEME_SUBTEXT:-#565f89}"   "  │ Your extras:                                 │"
+        gum style --foreground "${THEME_SUBTEXT:-#565f89}"   "  │   lazyvim.plugins.extras.lang.typescript     │"
+        gum style --foreground "${THEME_SUBTEXT:-#565f89}"   "  │   lazyvim.plugins.extras.lang.json           │"
+        gum style --foreground "${THEME_SUBTEXT:-#565f89}"   "  │   lazyvim.plugins.extras.lang.python         │"
+        gum style --foreground "${THEME_SUBTEXT:-#565f89}"   "  │   lazyvim.plugins.extras.lang.yaml           │"
+        gum style --foreground "${THEME_SUBTEXT:-#565f89}"   "  │   lazyvim.plugins.extras.lang.docker         │"
+        gum style --foreground "${THEME_SUBTEXT:-#565f89}"   "  │   lazyvim.plugins.extras.lang.toml           │"
+        gum style --foreground "${THEME_SUBTEXT:-#565f89}"   "  │   lazyvim.plugins.extras.lang.markdown       │"
+        gum style --foreground "${THEME_SECONDARY:-#7dcfff}" "  └───────────────────────────────────────────────┘"
+    fi
+
+    # Restore nullglob and return
+    eval "$old_nullglob"
+    ((failures > 0)) && return 1
+    return 0
+}
+
+# Add user's Ghostty preferences via include file
+# Preserves Omarchy theme switching while adding user settings
+# Returns: 0 on success/skip, 1 on failure
+setup_ghostty_steez_config() {
+    local ghostty_dir="${HOME:?}/.config/ghostty"
+    local ghostty_config="$ghostty_dir/config"
+    local steez_config="$ghostty_dir/steez.conf"
+    local src_config="${DOTFILES_DIR:-}/ghostty/.config/ghostty/config"
+
+    # Verify DOTFILES_DIR is set
+    if [[ -z "${DOTFILES_DIR:-}" ]]; then
+        gum style --foreground "${THEME_ERROR:-#f7768e}" "  DOTFILES_DIR not set - cannot setup ghostty"
+        return 1
+    fi
+
+    # Verify source exists
+    if [[ ! -f "$src_config" ]]; then
+        gum style --foreground "${THEME_SUBTEXT:-#565f89}" "  No ghostty config in dotfiles"
+        return 0
+    fi
+
+    # Verify Omarchy ghostty config exists
+    if [[ ! -f "$ghostty_config" ]]; then
+        gum style --foreground "${THEME_WARNING:-#e0af68}" "  Omarchy ghostty config not found"
+        return 0
+    fi
+
+    # Extract user preferences (skip theme and font-family which Omarchy manages)
+    local new_content
+    new_content=$(cat <<EOF
+# Steez dotfiles - user preferences
+# Auto-generated from dotfiles - will be regenerated on each install run
+
+$(grep -E "^(font-size|keybind|split-|unfocused-split-|clipboard-|background-opacity)" "$src_config" 2>/dev/null || true)
+EOF
+)
+
+    # Check for keybind conflicts and warn user
+    local user_keybinds omarchy_keybinds conflicts
+    user_keybinds=$(grep -oE "^keybind = [^=]+" "$src_config" 2>/dev/null | sort -u)
+    omarchy_keybinds=$(grep -oE "^keybind = [^=]+" "$ghostty_config" 2>/dev/null | sort -u)
+    if [[ -n "$user_keybinds" && -n "$omarchy_keybinds" ]]; then
+        conflicts=$(comm -12 <(echo "$user_keybinds") <(echo "$omarchy_keybinds"))
+        if [[ -n "$conflicts" ]]; then
+            gum style --foreground "${THEME_WARNING:-#e0af68}" "  Note: Overriding Omarchy keybinds: $(echo "$conflicts" | tr '\n' ' ')"
+        fi
+    fi
+
+    # Create or update steez.conf
+    if [[ -f "$steez_config" ]]; then
+        # Check if content changed
+        local old_content
+        old_content=$(<"$steez_config")
+        if [[ "$new_content" == "$old_content" ]]; then
+            gum style --foreground "${THEME_SUBTEXT:-#565f89}" "  steez.conf unchanged"
+        else
+            if printf '%s\n' "$new_content" > "$steez_config"; then
+                gum style --foreground "${THEME_SUCCESS:-#9ece6a}" "  Updated steez.conf with latest preferences"
+            else
+                gum style --foreground "${THEME_ERROR:-#f7768e}" "  Failed to update steez.conf"
+                return 1
+            fi
+        fi
+    else
+        if printf '%s\n' "$new_content" > "$steez_config"; then
+            gum style --foreground "${THEME_SUCCESS:-#9ece6a}" "  Created steez.conf with user preferences"
+        else
+            gum style --foreground "${THEME_ERROR:-#f7768e}" "  Failed to create steez.conf"
+            return 1
+        fi
+    fi
+
+    # Track if we need to modify ghostty config (for atomic update)
+    local needs_steez_include=false
+    local needs_zsh_command=false
+    local zsh_path=""
+
+    # Check if steez.conf include needed (precise pattern match)
+    if ! grep -qE "^config-file[[:space:]]*=.*steez\.conf" "$ghostty_config"; then
+        needs_steez_include=true
+    else
+        gum style --foreground "${THEME_SUBTEXT:-#565f89}" "  steez.conf already included"
+    fi
+
+    # Check zsh configuration needed
+    # First, find zsh path (check known paths before falling back to PATH)
+    for p in /usr/bin/zsh /bin/zsh /usr/local/bin/zsh /opt/homebrew/bin/zsh; do
+        [[ -x "$p" ]] && { zsh_path="$p"; break; }
+    done
+    [[ -z "$zsh_path" ]] && zsh_path=$(command -v zsh 2>/dev/null)
+
+    if [[ -n "$zsh_path" ]]; then
+        if grep -qE "^command[[:space:]]*=.*zsh" "$ghostty_config"; then
+            gum style --foreground "${THEME_SUBTEXT:-#565f89}" "  Ghostty already configured for zsh"
+        elif grep -qE "^command[[:space:]]*=" "$ghostty_config"; then
+            gum style --foreground "${THEME_WARNING:-#e0af68}" "  Ghostty has different shell - not modifying"
+        else
+            needs_zsh_command=true
+        fi
+    else
+        gum style --foreground "${THEME_SUBTEXT:-#565f89}" "  Zsh not installed - skipping shell config"
+    fi
+
+    # If modifications needed, do atomic update via temp file
+    if [[ "$needs_steez_include" == true || "$needs_zsh_command" == true ]]; then
+        # Backup before modification
+        local backup_file="${ghostty_config}.steez-backup.$(date +%Y%m%d_%H%M%S)"
+        if ! cp "$ghostty_config" "$backup_file"; then
+            gum style --foreground "${THEME_ERROR:-#f7768e}" "  Failed to backup ghostty config"
+            return 1
+        fi
+        gum style --foreground "${THEME_SUBTEXT:-#565f89}" "  Backed up config to ${backup_file##*/}"
+
+        # Create temp file with modifications (same dir = atomic mv, -p = preserve perms)
+        local tmp_config
+        tmp_config=$(mktemp "$ghostty_dir/.tmp.XXXXXX") || return 1
+        cp -p "$ghostty_config" "$tmp_config" || { rm -f "$tmp_config"; return 1; }
+
+        if [[ "$needs_steez_include" == true ]]; then
+            {
+                echo ""
+                echo "# Steez: User preferences (font-size, keybinds, etc.)"
+                echo "config-file = $steez_config"
+            } >> "$tmp_config"
+        fi
+
+        if [[ "$needs_zsh_command" == true ]]; then
+            {
+                echo ""
+                echo "# Steez: Launch zsh in terminal (bash remains login shell for Omarchy)"
+                echo "command = $zsh_path"
+            } >> "$tmp_config"
+        fi
+
+        # Atomic replace
+        if mv "$tmp_config" "$ghostty_config"; then
+            [[ "$needs_steez_include" == true ]] && \
+                gum style --foreground "${THEME_SUCCESS:-#9ece6a}" "  Added steez.conf include to ghostty config"
+            [[ "$needs_zsh_command" == true ]] && \
+                gum style --foreground "${THEME_SUCCESS:-#9ece6a}" "  Added 'command = $zsh_path' to Ghostty"
+        else
+            gum style --foreground "${THEME_ERROR:-#f7768e}" "  Failed to update ghostty config"
+            rm -f "$tmp_config"
+            return 1
+        fi
+    fi
+
+    return 0
 }
 
 # Install Nerd Fonts (JetBrains Mono) for proper icon support
 install_nerd_fonts() {
-    gum style --foreground "$THEME_ACCENT" "Installing Nerd Fonts (JetBrains Mono)..."
+    gum style --foreground "$THEME_PRIMARY" "  ◆ Setting up Nerd Fonts..."
+
+    # Omarchy ships with JetBrainsMono Nerd Font pre-installed
+    if [[ "${IS_OMARCHY:-false}" == true ]]; then
+        if command -v fc-list >/dev/null 2>&1; then
+            if fc-list 2>/dev/null | grep -qi "JetBrainsMono.*Nerd"; then
+                gum style --foreground "$THEME_SUBTEXT" "  Already installed"
+                return 0
+            fi
+        else
+            if pacman -Qi ttf-jetbrains-mono-nerd &>/dev/null; then
+                gum style --foreground "$THEME_SUBTEXT" "  Already installed"
+                return 0
+            fi
+        fi
+    fi
 
     if [[ "$OS" == "macos" ]]; then
-        if ! brew list --cask font-jetbrains-mono-nerd-font &>/dev/null; then
+        if brew list --cask font-jetbrains-mono-nerd-font &>/dev/null; then
+            gum style --foreground "$THEME_SUBTEXT" "  Already installed"
+        else
+            gum style --foreground "$THEME_SECONDARY" "  Installing JetBrainsMono Nerd Font..."
             gum spin --spinner dot --title "Brew: installing font-jetbrains-mono-nerd-font" -- \
                 brew install --cask font-jetbrains-mono-nerd-font
-        else
-            gum style --foreground "$THEME_SUBTEXT" "  Already installed."
+            gum style --foreground "$THEME_SUCCESS" "  Installed"
         fi
     elif [[ "$DISTRO" == "arch" ]]; then
-        if ! pacman -Qi ttf-jetbrains-mono-nerd &>/dev/null; then
-             if ! command -v yay >/dev/null 2>&1 && ! command -v paru >/dev/null 2>&1; then
+        if pacman -Qi ttf-jetbrains-mono-nerd &>/dev/null; then
+            gum style --foreground "$THEME_SUBTEXT" "  Already installed"
+        else
+            if ! command -v yay >/dev/null 2>&1 && ! command -v paru >/dev/null 2>&1; then
                 bootstrap_aur_helper || return 1
             fi
-            
+
             local aur_helper="yay"
             command -v paru >/dev/null 2>&1 && aur_helper="paru"
-            
+
+            gum style --foreground "$THEME_SECONDARY" "  Installing JetBrainsMono Nerd Font..."
             gum spin --spinner dot --title "AUR ($aur_helper): installing ttf-jetbrains-mono-nerd" -- \
-                $aur_helper -S --noconfirm --needed ttf-jetbrains-mono-nerd
-        else
-             gum style --foreground "$THEME_SUBTEXT" "  Already installed."
+                "$aur_helper" -S --noconfirm --needed ttf-jetbrains-mono-nerd
+            gum style --foreground "$THEME_SUCCESS" "  Installed"
         fi
     elif [[ "$DISTRO" == "debian" ]]; then
         local font_dir="$HOME/.local/share/fonts"
-        # Idempotency: Pattern check for any JetBrainsMono Nerd Font file
         if compgen -G "$font_dir/JetBrainsMono*NerdFont-*.ttf" > /dev/null; then
-            gum style --foreground "$THEME_SUBTEXT" "  Already installed."
+            gum style --foreground "$THEME_SUBTEXT" "  Already installed"
             return 0
         fi
 
         if ! command -v curl >/dev/null 2>&1; then
-             gum style --foreground "$THEME_ERROR" "curl is required for font installation."
-             return 1
+            gum style --foreground "$THEME_ERROR" "  curl is required for font installation"
+            return 1
         fi
 
         mkdir -p "$font_dir"
@@ -79,22 +382,23 @@ install_nerd_fonts() {
         if command -v fc-cache >/dev/null 2>&1; then
             fc_cmd="fc-cache -f"
         else
-            gum style --foreground "$THEME_WARNING" "  Warning: fc-cache not found. Fonts installed but cache not updated."
+            gum style --foreground "$THEME_WARNING" "  fc-cache not found - font cache not updated"
         fi
 
-        if gum spin --spinner dot --title "Downloading & Installing JetBrainsMono Nerd Font..." -- \
+        gum style --foreground "$THEME_SECONDARY" "  Installing JetBrainsMono Nerd Font..."
+        if gum spin --spinner dot --title "Downloading..." -- \
             bash -c "curl -L -f -o '$tmp_file' '$url' && \
                      tar -xf '$tmp_file' -C '$font_dir' && \
                      $fc_cmd"; then
-             rm -f "$tmp_file"
-             gum style --foreground "$THEME_SUCCESS" "  Font installed successfully."
+            rm -f "$tmp_file"
+            gum style --foreground "$THEME_SUCCESS" "  Installed"
         else
-             rm -f "$tmp_file"
-             gum style --foreground "$THEME_ERROR" "  Failed to install font."
-             return 1
+            rm -f "$tmp_file"
+            gum style --foreground "$THEME_ERROR" "  Failed to install"
+            return 1
         fi
     else
-        gum style --foreground "$THEME_WARNING" "Skipping Nerd Font installation (unsupported OS/Distro: $OS/$DISTRO)"
+        gum style --foreground "$THEME_WARNING" "  Unsupported OS/Distro: $OS/$DISTRO"
     fi
 }
 
@@ -205,6 +509,8 @@ install_package() {
     fi
 
     # 3. Execute with Spinner
+    # NOTE: Command string is split on whitespace. Package names with spaces are
+    # not supported. All current package names are hardcoded and space-free.
     if [[ -n "$cmd" ]]; then
         local -a cmd_parts
         read -ra cmd_parts <<< "$cmd"
@@ -278,6 +584,26 @@ stow_package() {
     if [[ ! -d "$DOTFILES_DIR/$pkg" ]]; then
         # Brew-only package, nothing to stow
         return 2
+    fi
+
+    # Omarchy: Special handling for packages with theme integration
+    if [[ "${IS_OMARCHY:-false}" == true ]]; then
+        case "$pkg" in
+            nvim)
+                gum style --foreground "${THEME_ACCENT:-#73daca}" \
+                    "  Merging nvim plugins (preserving Omarchy theme sync)..."
+                merge_nvim_plugins || return 1
+                return 3  # "already linked" semantics (no new stow links created)
+                ;;
+            ghostty)
+                gum style --foreground "${THEME_ACCENT:-#73daca}" \
+                    "  Setting up Ghostty preferences (preserving Omarchy theme sync)..."
+                setup_ghostty_steez_config || return 1
+                return 3  # "already linked" semantics
+                ;;
+            # NOTE: fzf/zoxide not listed - no .config dirs, shell integration only
+            # NOTE: aerospace/borders/karabiner/sketchybar not listed - macOS only
+        esac
     fi
 
     # 0. Pre-flight: Check specific critical files

@@ -283,13 +283,19 @@ ui_main_menu() {
 ui_preflight() {
     local count="$1"
 
+    # Distro-aware package manager name
+    local pkg_mgr="package manager"
+    [[ "$DISTRO" == "macos" ]] && pkg_mgr="Homebrew"
+    [[ "$DISTRO" == "arch" ]] && pkg_mgr="pacman"
+    [[ "$DISTRO" == "debian" ]] && pkg_mgr="apt"
+
     echo ""
     gum style --foreground "$THEME_SUBTEXT" "  ╭─ PRE-FLIGHT ───────────────────────────────────╮"
     gum style --foreground "$THEME_SUBTEXT" "  │                                                │"
     gum style --foreground "$THEME_TEXT" "$(printf "  │  %-46s│" "> $count packages queued for installation")"
     gum style --foreground "$THEME_SUBTEXT" "  │                                                │"
     gum style --foreground "$THEME_SUBTEXT" "$(printf "  │  %-46s│" "This will:")"
-    gum style --foreground "$THEME_SUBTEXT" "$(printf "  │    %-44s│" "- Install missing binaries via Homebrew")"
+    gum style --foreground "$THEME_SUBTEXT" "$(printf "  │    %-44s│" "- Install missing binaries via $pkg_mgr")"
     gum style --foreground "$THEME_SUBTEXT" "$(printf "  │    %-44s│" "- Symlink dotfiles via GNU Stow")"
     gum style --foreground "$THEME_SUBTEXT" "$(printf "  │    %-44s│" "- Backup existing configs if needed")"
     gum style --foreground "$THEME_SUBTEXT" "  │                                                │"
