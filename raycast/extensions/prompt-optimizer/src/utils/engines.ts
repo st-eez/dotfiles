@@ -193,9 +193,7 @@ export const engines: Engine[] = [
     displayName: "Codex",
     icon: Icon.Code,
     defaultModel: "gpt-5.2-codex",
-    models: [
-      { id: "gpt-5.2-codex", label: "gpt-5.2-codex" },
-    ],
+    models: [{ id: "gpt-5.2-codex", label: "gpt-5.2-codex" }],
     run: async (prompt, model = "gpt-5.2-codex", mode = "quick") => {
       return safeExec(
         "codex",
@@ -231,11 +229,10 @@ export const engines: Engine[] = [
     defaultModel: "gemini-3-flash-preview",
     models: [
       { id: "gemini-3-flash-preview", label: "Gemini 3 Flash" },
-      { id: "gemini-3-pro", label: "Gemini 3 Pro" },
+      { id: "gemini-3-pro-preview", label: "Gemini 3 Pro" },
     ],
     run: async (prompt, model = "gemini-3-flash-preview", mode = "quick") => {
       return safeExec("gemini", ["-p", buildOptimizationPrompt(prompt, mode), "--model", model]);
     },
   },
-
 ];
