@@ -108,49 +108,48 @@ install_nvim_tarball() {
 # See: https://ghostty.org/docs/install/binary
 install_ghostty_appimage() {
     local install_dir="$HOME/.local/bin"
+    local installed_now=false
 
-    # Skip if already installed
-    if command -v ghostty >/dev/null 2>&1; then
-        gum style --foreground "$THEME_SUBTEXT" "  Ghostty already installed"
-        return 0
-    fi
-
-    # 1. Get latest release version
-    gum style --foreground "$THEME_SECONDARY" "  Fetching latest Ghostty AppImage..."
-    local version
-    version=$(curl -fsSL "https://api.github.com/repos/pkgforge-dev/ghostty-appimage/releases/latest" | \
-        grep -oP '"tag_name":\s*"\K[^"]+' 2>/dev/null)
-    if [[ -z "$version" ]]; then
-        gum style --foreground "$THEME_ERROR" "  Failed to get AppImage version"
-        return 1
-    fi
-    local version_num="${version#v}"
-    gum style --foreground "$THEME_SUBTEXT" "  Latest: $version"
-
-    # 2. Determine CPU architecture
-    local arch
-    arch=$(uname -m)
-    case "$arch" in
-        x86_64|aarch64) ;;
-        *)
-            gum style --foreground "$THEME_ERROR" "  Unsupported architecture: $arch"
+    # Only download if not already installed
+    if ! command -v ghostty >/dev/null 2>&1; then
+        # 1. Get latest release version
+        gum style --foreground "$THEME_SECONDARY" "  Fetching latest Ghostty AppImage..."
+        local version
+        version=$(curl -fsSL "https://api.github.com/repos/pkgforge-dev/ghostty-appimage/releases/latest" | \
+            grep -oP '"tag_name":\s*"\K[^"]+' 2>/dev/null)
+        if [[ -z "$version" ]]; then
+            gum style --foreground "$THEME_ERROR" "  Failed to get AppImage version"
             return 1
-            ;;
-    esac
+        fi
+        local version_num="${version#v}"
+        gum style --foreground "$THEME_SUBTEXT" "  Latest: $version"
 
-    # 3. Download AppImage
-    local url="https://github.com/pkgforge-dev/ghostty-appimage/releases/download/${version}/Ghostty-${version_num}-${arch}.AppImage"
-    gum style --foreground "$THEME_SECONDARY" "  Downloading..."
-    mkdir -p "$install_dir"
-    if ! curl --connect-timeout 15 --max-time 300 -fSL -o "$install_dir/ghostty" "$url"; then
-        gum style --foreground "$THEME_ERROR" "  Failed to download AppImage"
-        return 1
+        # 2. Determine CPU architecture
+        local arch
+        arch=$(uname -m)
+        case "$arch" in
+            x86_64|aarch64) ;;
+            *)
+                gum style --foreground "$THEME_ERROR" "  Unsupported architecture: $arch"
+                return 1
+                ;;
+        esac
+
+        # 3. Download AppImage
+        local url="https://github.com/pkgforge-dev/ghostty-appimage/releases/download/${version}/Ghostty-${version_num}-${arch}.AppImage"
+        gum style --foreground "$THEME_SECONDARY" "  Downloading..."
+        mkdir -p "$install_dir"
+        if ! curl --connect-timeout 15 --max-time 300 -fSL -o "$install_dir/ghostty" "$url"; then
+            gum style --foreground "$THEME_ERROR" "  Failed to download AppImage"
+            return 1
+        fi
+
+        # 4. Make executable
+        chmod +x "$install_dir/ghostty"
+        installed_now=true
     fi
 
-    # 4. Make executable
-    chmod +x "$install_dir/ghostty"
-
-    # 5. Create desktop entry for app menu
+    # 5. Create desktop entry for app menu (always ensure exists)
     local desktop_dir="$HOME/.local/share/applications"
     mkdir -p "$desktop_dir"
     cat > "$desktop_dir/ghostty.desktop" << EOF
@@ -172,7 +171,11 @@ EOF
         echo "$path_line" >> "$HOME/.bashrc"
     fi
 
-    gum style --foreground "$THEME_SUCCESS" "  Installed Ghostty $version to ~/.local/bin"
+    if [[ "$installed_now" == true ]]; then
+        gum style --foreground "$THEME_SUCCESS" "  Installed Ghostty to ~/.local/bin"
+    else
+        gum style --foreground "$THEME_SUBTEXT" "  Ghostty already installed"
+    fi
     return 0
 }
 
