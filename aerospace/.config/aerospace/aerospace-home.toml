@@ -40,14 +40,15 @@ outer.top = [
 outer.right = 10
 
 # Home setup - ASUS VG279QE5A monitors and Built-in
+# Note: macOS names them (1) and (2) opposite to physical layout
 [workspace-to-monitor-force-assignment]
-1 = 'VG279QE5A 2'             # Workspaces 1-4 on main monitor
-2 = 'VG279QE5A 2'
-3 = 'VG279QE5A 2'
-4 = 'VG279QE5A 2'
-5 = 'VG279QE5A 1'             # Workspaces 5-7 on secondary
-6 = 'VG279QE5A 1'
-7 = 'VG279QE5A 1'
+1 = 2                         # Workspaces 1-4 on RIGHT monitor (ID 2)
+2 = 2
+3 = 2
+4 = 2
+5 = 1                         # Workspaces 5-7 on LEFT monitor (ID 1)
+6 = 1
+7 = 1
 8 = 'Built-in Retina Display' # Workspaces 8-0 on MacBook display
 9 = 'Built-in Retina Display'
 0 = 'Built-in Retina Display'
