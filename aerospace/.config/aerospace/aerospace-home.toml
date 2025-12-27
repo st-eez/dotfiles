@@ -41,13 +41,13 @@ outer.right = 10
 
 # Home setup - BenQ, Pixio, and Built-in monitors
 [workspace-to-monitor-force-assignment]
-1 = 'BenQ XL2411Z'            # Workspaces 1-4 on BenQ
-2 = 'BenQ XL2411Z'
-3 = 'BenQ XL2411Z'
-4 = 'BenQ XL2411Z'
-5 = 'Pixio PX248PS'           # Workspaces 5-7 on Pixio
-6 = 'Pixio PX248PS'
-7 = 'Pixio PX248PS'
+1 = 'Pixio PX248PS'           # Workspaces 1-4 Pixio
+2 = 'Pixio PX248PS'
+3 = 'Pixio PX248PS'
+4 = 'Pixio PX248PS'
+5 = 'BenQ XL2411Z'            # Workspaces 5-7 Benq
+6 = 'BenQ XL2411Z'
+7 = 'BenQ XL2411Z'
 8 = 'Built-in Retina Display' # Workspaces 8-0 on MacBook display
 9 = 'Built-in Retina Display'
 0 = 'Built-in Retina Display'
