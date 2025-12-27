@@ -39,15 +39,15 @@ outer.top = [
 ] # 12px for MacBook, 8px for externals
 outer.right = 10
 
-# Home setup - BenQ, Pixio, and Built-in monitors
+# Home setup - ASUS VG279QE5A monitors and Built-in
 [workspace-to-monitor-force-assignment]
-1 = 'Pixio PX248PS'           # Workspaces 1-4 Pixio
-2 = 'Pixio PX248PS'
-3 = 'Pixio PX248PS'
-4 = 'Pixio PX248PS'
-5 = 'BenQ XL2411Z'            # Workspaces 5-7 Benq
-6 = 'BenQ XL2411Z'
-7 = 'BenQ XL2411Z'
+1 = 'VG279QE5A 2'             # Workspaces 1-4 on main monitor
+2 = 'VG279QE5A 2'
+3 = 'VG279QE5A 2'
+4 = 'VG279QE5A 2'
+5 = 'VG279QE5A 1'             # Workspaces 5-7 on secondary
+6 = 'VG279QE5A 1'
+7 = 'VG279QE5A 1'
 8 = 'Built-in Retina Display' # Workspaces 8-0 on MacBook display
 9 = 'Built-in Retina Display'
 0 = 'Built-in Retina Display'
