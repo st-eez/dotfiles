@@ -6,18 +6,26 @@ export interface HistoryItem {
   id: string;
   originalPrompt: string;
   optimizedPrompt: string;
+  additionalContext?: string;
   engine: string;
   model?: string;
   mode?: OptimizationMode;
+  persona?: string;
   durationSec: string;
   timestamp: number;
+  specialistOutputs?: { persona: string; output: string }[];
 }
 
 const HISTORY_KEY = "prompt-optimizer-history";
 
 export async function getHistory(): Promise<HistoryItem[]> {
-  const json = await LocalStorage.getItem<string>(HISTORY_KEY);
-  return json ? JSON.parse(json) : [];
+  try {
+    const json = await LocalStorage.getItem<string>(HISTORY_KEY);
+    return json ? JSON.parse(json) : [];
+  } catch (error) {
+    console.error("Failed to parse history:", error);
+    return [];
+  }
 }
 
 export async function addToHistory(item: Omit<HistoryItem, "id" | "timestamp">) {

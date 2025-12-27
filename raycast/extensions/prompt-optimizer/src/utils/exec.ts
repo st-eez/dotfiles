@@ -1,4 +1,5 @@
 import execa from "execa";
+import { homedir } from "os";
 
 /**
  * Safely executes a shell command and returns the output.
@@ -16,7 +17,15 @@ export async function safeExec(
 ): Promise<string> {
   console.log(`Executing: ${command} ${args.join(" ")}`);
   const basePath = process.env.PATH ?? "";
-  const normalizedPath = basePath.includes("/opt/homebrew/bin") ? basePath : `/opt/homebrew/bin:${basePath}`;
+  const bunPath = `${homedir()}/.bun/bin`;
+  // Prefer Bun-installed binaries, then Homebrew, then existing PATH
+  let normalizedPath = basePath;
+  if (!basePath.includes(bunPath)) {
+    normalizedPath = `${bunPath}:${normalizedPath}`;
+  }
+  if (!basePath.includes("/opt/homebrew/bin")) {
+    normalizedPath = `/opt/homebrew/bin:${normalizedPath}`;
+  }
   try {
     const { stdout } = await execa(command, args, {
       env: {
@@ -49,5 +58,42 @@ export async function safeExec(
       throw error;
     }
     throw new Error(String(error));
+  }
+}
+
+export function getTimeout(mode: string, isOrchestrated: boolean): number {
+  const base = mode === "detailed" ? 300_000 : 180_000;
+  // 1.5x multiplier for orchestrated runs to account for multiple parallel calls + synthesis
+  return isOrchestrated ? base * 1.5 : base;
+}
+
+/**
+ * Gemini CLI JSON response structure
+ */
+export interface GeminiJsonResponse {
+  response: string;
+  stats?: {
+    tokens?: Record<string, number>;
+    tool_calls?: unknown[];
+    file_modifications?: unknown[];
+  };
+  error?: string;
+}
+
+/**
+ * Parse Gemini CLI JSON output and extract the response text.
+ * Falls back to raw output if JSON parsing fails.
+ */
+export function parseGeminiJson(output: string): string {
+  try {
+    const parsed: GeminiJsonResponse = JSON.parse(output);
+    if (parsed.error) {
+      throw new Error(parsed.error);
+    }
+    return parsed.response ?? output;
+  } catch {
+    // Fallback: return raw output if not valid JSON
+    console.warn("Failed to parse Gemini JSON response, using raw output");
+    return output;
   }
 }

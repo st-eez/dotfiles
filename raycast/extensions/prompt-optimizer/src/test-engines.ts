@@ -1,3 +1,4 @@
+import "./setup-test";
 import { engines } from "./utils/engines";
 
 async function testEngines() {

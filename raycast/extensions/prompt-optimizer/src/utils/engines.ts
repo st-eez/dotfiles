@@ -1,5 +1,11 @@
 import { Icon } from "@raycast/api";
-import { safeExec } from "./exec";
+import { safeExec, getTimeout, parseGeminiJson } from "./exec";
+// Current production strategy - update this import when promoting a new A/B test winner
+import { buildQuickPrompt, buildDetailedPrompt } from "../prompts/v1-baseline";
+import { PERSONA_INSTRUCTIONS } from "../prompts/personas";
+
+// Re-export for external consumers
+export { PERSONA_INSTRUCTIONS };
 
 // Optimization mode types and configuration
 export type OptimizationMode = "quick" | "detailed";
@@ -15,167 +21,100 @@ export const OPTIMIZATION_MODES: OptimizationModeConfig[] = [
   { id: "detailed", label: "Detailed", description: "Phased execution with checkpoints" },
 ];
 
-// Quick mode: Comprehensive single-shot prompt in XML format
-function buildQuickPrompt(userPrompt: string): string {
-  return `<system>
-You are an expert prompt engineer. Transform the user's request into a comprehensive, production-ready prompt.
-</system>
-
-<task>
-Analyze the user's request, identify the domain and audience, then create a well-structured prompt that will produce high-quality results.
-</task>
-
-<rules>
-- Output ONLY the optimized prompt using the XML structure shown in output_format
-- Do NOT include the output_format wrapper tags - only output the inner tags
-- Derive the specific domain from the request (e.g., "senior backend engineer", "UX researcher", "data scientist")
-- Include 2-4 bullet points per section, tailored to the specific request
-- Be thorough but concise - include all necessary context without padding
-- No explanations or meta-commentary
-- No code fences
-</rules>
-
-<output_format>
-<role>You are an expert [derived domain] professional with extensive experience in [specific context]. Your focus is on [key priorities relevant to task].</role>
-
-<objective>[Clear, specific goal statement derived from the request]</objective>
-
-<context>
-- Audience: [Who will consume the output]
-- Background: [Relevant assumptions or constraints]
-</context>
-
-<instructions>
-[2-4 numbered steps on HOW to approach the task]
-</instructions>
-
-<requirements>
-[2-4 bullets on WHAT must be included - content requirements]
-</requirements>
-
-<style>
-[2-3 bullets on tone, format preferences, design guidelines]
-</style>
-
-<output_format>[Expected format: prose, bullets, code, JSON, etc.]</output_format>
-
-<verbosity>[Concise/moderate/detailed - matched to task complexity]</verbosity>
-
-<edge_cases>
-[2-3 potential edge cases or error conditions to handle]
-</edge_cases>
-
-<success_criteria>
-[2-3 measurable criteria for what "done well" looks like]
-</success_criteria>
-
-<best_practices>
-- Prioritize accuracy over speed - verify claims before stating
-- Be explicit about limitations or uncertainties
-- [1-2 domain-specific best practices]
-</best_practices>
-</output_format>
-
-<user_request>
-${userPrompt}
-</user_request>`;
+export interface Persona {
+  id: string;
+  title: string;
+  icon: Icon;
 }
 
-// Detailed mode: Comprehensive phased prompt with checkpoints
-function buildDetailedPrompt(userPrompt: string): string {
-  return `<system>
-You are an expert prompt architect. Create a comprehensive, production-ready prompt with clear phases and approval checkpoints.
-</system>
-
-<task>
-Analyze the user's request, identify the domain and audience, then create a phased execution prompt. Each phase should have clear deliverables and pause for approval before continuing.
-</task>
-
-<rules>
-- Output ONLY the optimized prompt using the XML structure shown in output_format
-- Do NOT include the output_format wrapper tags - only output the inner tags
-- Derive the specific domain from the request (e.g., "senior backend engineer", "UX researcher", "data scientist")
-- Break complex work into 2-4 logical phases
-- Each phase must have a clear deliverable and checkpoint
-- Include 2-4 bullet points per section, tailored to the specific request
-- No explanations or meta-commentary
-- No code fences
-</rules>
-
-<output_format>
-<role>You are an expert [derived domain] professional with extensive experience in [specific context]. Your focus is on [key priorities relevant to task].</role>
-
-<objective>[Clear, specific goal statement derived from the request]</objective>
-
-<context>
-- Audience: [Who will consume the output]
-- Background: [Relevant assumptions or constraints]
-- Scope: [What is and isn't included]
-</context>
-
-<requirements>
-[2-4 bullets on WHAT must be included - content requirements]
-</requirements>
-
-<style>
-[2-3 bullets on tone, format preferences, design guidelines]
-</style>
-
-<output_format>[Expected format: prose, bullets, code, JSON, etc.]</output_format>
-
-<verbosity>[Concise/moderate/detailed - matched to task complexity]</verbosity>
-
-<execution_protocol>
-Complete each phase sequentially. Present the deliverable at each checkpoint and wait for explicit approval before proceeding to the next phase.
-</execution_protocol>
-
-<phase id="1" name="[Phase Name]">
-  <goal>[What this phase accomplishes]</goal>
-  <steps>[2-4 numbered actions to take]</steps>
-  <deliverable>[Concrete output to present]</deliverable>
-  <checkpoint>Present deliverable and await approval before Phase 2.</checkpoint>
-</phase>
-
-<phase id="2" name="[Phase Name]">
-  <goal>[What this phase accomplishes]</goal>
-  <steps>[2-4 numbered actions to take]</steps>
-  <deliverable>[Concrete output to present]</deliverable>
-  <checkpoint>Present deliverable and await approval.</checkpoint>
-</phase>
-
-[Add phase 3-4 if needed for complex tasks]
-
-<edge_cases>
-[2-3 potential edge cases or error conditions to handle across phases]
-</edge_cases>
-
-<success_criteria>
-[2-3 measurable criteria for what "done well" looks like for the complete task]
-</success_criteria>
-
-<best_practices>
-- Prioritize accuracy over speed - verify claims before stating
-- Be explicit about limitations or uncertainties
-- Pause at checkpoints even if confident - user approval is required
-- [1-2 domain-specific best practices]
-</best_practices>
-</output_format>
-
-<user_request>
-${userPrompt}
-</user_request>`;
-}
+export const PERSONAS: Persona[] = [
+  { id: "prompt_engineer", title: "Prompt Engineer", icon: Icon.Wand },
+  { id: "software_engineer", title: "Software Engineer", icon: Icon.Terminal },
+  { id: "architect", title: "System Architect", icon: Icon.Building },
+  { id: "devops", title: "DevOps Engineer", icon: Icon.Gear },
+  { id: "security_auditor", title: "Security Auditor", icon: Icon.Lock },
+  { id: "product_manager", title: "Product Manager", icon: Icon.Clipboard },
+  { id: "data_scientist", title: "Data Scientist", icon: Icon.BarChart },
+  { id: "content_writer", title: "Content Writer", icon: Icon.Pencil },
+  { id: "researcher", title: "Researcher", icon: Icon.MagnifyingGlass },
+];
 
 // Dispatcher function
-export function buildOptimizationPrompt(userPrompt: string, mode: OptimizationMode = "quick"): string {
+export function buildOptimizationPrompt(
+  userPrompt: string,
+  mode: OptimizationMode = "quick",
+  context?: string,
+  personaId: string = "prompt_engineer",
+): string {
   switch (mode) {
     case "quick":
-      return buildQuickPrompt(userPrompt);
+      return buildQuickPrompt(userPrompt, context, personaId);
     case "detailed":
-      return buildDetailedPrompt(userPrompt);
+      return buildDetailedPrompt(userPrompt, context, personaId);
     default:
-      return buildQuickPrompt(userPrompt);
+      return buildQuickPrompt(userPrompt, context, personaId);
   }
+}
+
+// THE CRITIC: Pass 1 (Audit)
+function buildAuditPrompt(userPrompt: string, context?: string, personaId: string = "prompt_engineer"): string {
+  return `<system>
+You are an expert requirements analyst.
+Analyze the user's request using the "${personaId}" persona lens.
+Identify critical ambiguities, missing constraints, or vague requirements that prevent writing a perfect prompt.
+Return specific clarifying questions.
+</system>
+
+<rules>
+- You MUST return ONLY a JSON array of objects.
+- Format: \`[{"id": "q1", "question": "..."}, ...]\`
+- If the request is clear and needs no clarification, return an empty array \`[]\`.
+- Maximum 5 questions.
+- Do NOT output markdown formatting, code fences, or explanations. Just the raw JSON.
+</rules>
+
+<user_request>
+${userPrompt}
+</user_request>
+
+${
+  context
+    ? `<additional_context>
+${context}
+</additional_context>`
+    : ""
+}
+`;
+}
+
+// THE CRITIC: Pass 2 (Synthesis)
+function buildClarificationPrompt(
+  userPrompt: string,
+  mode: OptimizationMode,
+  context: string | undefined,
+  personaId: string,
+  clarifications: { question: string; answer: string }[],
+): string {
+  const basePrompt = buildOptimizationPrompt(userPrompt, mode, context, personaId);
+
+  // We inject the clarifications into the task description or a special section
+  const clarificationBlock = `
+<clarifications>
+${clarifications.map((c) => `<item q="${c.question}" a="${c.answer}" />`).join("\n")}
+</clarifications>
+
+<instruction_update>
+Incorporate the answers provided in <clarifications> to resolve the ambiguities in the original request.
+</instruction_update>
+`;
+
+  // Insert before <user_request>
+  return basePrompt.replace("<user_request>", `${clarificationBlock}\n<user_request>`);
+}
+
+export interface ClarificationQuestion {
+  id: string;
+  question: string;
 }
 
 export interface Engine {
@@ -184,21 +123,275 @@ export interface Engine {
   icon: Icon;
   defaultModel?: string;
   models?: { id: string; label: string }[];
-  run: (prompt: string, model?: string, mode?: OptimizationMode) => Promise<string>;
+
+  // Standard run
+  run: (
+    prompt: string,
+    model?: string,
+    mode?: OptimizationMode,
+    context?: string,
+    personaId?: string,
+  ) => Promise<string>;
+
+  // Critic Actions
+  audit: (prompt: string, model?: string, context?: string, personaId?: string) => Promise<ClarificationQuestion[]>;
+  runOrchestrated?: (prompt: string, model?: string, mode?: OptimizationMode, context?: string) => Promise<string>;
+  runWithClarifications: (
+    prompt: string,
+    clarifications: { question: string; answer: string }[],
+    model?: string,
+    mode?: OptimizationMode,
+    context?: string,
+    personaId?: string,
+  ) => Promise<string>;
+}
+
+/* 
+  ORCHESTRATOR LOGIC 
+  - classifyIntent: Determine which personas are needed
+  - synthesizeResults: Merge multiple specialist outputs
+*/
+
+interface IntentClassification {
+  personas: string[];
+  confidence: number;
+  reasoning?: string;
+}
+
+const CLASSIFICATION_PROMPT = (prompt: string, context: string) => `<system>
+You are an intent classifier for a prompt optimization tool.
+Analyze the user's request and determine which expert perspectives would produce the best optimized prompt.
+</system>
+
+<rules>
+- Return ONLY valid JSON, no markdown
+- Select 1-3 personas maximum
+- Higher confidence = clearer intent
+</rules>
+
+<personas>
+- prompt_engineer: Clarity, structure, actionability
+- software_engineer: Code quality, patterns, edge cases
+- architect: Design, scalability, tradeoffs
+- devops: Deployment, infrastructure, reliability
+- security_auditor: Vulnerabilities, auth, validation
+- product_manager: User value, requirements
+- data_scientist: Statistics, data integrity
+- content_writer: Tone, engagement, audience
+- researcher: Investigation, unbalanced analysis, evidence
+</personas>
+
+<output_format>
+{"personas": ["id1", "id2"], "confidence": 0.9}
+</output_format>
+
+<user_request>
+${prompt}
+</user_request>
+
+<additional_context>
+${context}
+</additional_context>`;
+
+const SYNTHESIS_PROMPT = (originalPrompt: string, results: { persona: string; output: string }[]) => `<system>
+You are an expert synthesizer. Merge multiple specialized prompt perspectives into one cohesive, superior optimized prompt.
+</system>
+
+<rules>
+- Preserve the BEST elements from each perspective
+- Resolve conflicts by choosing the more specific/useful option
+- Output a single unified prompt using standard XML format
+- Do NOT list perspectives separately—merge them
+</rules>
+
+<perspectives>
+${results.map((r) => `<${r.persona}>\n${r.output}\n</${r.persona}>`).join("\n")}
+</perspectives>
+
+<original_request>
+${originalPrompt}
+</original_request>`;
+
+export async function classifyIntent(prompt: string, context: string): Promise<IntentClassification> {
+  // Use a fast model for classification (defaults to Gemini Flash)
+  // We use safeExec directly here to avoid circular dependency or engine lookup complexity
+  // Ideally, valid engines are passed in, but for now we default to 'gemini' for the orchestrator brain
+  try {
+    const output = await safeExec(
+      "gemini",
+      [
+        "--allowed-mcp-server-names",
+        "none",
+        "-e",
+        "none",
+        "--model",
+        "gemini-3-flash-preview",
+        "--output-format",
+        "json",
+      ],
+      CLASSIFICATION_PROMPT(prompt, context), // stdin piping for large prompts
+    );
+    const response = parseGeminiJson(output);
+    return JSON.parse(response.trim());
+  } catch (error) {
+    console.error("Classification failed:", error);
+    // Fallback: just use prompt_engineer
+    return { personas: ["prompt_engineer"], confidence: 0 };
+  }
+}
+
+export async function synthesizeResults(
+  originalPrompt: string,
+  results: { persona: string; output: string }[],
+): Promise<string> {
+  try {
+    const output = await safeExec(
+      "gemini",
+      [
+        "--allowed-mcp-server-names",
+        "none",
+        "-e",
+        "none",
+        "--model",
+        "gemini-3-flash-preview",
+        "--output-format",
+        "json",
+      ],
+      SYNTHESIS_PROMPT(originalPrompt, results), // stdin piping for large prompts
+    );
+    return parseGeminiJson(output).trim();
+  } catch (error) {
+    console.error("Synthesis failed:", error);
+    return results[0]?.output || "Synthesis failed";
+  }
 }
 
 export const engines: Engine[] = [
+  {
+    name: "gemini",
+    displayName: "Gemini",
+    icon: Icon.Stars,
+    defaultModel: "gemini-3-flash-preview",
+    models: [
+      { id: "gemini-3-flash-preview", label: "Gemini 3 Flash" },
+      { id: "gemini-3-pro-preview", label: "Gemini 3 Pro" },
+    ],
+    run: async (
+      prompt,
+      model = "gemini-3-flash-preview",
+      mode = "quick",
+      context = "",
+      persona = "prompt_engineer",
+    ) => {
+      // --allowed-mcp-server-names none -e none: Disable MCP servers and extensions for faster non-interactive execution
+      const timeout = getTimeout(mode, false);
+      const output = await safeExec(
+        "gemini",
+        ["--allowed-mcp-server-names", "none", "-e", "none", "--model", model, "--output-format", "json"],
+        buildOptimizationPrompt(prompt, mode, context, persona), // stdin piping for large prompts
+        timeout,
+      );
+      return parseGeminiJson(output);
+    },
+    audit: async (prompt, model = "gemini-3-flash-preview", context = "", persona = "prompt_engineer") => {
+      const output = await safeExec(
+        "gemini",
+        ["--allowed-mcp-server-names", "none", "-e", "none", "--model", model, "--output-format", "json"],
+        buildAuditPrompt(prompt, context, persona), // stdin piping for large prompts
+      );
+      try {
+        const response = parseGeminiJson(output);
+        const jsonStr = response.replace(/```json\n?|\n?```/g, "").trim();
+        return JSON.parse(jsonStr);
+      } catch (e) {
+        console.error("Failed to parse audit JSON", e, output);
+        return [];
+      }
+    },
+    runWithClarifications: async (
+      prompt,
+      clarifications,
+      model = "gemini-3-flash-preview",
+      mode = "quick",
+      context = "",
+      persona = "prompt_engineer",
+    ) => {
+      const output = await safeExec(
+        "gemini",
+        ["--allowed-mcp-server-names", "none", "-e", "none", "--model", model, "--output-format", "json"],
+        buildClarificationPrompt(prompt, mode, context, persona, clarifications), // stdin piping
+      );
+      return parseGeminiJson(output);
+    },
+    runOrchestrated: async (prompt, model = "gemini-3-flash-preview", mode = "quick", context = "") => {
+      // 1. Classify
+      const classification = await classifyIntent(prompt, context);
+      const personasToRun = classification.personas.length > 0 ? classification.personas : ["prompt_engineer"];
+
+      // 2. Parallel Execution
+      const timeout = getTimeout(mode, true);
+      const results = await Promise.all(
+        personasToRun.map(async (p) => {
+          const rawOutput = await safeExec(
+            "gemini",
+            ["--allowed-mcp-server-names", "none", "-e", "none", "--model", model, "--output-format", "json"],
+            buildOptimizationPrompt(prompt, mode, context, p), // stdin piping
+            timeout,
+          );
+          return { persona: p, output: parseGeminiJson(rawOutput) };
+        }),
+      );
+
+      // 3. Synthesize
+      if (results.length > 1) {
+        return synthesizeResults(prompt, results);
+      } else {
+        return results[0].output;
+      }
+    },
+  },
   {
     name: "codex",
     displayName: "Codex",
     icon: Icon.Code,
     defaultModel: "gpt-5.2-codex",
     models: [{ id: "gpt-5.2-codex", label: "gpt-5.2-codex" }],
-    run: async (prompt, model = "gpt-5.2-codex", mode = "quick") => {
+    run: async (prompt, model = "gpt-5.2-codex", mode = "quick", context = "", persona = "prompt_engineer") => {
+      const timeout = getTimeout(mode, false);
       return safeExec(
         "codex",
         ["exec", "-m", model, "--config", `model_reasoning_effort="high"`, "--skip-git-repo-check"],
-        buildOptimizationPrompt(prompt, mode),
+        buildOptimizationPrompt(prompt, mode, context, persona),
+        timeout,
+      );
+    },
+    audit: async (prompt, model = "gpt-5.2-codex", context = "", persona = "prompt_engineer") => {
+      const result = await safeExec(
+        "codex",
+        ["exec", "-m", model, "--config", `model_reasoning_effort="high"`, "--skip-git-repo-check"],
+        buildAuditPrompt(prompt, context, persona),
+      );
+      try {
+        // Clean up markdown fences if present
+        const jsonStr = result.replace(/```json\n?|\n?```/g, "").trim();
+        return JSON.parse(jsonStr);
+      } catch (e) {
+        console.error("Failed to parse audit JSON", e, result);
+        return [];
+      }
+    },
+    runWithClarifications: async (
+      prompt,
+      clarifications,
+      model = "gpt-5.2-codex",
+      mode = "quick",
+      context = "",
+      persona = "prompt_engineer",
+    ) => {
+      return safeExec(
+        "codex",
+        ["exec", "-m", model, "--config", `model_reasoning_effort="high"`, "--skip-git-repo-check"],
+        buildClarificationPrompt(prompt, mode, context, persona, clarifications),
       );
     },
   },
@@ -222,17 +415,4 @@ export const engines: Engine[] = [
     },
   },
   */
-  {
-    name: "gemini",
-    displayName: "Gemini",
-    icon: Icon.Stars,
-    defaultModel: "gemini-3-flash-preview",
-    models: [
-      { id: "gemini-3-flash-preview", label: "Gemini 3 Flash" },
-      { id: "gemini-3-pro-preview", label: "Gemini 3 Pro" },
-    ],
-    run: async (prompt, model = "gemini-3-flash-preview", mode = "quick") => {
-      return safeExec("gemini", ["-p", buildOptimizationPrompt(prompt, mode), "--model", model]);
-    },
-  },
 ];

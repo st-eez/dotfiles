@@ -52,6 +52,23 @@ interface Engine {
 | Gemini | `gemini` | `gemini-3-flash-preview` | Passes prompt via `-p` flag |
 
 
+### Smart Context Handling
+
+The system prompt in `engines.ts` includes two key rules when `context` is provided:
+
+1. **Adaptive Context**: Classifies `<additional_context>` by type:
+   - Raw data (logs, code, errors) → copied VERBATIM to `<reference_material>`
+   - Instructions/preferences → incorporated into `<instructions>` or `<style>`
+   - Background info → summarized in `<context>` if >50 words
+
+2. **Verbatim Preservation**: User terminology MUST appear unchanged:
+   - Tool names, CLI flags (`gemini-cli`, `--non-interactive`)
+   - File paths, branch names, URLs
+   - Numbers/metrics (`4gb+`, `100+ lines`)
+   - Colloquial phrases (`root issues`, `bandaid fixes`)
+
+Test with: `npx ts-node src/test-context-preservation.ts`
+
 ### Key Patterns
 
 - **PATH Handling**: `safeExec` prepends `/opt/homebrew/bin` for Homebrew CLI access from Raycast runtime

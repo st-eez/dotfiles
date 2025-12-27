@@ -1,7 +1,7 @@
 import { Action, ActionPanel, Color, Detail, Icon, List, showToast, Toast, confirmAlert, Alert } from "@raycast/api";
 import { useEffect, useState } from "react";
 import { getHistory, clearHistory, removeFromHistory, HistoryItem } from "./utils/history";
-import { OPTIMIZATION_MODES } from "./utils/engines";
+import { OPTIMIZATION_MODES, PERSONAS } from "./utils/engines";
 import { formatPromptForDisplay } from "./utils/format";
 import { homedir } from "os";
 import { writeFile } from "fs/promises";
@@ -126,9 +126,16 @@ export default function HistoryCommand() {
       const modeLabel = item.mode ? (OPTIMIZATION_MODES.find((m) => m.id === item.mode)?.label ?? item.mode) : "Quick";
       markdown += `## ${new Date(item.timestamp).toLocaleString()}\n\n`;
       markdown += `**Engine:** ${item.engine} ${item.model ? `(${item.model})` : ""}\n`;
+      if (item.persona) {
+        const personaTitle = PERSONAS.find((p) => p.id === item.persona)?.title ?? item.persona;
+        markdown += `**Persona:** ${personaTitle}\n`;
+      }
       markdown += `**Mode:** ${modeLabel}\n`;
       markdown += `**Duration:** ${item.durationSec}s\n\n`;
       markdown += `### Original Prompt\n\n${item.originalPrompt}\n\n`;
+      if (item.additionalContext) {
+        markdown += `### Additional Context\n\n${item.additionalContext}\n\n`;
+      }
       markdown += `### Optimized Prompt\n\n${item.optimizedPrompt}\n\n`;
       markdown += `---\n\n`;
     });
@@ -170,6 +177,13 @@ export default function HistoryCommand() {
             metadata={
               <List.Item.Detail.Metadata>
                 <List.Item.Detail.Metadata.Label title="Source" text={item.engine} icon={getEngineIcon(item.engine)} />
+                {item.persona && (
+                  <List.Item.Detail.Metadata.Label
+                    title="Persona"
+                    text={PERSONAS.find((p) => p.id === item.persona)?.title ?? item.persona}
+                    icon={PERSONAS.find((p) => p.id === item.persona)?.icon}
+                  />
+                )}
                 <List.Item.Detail.Metadata.TagList title="Mode">
                   <List.Item.Detail.Metadata.TagList.Item text={modeLabel} color={getModeColor(item.mode)} />
                 </List.Item.Detail.Metadata.TagList>
@@ -178,6 +192,9 @@ export default function HistoryCommand() {
                 <List.Item.Detail.Metadata.Label title="Words" text={wordCount.toString()} />
                 <List.Item.Detail.Metadata.Separator />
                 <List.Item.Detail.Metadata.Label title="Original Input" text={item.originalPrompt} />
+                {item.additionalContext && (
+                  <List.Item.Detail.Metadata.Label title="Context" text={item.additionalContext} />
+                )}
                 <List.Item.Detail.Metadata.Label title="Created" text={new Date(item.timestamp).toLocaleString()} />
               </List.Item.Detail.Metadata>
             }
@@ -190,16 +207,47 @@ export default function HistoryCommand() {
               icon={Icon.Eye}
               target={
                 <Detail
-                  markdown={`# Optimized Prompt\n\n${formatPromptForDisplay(item.optimizedPrompt)}\n\n---\n\n## Original Prompt\n\n${item.originalPrompt}`}
+                  markdown={`# Optimized Prompt\n\n${formatPromptForDisplay(item.optimizedPrompt)}\n\n---\n\n## Original Prompt\n\n${item.originalPrompt}${item.additionalContext ? `\n\n---\n\n## Additional Context\n\n${item.additionalContext}` : ""}${item.specialistOutputs ? `\n\n---\n\n## Specialist Perspectives\n\n${item.specialistOutputs.map((s) => `### ${PERSONAS.find((p) => p.id === s.persona)?.title || s.persona}\n\n${s.output}`).join("\n\n---\n\n")}` : ""}`}
                   metadata={
                     <Detail.Metadata>
-                      <Detail.Metadata.Label title="Engine" text={item.engine} />
-                      {item.model && <Detail.Metadata.Label title="Model" text={item.model} />}
                       <Detail.Metadata.TagList title="Mode">
                         <Detail.Metadata.TagList.Item text={modeLabel} color={getModeColor(item.mode)} />
                       </Detail.Metadata.TagList>
-                      <Detail.Metadata.Label title="Duration" text={`${item.durationSec}s`} />
+                      <Detail.Metadata.Separator />
+                      <Detail.Metadata.Label title="Engine" text={item.engine} icon={getEngineIcon(item.engine)} />
+                      {item.model && <Detail.Metadata.Label title="Model" text={item.model} />}
+                      {item.persona && (
+                        <Detail.Metadata.Label
+                          title="Persona"
+                          text={PERSONAS.find((p) => p.id === item.persona)?.title ?? item.persona}
+                          icon={
+                            item.persona === "Orchestrator"
+                              ? Icon.Stars
+                              : PERSONAS.find((p) => p.id === item.persona)?.icon
+                          }
+                        />
+                      )}
+                      {item.specialistOutputs && item.specialistOutputs.length > 0 && (
+                        <Detail.Metadata.TagList title="Active Specialists">
+                          {item.specialistOutputs.map((s) => {
+                            const p = PERSONAS.find((persona) => persona.id === s.persona);
+                            return (
+                              <Detail.Metadata.TagList.Item
+                                key={s.persona}
+                                text={p?.title || s.persona}
+                                icon={p?.icon}
+                                color={Color.Magenta}
+                              />
+                            );
+                          })}
+                        </Detail.Metadata.TagList>
+                      )}
+                      <Detail.Metadata.Separator />
+                      <Detail.Metadata.Label title="Duration" text={`${item.durationSec}s`} icon={Icon.Clock} />
                       <Detail.Metadata.Label title="Date" text={new Date(item.timestamp).toLocaleString()} />
+                      <Detail.Metadata.Label title="Original Input" text={item.originalPrompt} />
+                      <Detail.Metadata.Label title="Original Length" text={`${item.originalPrompt.length} chars`} />
+                      <Detail.Metadata.Label title="Optimized Length" text={`${item.optimizedPrompt.length} chars`} />
                     </Detail.Metadata>
                   }
                   actions={

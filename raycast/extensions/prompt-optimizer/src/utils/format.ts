@@ -23,9 +23,16 @@ export function formatPromptForDisplay(prompt: string): string {
 
   let formatted = prompt;
 
+  // Strip wrapping markdown code blocks if present
+  const codeBlockRegex = /^```(?:markdown|xml|text)?\s*([\s\S]*?)\s*```$/i;
+  const match = formatted.match(codeBlockRegex);
+  if (match) {
+    formatted = match[1].trim();
+  }
+
   // Convert opening tags to headers
   for (const [tag, header] of Object.entries(tagMappings)) {
-    const openRegex = new RegExp(`<${tag}>`, "gi");
+    const openRegex = new RegExp(`<${tag}>\\s*`, "gi");
     formatted = formatted.replace(openRegex, `\n### ${header}\n`);
   }
 
@@ -36,7 +43,7 @@ export function formatPromptForDisplay(prompt: string): string {
   }
 
   // Handle phase tags specially (supports both id="1" and id="2" etc.)
-  formatted = formatted.replace(/<phase\s+id="(\d+)"\s+name="([^"]+)">/gi, "\n### Phase $1: $2\n");
+  formatted = formatted.replace(/<phase\s+id="(\d+)"\s+name="([^"]+)">\s*/gi, "\n### Phase $1: $2\n");
   formatted = formatted.replace(/<\/phase>/gi, "");
 
   // Convert nested phase elements to bold labels
