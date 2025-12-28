@@ -11,14 +11,7 @@ import {
   getSelectedText,
 } from "@raycast/api";
 import { useEffect, useState } from "react";
-import {
-  engines,
-  OPTIMIZATION_MODES,
-  PERSONAS,
-  classifyIntent,
-  synthesizeResults,
-  type OptimizationMode,
-} from "./utils/engines";
+import { engines, OPTIMIZATION_MODES, PERSONAS, type OptimizationMode, type SmartModeResult } from "./utils/engines";
 import { formatPromptForDisplay } from "./utils/format";
 import { addToHistory } from "./utils/history";
 import HistoryCommand from "./history";
@@ -139,7 +132,7 @@ export default function Command() {
     const timer = setInterval(() => {
       const elapsed = ((Date.now() - start) / 1000).toFixed(1);
       toast.title = `${statusMessage}… ${elapsed}s`;
-    }, 500);
+    }, 1000);
 
     try {
       const engine = currentEngine;
@@ -159,34 +152,22 @@ export default function Command() {
       let personasToRun: string[] = [];
 
       if (smartMode) {
-        // ORCHESTRATOR FLOW
-        statusMessage = "Analyzing intent";
-        toast.title = `${statusMessage}...`;
-
-        // 1. Classify
-        const classification = await classifyIntent(finalPrompt, additionalContext || "");
-        personasToRun = classification.personas.length > 0 ? classification.personas : ["prompt_engineer"];
-
-        // 2. Run Specialists
-        statusMessage = `Consulting ${personasToRun.length} specialists`;
-        toast.title = `${statusMessage}...`;
-
-        // Parallel execution
-        results = await Promise.all(
-          personasToRun.map(async (p) => {
-            const output = await engine.run(finalPrompt, modelToUse, selectedMode, additionalContext, p);
-            return { persona: p, output };
-          }),
-        );
-
-        // 3. Synthesize if needed
-        if (results.length > 1) {
-          statusMessage = "Synthesizing results";
-          toast.title = `${statusMessage}...`;
-          optimizedPrompt = await synthesizeResults(finalPrompt, results);
-        } else {
-          optimizedPrompt = results[0].output;
+        // SMART MODE: Solo Performance Prompting (single call)
+        if (!engine.runOrchestrated) {
+          throw new Error("Smart mode requires an engine with runOrchestrated support");
         }
+        statusMessage = "Smart mode optimization";
+        toast.title = `${statusMessage}...`;
+
+        const smartResult: SmartModeResult = await engine.runOrchestrated(
+          finalPrompt,
+          modelToUse,
+          selectedMode,
+          additionalContext || "",
+        );
+        optimizedPrompt = smartResult.synthesis;
+        results = smartResult.perspectives;
+        personasToRun = smartResult.personasUsed;
       } else {
         // STANDARD FLOW
         optimizedPrompt = await engine.run(finalPrompt, modelToUse, selectedMode, additionalContext, selectedPersona);
@@ -288,7 +269,14 @@ export default function Command() {
     if (!engine) return;
 
     setIsLoading(true);
-    const toast = await showToast({ style: Toast.Style.Animated, title: "Auditing prompt..." });
+    const statusMessage = smartMode ? "Smart audit" : "Auditing";
+    const toast = await showToast({ style: Toast.Style.Animated, title: `${statusMessage}...` });
+
+    const start = Date.now();
+    const timer = setInterval(() => {
+      const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+      toast.title = `${statusMessage}… ${elapsed}s`;
+    }, 1000);
 
     try {
       const finalPrompt = applyTemplate(prompt, variableValues);
@@ -296,12 +284,25 @@ export default function Command() {
         ? (ensureValidModel(selectedModel, engine) ?? getDefaultModel(engine))
         : undefined;
 
-      // Pass 1: Audit
-      const questions = await engine.audit(finalPrompt, modelToUse, additionalContext, selectedPersona);
+      let questions: { id: string; question: string }[] = [];
+      let auditPersonas: string[] = [];
+
+      // Route based on smartMode
+      if (smartMode && engine.auditOrchestrated) {
+        const auditResult = await engine.auditOrchestrated(finalPrompt, modelToUse, additionalContext);
+        questions = auditResult.questions;
+        auditPersonas = auditResult.personasUsed;
+      } else {
+        // Single-persona audit
+        const singlePersonaQuestions = await engine.audit(finalPrompt, modelToUse, additionalContext, selectedPersona);
+        questions = singlePersonaQuestions;
+      }
+
+      clearInterval(timer);
 
       if (questions.length === 0) {
         toast.title = "No ambiguity found. Optimizing...";
-        await handleSubmit(); // Fallback to standard flow
+        await handleSubmit(); // Fallback to standard flow (respects smartMode)
         return;
       }
 
@@ -318,6 +319,8 @@ export default function Command() {
           engineName={engine.name}
           model={modelToUse || engine.defaultModel || ""}
           mode={selectedMode}
+          smartMode={smartMode}
+          auditPersonas={auditPersonas}
         />,
       );
     } catch (error) {
@@ -325,6 +328,7 @@ export default function Command() {
       toast.title = "Audit failed";
       console.error(error);
     } finally {
+      clearInterval(timer);
       setIsLoading(false);
     }
   }
@@ -339,7 +343,7 @@ export default function Command() {
           <Action.SubmitForm
             title="Optimize with Critic"
             icon={Icon.Eye}
-            shortcut={{ modifiers: ["cmd", "shift"], key: "enter" }}
+            shortcut={{ modifiers: ["cmd", "shift"], key: "return" }}
             onSubmit={handleCriticSubmit}
           />
           <Action title="New Optimization" onAction={pop} />
@@ -353,7 +357,7 @@ export default function Command() {
           <Action
             title="Insert Variable"
             icon={Icon.PlusCircle}
-            shortcut={{ modifiers: ["cmd"], key: "k" }}
+            shortcut={{ modifiers: ["cmd", "shift"], key: "v" }}
             onAction={handleInsertVariable}
           />
           <ActionPanel.Section>
@@ -463,7 +467,7 @@ export default function Command() {
           ))}
         </Form.Dropdown>
       ) : null}
-      <Form.Description text="⌘H for history" />
+      <Form.Description text="⌘H for history • ⌘⇧↵ for critic" />
     </Form>
   );
 }

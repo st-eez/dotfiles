@@ -1,5 +1,10 @@
 import execa from "execa";
-import { homedir } from "os";
+import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
+import * as crypto from "crypto";
+
+const { homedir } = os;
 
 /**
  * Safely executes a shell command and returns the output.
@@ -14,6 +19,7 @@ export async function safeExec(
   args: string[],
   input?: string,
   timeoutMs: number = DEFAULT_TIMEOUT_MS,
+  env?: NodeJS.ProcessEnv,
 ): Promise<string> {
   console.log(`Executing: ${command} ${args.join(" ")}`);
   const basePath = process.env.PATH ?? "";
@@ -30,6 +36,7 @@ export async function safeExec(
     const { stdout } = await execa(command, args, {
       env: {
         ...process.env,
+        ...env, // Overlay custom env vars
         PATH: normalizedPath, // make sure Homebrew bin is available for Raycast runtime
       },
       shell: false, // avoid shell splitting newlines from multi-line prompts
@@ -95,5 +102,87 @@ export function parseGeminiJson(output: string): string {
     // Fallback: return raw output if not valid JSON
     console.warn("Failed to parse Gemini JSON response, using raw output");
     return output;
+  }
+}
+
+/**
+ * Creates a temporary, isolated HOME environment for Gemini.
+ * 1. Creates temp dir structure matching ~/.gemini
+ * 2. Symlinks ~/.gemini/oauth_creds.json to preserve authentication
+ * 3. Copies ONLY the security.auth section of ~/.gemini/settings.json
+ * 4. Creates empty AGENTS.md and GEMINI.md to prevent loading global instructions
+ */
+export async function withIsolatedGemini<T>(callback: (homeDir: string) => Promise<T>): Promise<T> {
+  const tmpDir = path.join(os.tmpdir(), `gemini-${crypto.randomUUID()}`);
+  const geminiDir = path.join(tmpDir, ".gemini");
+  fs.mkdirSync(geminiDir, { recursive: true });
+
+  try {
+    const homeGemini = path.join(os.homedir(), ".gemini");
+
+    // 1. Symlink Auth Credentials
+    const credsPath = path.join(homeGemini, "oauth_creds.json");
+    if (fs.existsSync(credsPath)) {
+      fs.symlinkSync(credsPath, path.join(geminiDir, "oauth_creds.json"));
+    }
+
+    // 2. Extract and Copy Auth Settings ONLY
+    const settingsPath = path.join(homeGemini, "settings.json");
+    if (fs.existsSync(settingsPath)) {
+      try {
+        const settings = JSON.parse(fs.readFileSync(settingsPath, "utf-8"));
+        const isolatedSettings = {
+          security: {
+            auth: settings.security?.auth || {},
+          },
+        };
+        fs.writeFileSync(path.join(geminiDir, "settings.json"), JSON.stringify(isolatedSettings, null, 2));
+      } catch (e) {
+        console.warn("Failed to parse/copy Gemini settings for isolation", e);
+      }
+    }
+
+    // 3. Create empty override files to silence global instructions
+    fs.writeFileSync(path.join(geminiDir, "AGENTS.md"), "");
+    fs.writeFileSync(path.join(geminiDir, "GEMINI.md"), "");
+
+    return await callback(tmpDir);
+  } finally {
+    try {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    } catch (e) {
+      console.error("Failed to cleanup temp gemini dir", e);
+    }
+  }
+}
+
+/**
+ * Creates a temporary, isolated CODEX_HOME environment.
+ * 1. Symlinks ~/.codex/auth.json to preserve authentication.
+ * 2. Creates an empty AGENTS.md to prevent loading global instructions.
+ * 3. Does NOT copy config.toml, preventing MCP server startup.
+ */
+export async function withIsolatedCodex<T>(callback: (homeDir: string) => Promise<T>): Promise<T> {
+  const tmpDir = path.join(os.tmpdir(), `codex-${crypto.randomUUID()}`);
+  fs.mkdirSync(tmpDir, { recursive: true });
+
+  try {
+    const homeCodex = path.join(os.homedir(), ".codex");
+    const authPath = path.join(homeCodex, "auth.json");
+
+    if (fs.existsSync(authPath)) {
+      fs.symlinkSync(authPath, path.join(tmpDir, "auth.json"));
+    }
+
+    // Create minimal AGENTS.md to prevent loading global instructions
+    fs.writeFileSync(path.join(tmpDir, "AGENTS.md"), "# Isolated Prompt Optimizer Test");
+
+    return await callback(tmpDir);
+  } finally {
+    try {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    } catch (e) {
+      console.error("Failed to cleanup temp codex dir", e);
+    }
   }
 }

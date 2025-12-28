@@ -24,6 +24,13 @@ export interface DecisionResult {
 // --- Constants ---
 
 const SIGNIFICANCE_THRESHOLD = 0.05;
+
+/**
+ * Minimum improvement threshold for shipping candidate.
+ *
+ * Rationale: On a 1-5 scale, 0.5 points = 10% relative improvement.
+ * Filters out statistically significant but practically insignificant gains.
+ */
 const MIN_IMPROVEMENT_THRESHOLD = 0.5;
 
 // --- Helper Functions ---

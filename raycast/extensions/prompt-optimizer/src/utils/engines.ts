@@ -1,8 +1,9 @@
 import { Icon } from "@raycast/api";
-import { safeExec, getTimeout, parseGeminiJson } from "./exec";
+import { safeExec, getTimeout, parseGeminiJson, withIsolatedGemini, withIsolatedCodex } from "./exec";
 // Current production strategy - update this import when promoting a new A/B test winner
 import { buildQuickPrompt, buildDetailedPrompt } from "../prompts/v1-baseline";
 import { PERSONA_INSTRUCTIONS } from "../prompts/personas";
+import { buildSmartPrompt, buildSmartAuditPrompt, buildSmartClarificationPrompt } from "../prompts/smart";
 
 // Re-export for external consumers
 export { PERSONA_INSTRUCTIONS };
@@ -117,6 +118,68 @@ export interface ClarificationQuestion {
   question: string;
 }
 
+export interface SmartModeResult {
+  synthesis: string;
+  perspectives: { persona: string; output: string }[];
+  personasUsed: string[];
+}
+
+/**
+ * Parse Smart Mode XML output into structured result.
+ * Handles malformed output with graceful fallbacks.
+ */
+export function parseSmartModeOutput(raw: string): SmartModeResult {
+  const personasMatch = raw.match(/<personas_used>([\s\S]*?)<\/personas_used>/);
+  const personasUsed = personasMatch
+    ? personasMatch[1]
+        .trim()
+        .split(",")
+        .map((p) => p.trim())
+        .filter(Boolean)
+    : ["prompt_engineer"];
+
+  const perspectiveRegex = /<perspective persona="([^"]+)">([\s\S]*?)<\/perspective>/g;
+  const perspectives: { persona: string; output: string }[] = [];
+  let match;
+  while ((match = perspectiveRegex.exec(raw)) !== null) {
+    perspectives.push({ persona: match[1].trim(), output: match[2].trim() });
+  }
+
+  const synthesisMatch = raw.match(/<synthesis>([\s\S]*?)<\/synthesis>/);
+  const synthesis = synthesisMatch ? synthesisMatch[1].trim() : raw;
+
+  // Fallback if parsing failed completely
+  if (!synthesis && perspectives.length === 0) {
+    return {
+      synthesis: raw,
+      perspectives: [{ persona: "prompt_engineer", output: raw }],
+      personasUsed: ["prompt_engineer"],
+    };
+  }
+
+  return { synthesis, perspectives, personasUsed };
+}
+
+/**
+ * Parse Smart Audit JSON output into structured result.
+ * Handles malformed output with graceful fallbacks.
+ */
+export function parseSmartAuditOutput(raw: string): { personasUsed: string[]; questions: ClarificationQuestion[] } {
+  try {
+    const cleaned = raw.replace(/```json\n?|\n?```/g, "").trim();
+    const parsed = JSON.parse(cleaned);
+    return {
+      personasUsed: parsed.personas_used || ["prompt_engineer"],
+      questions: (parsed.questions || []).map((q: { id: string; question: string }) => ({
+        id: q.id,
+        question: q.question,
+      })),
+    };
+  } catch {
+    return { personasUsed: ["prompt_engineer"], questions: [] };
+  }
+}
+
 export interface Engine {
   name: string;
   displayName: string;
@@ -135,7 +198,12 @@ export interface Engine {
 
   // Critic Actions
   audit: (prompt: string, model?: string, context?: string, personaId?: string) => Promise<ClarificationQuestion[]>;
-  runOrchestrated?: (prompt: string, model?: string, mode?: OptimizationMode, context?: string) => Promise<string>;
+  runOrchestrated?: (
+    prompt: string,
+    model?: string,
+    mode?: OptimizationMode,
+    context?: string,
+  ) => Promise<SmartModeResult>;
   runWithClarifications: (
     prompt: string,
     clarifications: { question: string; answer: string }[],
@@ -144,126 +212,21 @@ export interface Engine {
     context?: string,
     personaId?: string,
   ) => Promise<string>;
-}
 
-/* 
-  ORCHESTRATOR LOGIC 
-  - classifyIntent: Determine which personas are needed
-  - synthesizeResults: Merge multiple specialist outputs
-*/
+  // Smart Mode Critic Actions
+  auditOrchestrated?: (
+    prompt: string,
+    model?: string,
+    context?: string,
+  ) => Promise<{ personasUsed: string[]; questions: ClarificationQuestion[] }>;
 
-interface IntentClassification {
-  personas: string[];
-  confidence: number;
-  reasoning?: string;
-}
-
-const CLASSIFICATION_PROMPT = (prompt: string, context: string) => `<system>
-You are an intent classifier for a prompt optimization tool.
-Analyze the user's request and determine which expert perspectives would produce the best optimized prompt.
-</system>
-
-<rules>
-- Return ONLY valid JSON, no markdown
-- Select 1-3 personas maximum
-- Higher confidence = clearer intent
-</rules>
-
-<personas>
-- prompt_engineer: Clarity, structure, actionability
-- software_engineer: Code quality, patterns, edge cases
-- architect: Design, scalability, tradeoffs
-- devops: Deployment, infrastructure, reliability
-- security_auditor: Vulnerabilities, auth, validation
-- product_manager: User value, requirements
-- data_scientist: Statistics, data integrity
-- content_writer: Tone, engagement, audience
-- researcher: Investigation, unbalanced analysis, evidence
-</personas>
-
-<output_format>
-{"personas": ["id1", "id2"], "confidence": 0.9}
-</output_format>
-
-<user_request>
-${prompt}
-</user_request>
-
-<additional_context>
-${context}
-</additional_context>`;
-
-const SYNTHESIS_PROMPT = (originalPrompt: string, results: { persona: string; output: string }[]) => `<system>
-You are an expert synthesizer. Merge multiple specialized prompt perspectives into one cohesive, superior optimized prompt.
-</system>
-
-<rules>
-- Preserve the BEST elements from each perspective
-- Resolve conflicts by choosing the more specific/useful option
-- Output a single unified prompt using standard XML format
-- Do NOT list perspectives separately—merge them
-</rules>
-
-<perspectives>
-${results.map((r) => `<${r.persona}>\n${r.output}\n</${r.persona}>`).join("\n")}
-</perspectives>
-
-<original_request>
-${originalPrompt}
-</original_request>`;
-
-export async function classifyIntent(prompt: string, context: string): Promise<IntentClassification> {
-  // Use a fast model for classification (defaults to Gemini Flash)
-  // We use safeExec directly here to avoid circular dependency or engine lookup complexity
-  // Ideally, valid engines are passed in, but for now we default to 'gemini' for the orchestrator brain
-  try {
-    const output = await safeExec(
-      "gemini",
-      [
-        "--allowed-mcp-server-names",
-        "none",
-        "-e",
-        "none",
-        "--model",
-        "gemini-3-flash-preview",
-        "--output-format",
-        "json",
-      ],
-      CLASSIFICATION_PROMPT(prompt, context), // stdin piping for large prompts
-    );
-    const response = parseGeminiJson(output);
-    return JSON.parse(response.trim());
-  } catch (error) {
-    console.error("Classification failed:", error);
-    // Fallback: just use prompt_engineer
-    return { personas: ["prompt_engineer"], confidence: 0 };
-  }
-}
-
-export async function synthesizeResults(
-  originalPrompt: string,
-  results: { persona: string; output: string }[],
-): Promise<string> {
-  try {
-    const output = await safeExec(
-      "gemini",
-      [
-        "--allowed-mcp-server-names",
-        "none",
-        "-e",
-        "none",
-        "--model",
-        "gemini-3-flash-preview",
-        "--output-format",
-        "json",
-      ],
-      SYNTHESIS_PROMPT(originalPrompt, results), // stdin piping for large prompts
-    );
-    return parseGeminiJson(output).trim();
-  } catch (error) {
-    console.error("Synthesis failed:", error);
-    return results[0]?.output || "Synthesis failed";
-  }
+  runOrchestratedWithClarifications?: (
+    prompt: string,
+    clarifications: { question: string; answer: string }[],
+    model?: string,
+    mode?: OptimizationMode,
+    context?: string,
+  ) => Promise<SmartModeResult>;
 }
 
 export const engines: Engine[] = [
@@ -283,30 +246,36 @@ export const engines: Engine[] = [
       context = "",
       persona = "prompt_engineer",
     ) => {
-      // --allowed-mcp-server-names none -e none: Disable MCP servers and extensions for faster non-interactive execution
       const timeout = getTimeout(mode, false);
-      const output = await safeExec(
-        "gemini",
-        ["--allowed-mcp-server-names", "none", "-e", "none", "--model", model, "--output-format", "json"],
-        buildOptimizationPrompt(prompt, mode, context, persona), // stdin piping for large prompts
-        timeout,
-      );
-      return parseGeminiJson(output);
+      return withIsolatedGemini(async (homeDir) => {
+        const output = await safeExec(
+          "gemini",
+          ["--allowed-mcp-server-names", "none", "-e", "none", "--model", model, "--output-format", "json"],
+          buildOptimizationPrompt(prompt, mode, context, persona),
+          timeout,
+          { HOME: homeDir },
+        );
+        return parseGeminiJson(output);
+      });
     },
     audit: async (prompt, model = "gemini-3-flash-preview", context = "", persona = "prompt_engineer") => {
-      const output = await safeExec(
-        "gemini",
-        ["--allowed-mcp-server-names", "none", "-e", "none", "--model", model, "--output-format", "json"],
-        buildAuditPrompt(prompt, context, persona), // stdin piping for large prompts
-      );
-      try {
-        const response = parseGeminiJson(output);
-        const jsonStr = response.replace(/```json\n?|\n?```/g, "").trim();
-        return JSON.parse(jsonStr);
-      } catch (e) {
-        console.error("Failed to parse audit JSON", e, output);
-        return [];
-      }
+      return withIsolatedGemini(async (homeDir) => {
+        const output = await safeExec(
+          "gemini",
+          ["--allowed-mcp-server-names", "none", "-e", "none", "--model", model, "--output-format", "json"],
+          buildAuditPrompt(prompt, context, persona),
+          undefined,
+          { HOME: homeDir },
+        );
+        try {
+          const response = parseGeminiJson(output);
+          const jsonStr = response.replace(/```json\n?|\n?```/g, "").trim();
+          return JSON.parse(jsonStr);
+        } catch (e) {
+          console.error("Failed to parse audit JSON", e, output);
+          return [];
+        }
+      });
     },
     runWithClarifications: async (
       prompt,
@@ -316,38 +285,61 @@ export const engines: Engine[] = [
       context = "",
       persona = "prompt_engineer",
     ) => {
-      const output = await safeExec(
-        "gemini",
-        ["--allowed-mcp-server-names", "none", "-e", "none", "--model", model, "--output-format", "json"],
-        buildClarificationPrompt(prompt, mode, context, persona, clarifications), // stdin piping
-      );
-      return parseGeminiJson(output);
+      return withIsolatedGemini(async (homeDir) => {
+        const output = await safeExec(
+          "gemini",
+          ["--allowed-mcp-server-names", "none", "-e", "none", "--model", model, "--output-format", "json"],
+          buildClarificationPrompt(prompt, mode, context, persona, clarifications),
+          undefined,
+          { HOME: homeDir },
+        );
+        return parseGeminiJson(output);
+      });
     },
     runOrchestrated: async (prompt, model = "gemini-3-flash-preview", mode = "quick", context = "") => {
-      // 1. Classify
-      const classification = await classifyIntent(prompt, context);
-      const personasToRun = classification.personas.length > 0 ? classification.personas : ["prompt_engineer"];
-
-      // 2. Parallel Execution
+      // Solo Performance Prompting: single call handles persona selection, perspectives, and synthesis
       const timeout = getTimeout(mode, true);
-      const results = await Promise.all(
-        personasToRun.map(async (p) => {
-          const rawOutput = await safeExec(
-            "gemini",
-            ["--allowed-mcp-server-names", "none", "-e", "none", "--model", model, "--output-format", "json"],
-            buildOptimizationPrompt(prompt, mode, context, p), // stdin piping
-            timeout,
-          );
-          return { persona: p, output: parseGeminiJson(rawOutput) };
-        }),
-      );
-
-      // 3. Synthesize
-      if (results.length > 1) {
-        return synthesizeResults(prompt, results);
-      } else {
-        return results[0].output;
-      }
+      return withIsolatedGemini(async (homeDir) => {
+        const output = await safeExec(
+          "gemini",
+          ["--allowed-mcp-server-names", "none", "-e", "none", "--model", model, "--output-format", "json"],
+          buildSmartPrompt(prompt, context, mode),
+          timeout,
+          { HOME: homeDir },
+        );
+        return parseSmartModeOutput(parseGeminiJson(output));
+      });
+    },
+    auditOrchestrated: async (prompt, model = "gemini-3-flash-preview", context = "") => {
+      return withIsolatedGemini(async (homeDir) => {
+        const output = await safeExec(
+          "gemini",
+          ["--allowed-mcp-server-names", "none", "-e", "none", "--model", model, "--output-format", "json"],
+          buildSmartAuditPrompt(prompt, context),
+          undefined,
+          { HOME: homeDir },
+        );
+        return parseSmartAuditOutput(parseGeminiJson(output));
+      });
+    },
+    runOrchestratedWithClarifications: async (
+      prompt,
+      clarifications,
+      model = "gemini-3-flash-preview",
+      mode = "quick",
+      context = "",
+    ) => {
+      const timeout = getTimeout(mode, true);
+      return withIsolatedGemini(async (homeDir) => {
+        const output = await safeExec(
+          "gemini",
+          ["--allowed-mcp-server-names", "none", "-e", "none", "--model", model, "--output-format", "json"],
+          buildSmartClarificationPrompt(prompt, context, clarifications, mode),
+          timeout,
+          { HOME: homeDir },
+        );
+        return parseSmartModeOutput(parseGeminiJson(output));
+      });
     },
   },
   {
@@ -358,27 +350,34 @@ export const engines: Engine[] = [
     models: [{ id: "gpt-5.2-codex", label: "gpt-5.2-codex" }],
     run: async (prompt, model = "gpt-5.2-codex", mode = "quick", context = "", persona = "prompt_engineer") => {
       const timeout = getTimeout(mode, false);
-      return safeExec(
-        "codex",
-        ["exec", "-m", model, "--config", `model_reasoning_effort="high"`, "--skip-git-repo-check"],
-        buildOptimizationPrompt(prompt, mode, context, persona),
-        timeout,
-      );
+      return withIsolatedCodex(async (homeDir) => {
+        return safeExec(
+          "codex",
+          ["exec", "-m", model, "--config", `model_reasoning_effort="high"`, "--skip-git-repo-check"],
+          buildOptimizationPrompt(prompt, mode, context, persona),
+          timeout,
+          { CODEX_HOME: homeDir },
+        );
+      });
     },
     audit: async (prompt, model = "gpt-5.2-codex", context = "", persona = "prompt_engineer") => {
-      const result = await safeExec(
-        "codex",
-        ["exec", "-m", model, "--config", `model_reasoning_effort="high"`, "--skip-git-repo-check"],
-        buildAuditPrompt(prompt, context, persona),
-      );
-      try {
-        // Clean up markdown fences if present
-        const jsonStr = result.replace(/```json\n?|\n?```/g, "").trim();
-        return JSON.parse(jsonStr);
-      } catch (e) {
-        console.error("Failed to parse audit JSON", e, result);
-        return [];
-      }
+      return withIsolatedCodex(async (homeDir) => {
+        const result = await safeExec(
+          "codex",
+          ["exec", "-m", model, "--config", `model_reasoning_effort="high"`, "--skip-git-repo-check"],
+          buildAuditPrompt(prompt, context, persona),
+          undefined, // Use default timeout
+          { CODEX_HOME: homeDir },
+        );
+        try {
+          // Clean up markdown fences if present
+          const jsonStr = result.replace(/```json\n?|\n?```/g, "").trim();
+          return JSON.parse(jsonStr);
+        } catch (e) {
+          console.error("Failed to parse audit JSON", e, result);
+          return [];
+        }
+      });
     },
     runWithClarifications: async (
       prompt,
@@ -388,11 +387,60 @@ export const engines: Engine[] = [
       context = "",
       persona = "prompt_engineer",
     ) => {
-      return safeExec(
-        "codex",
-        ["exec", "-m", model, "--config", `model_reasoning_effort="high"`, "--skip-git-repo-check"],
-        buildClarificationPrompt(prompt, mode, context, persona, clarifications),
-      );
+      return withIsolatedCodex(async (homeDir) => {
+        return safeExec(
+          "codex",
+          ["exec", "-m", model, "--config", `model_reasoning_effort="high"`, "--skip-git-repo-check"],
+          buildClarificationPrompt(prompt, mode, context, persona, clarifications),
+          undefined,
+          { CODEX_HOME: homeDir },
+        );
+      });
+    },
+    runOrchestrated: async (prompt, model = "gpt-5.2-codex", mode = "quick", context = "") => {
+      // Solo Performance Prompting for Codex
+      const timeout = getTimeout(mode, true);
+      return withIsolatedCodex(async (homeDir) => {
+        const output = await safeExec(
+          "codex",
+          ["exec", "-m", model, "--config", `model_reasoning_effort="high"`, "--skip-git-repo-check"],
+          buildSmartPrompt(prompt, context, mode),
+          timeout,
+          { CODEX_HOME: homeDir },
+        );
+        return parseSmartModeOutput(output);
+      });
+    },
+    auditOrchestrated: async (prompt, model = "gpt-5.2-codex", context = "") => {
+      return withIsolatedCodex(async (homeDir) => {
+        const output = await safeExec(
+          "codex",
+          ["exec", "-m", model, "--config", `model_reasoning_effort="high"`, "--skip-git-repo-check"],
+          buildSmartAuditPrompt(prompt, context),
+          undefined,
+          { CODEX_HOME: homeDir },
+        );
+        return parseSmartAuditOutput(output);
+      });
+    },
+    runOrchestratedWithClarifications: async (
+      prompt,
+      clarifications,
+      model = "gpt-5.2-codex",
+      mode = "quick",
+      context = "",
+    ) => {
+      const timeout = getTimeout(mode, true);
+      return withIsolatedCodex(async (homeDir) => {
+        const output = await safeExec(
+          "codex",
+          ["exec", "-m", model, "--config", `model_reasoning_effort="high"`, "--skip-git-repo-check"],
+          buildSmartClarificationPrompt(prompt, context, clarifications, mode),
+          timeout,
+          { CODEX_HOME: homeDir },
+        );
+        return parseSmartModeOutput(output);
+      });
     },
   },
   // Claude engine disabled due to known authentication bug in Claude Code CLI

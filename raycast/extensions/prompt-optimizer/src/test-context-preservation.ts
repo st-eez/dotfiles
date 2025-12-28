@@ -16,7 +16,7 @@
 import "./setup-test";
 import * as path from "path";
 import { buildOptimizationPrompt } from "./utils/engines";
-import { safeExec } from "./utils/exec";
+import { runGemini } from "./test/lib/test-utils";
 import { PromptStrategy } from "./prompts/types";
 
 // --- Types ---
@@ -137,18 +137,8 @@ async function loadStrategyBuildPrompt(strategyPath: string | undefined): Promis
 async function runTest(testCase: TestCase, buildPrompt: BuildPromptFn): Promise<TestResult> {
   const systemPrompt = buildPrompt(testCase.prompt, testCase.context, "prompt_engineer");
 
-  // Run via gemini CLI
-  const output = await safeExec("gemini", [
-    "--allowed-mcp-server-names",
-    "none",
-    "-e",
-    "none",
-    "--model",
-    "gemini-3-flash-preview",
-    systemPrompt,
-  ]);
+  const output = await runGemini(systemPrompt);
 
-  // Check for keywords (case-insensitive)
   const keywords = testCase.expectedKeywords.map((kw) => ({
     keyword: kw,
     found: output.toLowerCase().includes(kw.toLowerCase()),

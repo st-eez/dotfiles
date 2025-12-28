@@ -4,7 +4,7 @@
  * Uses GPT-5.2-Codex to evaluate optimized prompts against quality criteria.
  */
 
-import { safeExec } from "./exec";
+import { safeExec, withIsolatedCodex } from "./exec";
 
 // --- Types ---
 
@@ -15,10 +15,10 @@ export interface EvaluationResult {
   contextPass: boolean;
   clarityScore: number;
   actionabilityScore: number;
-  concisenessScore: number;
-  efficiencyScore: number;
+  completenessScore: number;
   totalScore: number;
   rationale: string;
+  synthesis: string;
   rawOutput: string;
   tokenCount: number;
 }
@@ -28,16 +28,15 @@ interface JudgeResponse {
   context: boolean;
   clarity: number;
   actionability: number;
-  conciseness: number;
+  completeness: number;
   rationale: string;
+  synthesis: string;
 }
 
 // --- Constants ---
 
 const EVALUATOR_MODEL = "gpt-5.2-codex";
 const EVALUATOR_TIMEOUT_MS = 120_000;
-
-const REQUIRED_XML_TAGS = ["<role>", "<objective>", "<instructions>"];
 
 // --- Evaluator Prompt ---
 
@@ -53,11 +52,17 @@ You are an expert prompt quality evaluator. Analyze the optimized prompt for qua
 <task>
 Evaluate the following optimized prompt against these criteria:
 
-1. **Structure Compliance** (binary): Does the output contain these required XML tags: ${REQUIRED_XML_TAGS.join(", ")}?
+1. **Structure Compliance** (binary): Does the output contain \`<role>\`, \`<objective>\`, AND **either** \`<instructions>\` OR \`<execution_protocol>\`?
 2. **Context Preservation** (binary): If original context was provided, is it preserved verbatim (not summarized or altered) in the output's <reference_material> section?
 3. **Instruction Clarity** (1-5): Are instructions unambiguous and specific?
 4. **Actionability** (1-5): Can an LLM execute this prompt without needing clarification?
-5. **Conciseness** (1-5): Does the prompt use minimal words for maximum clarity?
+5. **Completeness** (1-5): Does the prompt capture all aspects of the original request?
+   - Explicit requirements stated in the request
+   - Implied constraints (format, scope, audience)
+   - Edge cases or error handling if relevant
+   - Expected output format
+   
+   5=all aspects captured, 3=core request addressed but minor details missing, 1=major aspects ignored
 </task>
 
 <original_prompt>
@@ -81,27 +86,26 @@ ${optimizedOutput}
 - For context preservation: if no original context was provided, set to true
 - Structure: true only if ALL required tags are present
 - Scores 1-5: 1=very poor, 2=poor, 3=adequate, 4=good, 5=excellent
+- Synthesis: Extract or describe the role/persona from the <role> tag in 1-2 sentences
 </rules>
 
 <output_format>
-{"structure": boolean, "context": boolean, "clarity": 1-5, "actionability": 1-5, "conciseness": 1-5, "rationale": "Brief explanation of scores"}
+{"structure": boolean, "context": boolean, "clarity": 1-5, "actionability": 1-5, "completeness": 1-5, "rationale": "Brief explanation of scores", "synthesis": "Description of the synthesized role"}
 </output_format>`;
 }
 
-// --- Token Efficiency Calculation ---
+// --- Local Structure Validation ---
 
 /**
- * Calculate efficiency score based on length ratio.
- * Shorter or equal = 5, up to 2x longer = 2, beyond 2x = 1
+ * Local structure validation before LLM evaluation.
+ * Uses multiline regex to find tags at start of lines (avoiding false positives in code blocks).
  */
-function calculateEfficiency(baselineTokens: number, candidateTokens: number): number {
-  if (baselineTokens === 0) return 5;
-  const ratio = candidateTokens / baselineTokens;
-  if (ratio <= 1) return 5;
-  if (ratio <= 1.2) return 4;
-  if (ratio <= 1.5) return 3;
-  if (ratio <= 2.0) return 2;
-  return 1;
+function validateStructureLocally(output: string): boolean {
+  // Match tags that appear at the start of a line (with optional whitespace)
+  const hasRole = /^\s*<role>/im.test(output);
+  const hasObjective = /^\s*<objective>/im.test(output);
+  const hasInstructionsOrProtocol = /^\s*<instructions>/im.test(output) || /^\s*<execution_protocol>/im.test(output);
+  return hasRole && hasObjective && hasInstructionsOrProtocol;
 }
 
 /**
@@ -117,8 +121,9 @@ function estimateTokenCount(text: string): number {
  * Evaluate an optimized prompt using GPT-5.2-Codex as judge.
  *
  * Scoring logic:
+ * - If local structure validation fails → early return with totalScore = 0
  * - If structure or context gate fails → totalScore = 0
- * - Otherwise: weighted average of (clarity*0.35 + actionability*0.35 + conciseness*0.20 + efficiency*0.10)
+ * - Otherwise: weighted average of (clarity*0.40 + completeness*0.30 + actionability*0.30)
  */
 export async function evaluate(
   testCaseId: string,
@@ -126,24 +131,41 @@ export async function evaluate(
   originalPrompt: string,
   originalContext: string | undefined,
   optimizedOutput: string,
-  baselineTokenCount?: number,
 ): Promise<EvaluationResult> {
   const tokenCount = estimateTokenCount(optimizedOutput);
 
-  // Calculate efficiency (default baseline to same as candidate if not provided)
-  const efficiencyScore = baselineTokenCount ? calculateEfficiency(baselineTokenCount, tokenCount) : 5;
+  // Fast local validation - skip expensive LLM call if obviously malformed
+  if (!validateStructureLocally(optimizedOutput)) {
+    return {
+      testCaseId,
+      version,
+      structurePass: false,
+      contextPass: false,
+      clarityScore: 0,
+      actionabilityScore: 0,
+      completenessScore: 0,
+      totalScore: 0,
+      rationale:
+        "Failed local structure validation: missing required tags (<role>, <objective>, <instructions>/<execution_protocol>)",
+      synthesis: "",
+      rawOutput: "",
+      tokenCount,
+    };
+  }
 
   try {
     const evaluatorPrompt = buildEvaluatorPrompt(originalPrompt, originalContext, optimizedOutput);
 
-    const rawOutput = await safeExec(
-      "codex",
-      ["exec", "-m", EVALUATOR_MODEL, "--config", 'model_reasoning_effort="high"', "--skip-git-repo-check"],
-      evaluatorPrompt,
-      EVALUATOR_TIMEOUT_MS,
-    );
+    const rawOutput = await withIsolatedCodex(async (homeDir) => {
+      return safeExec(
+        "codex",
+        ["exec", "-m", EVALUATOR_MODEL, "--config", 'model_reasoning_effort="high"', "--skip-git-repo-check"],
+        evaluatorPrompt,
+        EVALUATOR_TIMEOUT_MS,
+        { CODEX_HOME: homeDir },
+      );
+    });
 
-    // Parse JSON response
     const jsonStr = rawOutput.replace(/```json\n?|\n?```/g, "").trim();
     const judgeResponse: JudgeResponse = JSON.parse(jsonStr);
 
@@ -152,16 +174,12 @@ export async function evaluate(
     const contextPass = judgeResponse.context;
     const gatesFailed = !structurePass || !contextPass;
 
-    // Calculate weighted score
+    // Calculate weighted score (clarity 40%, completeness 30%, actionability 30%)
     let totalScore: number;
     if (gatesFailed) {
       totalScore = 0;
     } else {
-      totalScore =
-        judgeResponse.clarity * 0.35 +
-        judgeResponse.actionability * 0.35 +
-        judgeResponse.conciseness * 0.2 +
-        efficiencyScore * 0.1;
+      totalScore = judgeResponse.clarity * 0.4 + judgeResponse.completeness * 0.3 + judgeResponse.actionability * 0.3;
     }
 
     return {
@@ -171,10 +189,10 @@ export async function evaluate(
       contextPass,
       clarityScore: judgeResponse.clarity,
       actionabilityScore: judgeResponse.actionability,
-      concisenessScore: judgeResponse.conciseness,
-      efficiencyScore,
+      completenessScore: judgeResponse.completeness,
       totalScore,
       rationale: judgeResponse.rationale,
+      synthesis: judgeResponse.synthesis || "",
       rawOutput,
       tokenCount,
     };
@@ -188,10 +206,10 @@ export async function evaluate(
       contextPass: false,
       clarityScore: 0,
       actionabilityScore: 0,
-      concisenessScore: 0,
-      efficiencyScore,
+      completenessScore: 0,
       totalScore: 0,
       rationale: `Evaluation failed: ${errorMessage}`,
+      synthesis: "",
       rawOutput: "",
       tokenCount,
     };
@@ -208,19 +226,11 @@ export async function evaluateBatch(
     originalPrompt: string;
     originalContext: string | undefined;
     optimizedOutput: string;
-    baselineTokenCount?: number;
   }>,
 ): Promise<EvaluationResult[]> {
   return Promise.all(
     items.map((item) =>
-      evaluate(
-        item.testCaseId,
-        item.version,
-        item.originalPrompt,
-        item.originalContext,
-        item.optimizedOutput,
-        item.baselineTokenCount,
-      ),
+      evaluate(item.testCaseId, item.version, item.originalPrompt, item.originalContext, item.optimizedOutput),
     ),
   );
 }

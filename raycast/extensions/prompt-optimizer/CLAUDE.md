@@ -49,7 +49,7 @@ interface Engine {
 |--------|-------------|---------------|-------|
 | Codex | `codex` | `gpt-5.2-codex` | Uses `model_reasoning_effort="high"` |
 | Claude | `claude` | `sonnet` | Disabled pending CLI auth bug |
-| Gemini | `gemini` | `gemini-3-flash-preview` | Passes prompt via `-p` flag |
+| Gemini | `gemini` | `gemini-3-flash-preview` | Isolated via `HOME` + symlink auth |
 
 
 ### Smart Context Handling

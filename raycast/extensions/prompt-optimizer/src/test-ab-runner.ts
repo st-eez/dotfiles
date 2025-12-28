@@ -8,28 +8,35 @@
  *     --candidate src/prompts/v2-experiment.ts \
  *     [--dry-run] \
  *     [--skip-context-check] \
- *     [--concurrency 5]
+ *     [--concurrency 5] \
+ *     [--mode quick|detailed] \
+ *     [--category code|writing|...]
  */
 
 import "./setup-test";
 import * as fs from "fs";
 import * as path from "path";
 import pLimit from "p-limit";
-import { TEST_CASES, TestCase } from "./test-data/test-cases";
+import { TEST_CASES, TestCase, getTestCasesByMode } from "./test-data/test-cases";
 import { evaluate, EvaluationResult } from "./utils/evaluator";
 import { decideWinner, Decision } from "./utils/statistics";
 import { safeExec } from "./utils/exec";
+import { runWithEngine, withRetry, LLMRunOptions } from "./test/lib/test-utils";
 import { PromptStrategy } from "./prompts/types";
+import { analyzeResults, BatchAnalysisResult } from "./test/lib/analysis";
 
 // --- Types ---
 
 interface BenchmarkReport {
+  schemaVersion: "2.0";
   timestamp: string;
   baselineVersion: string;
   candidateVersion: string;
   testCaseCount: number;
   concurrency: number;
   durationSeconds: number;
+  mode?: "quick" | "detailed";
+  category?: string;
   results: {
     testCaseId: string;
     baseline: EvaluationResult;
@@ -47,6 +54,12 @@ interface BenchmarkReport {
     baseline: { testCaseId: string; gate: "structure" | "context" }[];
     candidate: { testCaseId: string; gate: "structure" | "context" }[];
   };
+  failures: {
+    testCaseId: string;
+    version: "baseline" | "candidate";
+    error: string;
+  }[];
+  analysis: BatchAnalysisResult;
 }
 
 interface CLIArgs {
@@ -55,6 +68,10 @@ interface CLIArgs {
   dryRun: boolean;
   skipContextCheck: boolean;
   concurrency: number;
+  engine: "gemini" | "codex";
+  model?: string;
+  mode?: "quick" | "detailed";
+  category?: string;
 }
 
 // --- CLI Argument Parsing ---
@@ -67,6 +84,10 @@ function parseArgs(): CLIArgs {
     dryRun: false,
     skipContextCheck: false,
     concurrency: 5,
+    engine: "gemini",
+    model: undefined,
+    mode: undefined,
+    category: undefined,
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -87,6 +108,26 @@ function parseArgs(): CLIArgs {
       case "--concurrency":
         result.concurrency = Math.min(parseInt(args[++i] || "5", 10), 8);
         break;
+      case "--engine": {
+        const engineArg = args[++i];
+        if (engineArg === "gemini" || engineArg === "codex") {
+          result.engine = engineArg;
+        }
+        break;
+      }
+      case "--model":
+        result.model = args[++i];
+        break;
+      case "--mode": {
+        const modeArg = args[++i];
+        if (modeArg === "quick" || modeArg === "detailed") {
+          result.mode = modeArg;
+        }
+        break;
+      }
+      case "--category":
+        result.category = args[++i];
+        break;
       default:
         if (arg.startsWith("--")) {
           console.error(`Unknown option: ${arg}`);
@@ -101,6 +142,12 @@ function parseArgs(): CLIArgs {
     console.error("  --dry-run            Print prompts and cost estimate without API calls");
     console.error("  --skip-context-check Skip context preservation validation");
     console.error("  --concurrency <n>    Parallel API calls (default: 5, max: 8)");
+    console.error("  --engine <name>      LLM engine: gemini or codex (default: gemini)");
+    console.error("  --model <name>       Model override (default: engine-specific)");
+    console.error("  --mode <mode>        Filter test cases: quick or detailed");
+    console.error(
+      "  --category <name>    Filter by category: code, writing, system-design, data-analysis, simple, edge",
+    );
     process.exit(1);
   }
 
@@ -116,14 +163,11 @@ async function loadStrategy(strategyPath: string): Promise<PromptStrategy> {
     throw new Error(`Strategy file not found: ${absolutePath}`);
   }
 
-  // Dynamic import
   const module = await import(absolutePath);
 
-  // Try different export patterns
   const strategy: PromptStrategy =
     module.default || module.v1Baseline || module.v2Candidate || module.strategy || module;
 
-  // Validate interface
   if (
     typeof strategy.id !== "string" ||
     typeof strategy.buildQuickPrompt !== "function" ||
@@ -162,9 +206,9 @@ function generatePrompt(strategy: PromptStrategy, testCase: TestCase): string {
 
 // --- Dry Run ---
 
-function handleDryRun(baseline: PromptStrategy, candidate: PromptStrategy): void {
-  const testCaseCount = TEST_CASES.length;
-  const apiCalls = testCaseCount * 2 * 2; // 2 versions × 2 calls (optimize + evaluate)
+function handleDryRun(baseline: PromptStrategy, candidate: PromptStrategy, testCases: TestCase[]): void {
+  const testCaseCount = testCases.length;
+  const apiCalls = testCaseCount * 2 * 2;
   const estimatedTokens = apiCalls * 2000;
   const estimatedCost = (estimatedTokens / 1_000_000) * 0.075;
 
@@ -180,7 +224,7 @@ function handleDryRun(baseline: PromptStrategy, candidate: PromptStrategy): void
   console.log("");
   console.log("📝 Sample Prompt (first test case, baseline):");
   console.log("─".repeat(50));
-  const samplePrompt = generatePrompt(baseline, TEST_CASES[0]);
+  const samplePrompt = generatePrompt(baseline, testCases[0]);
   console.log(samplePrompt.slice(0, 1500) + (samplePrompt.length > 1500 ? "\n... [truncated]" : ""));
 }
 
@@ -191,50 +235,25 @@ async function runTestCase(
   baseline: PromptStrategy,
   candidate: PromptStrategy,
   engine: "gemini" | "codex" = "gemini",
+  model?: string,
 ): Promise<{ baseline: EvaluationResult; candidate: EvaluationResult }> {
-  // Generate prompts
   const baselinePrompt = generatePrompt(baseline, testCase);
   const candidatePrompt = generatePrompt(candidate, testCase);
 
-  // Run optimization through engine
+  const options: LLMRunOptions = { model };
+
   const runOptimization = async (prompt: string): Promise<string> => {
-    if (engine === "gemini") {
-      return safeExec(
-        "gemini",
-        ["--allowed-mcp-server-names", "none", "-e", "none", "--model", "gemini-3-flash-preview", prompt],
-        undefined,
-        180_000,
-      );
-    } else {
-      return safeExec(
-        "codex",
-        ["exec", "-m", "gpt-5.2-codex", "--config", 'model_reasoning_effort="high"', "--skip-git-repo-check"],
-        prompt,
-        180_000,
-      );
-    }
+    return withRetry(() => runWithEngine(engine, prompt, options));
   };
 
-  // Execute in parallel
   const [baselineOutput, candidateOutput] = await Promise.all([
     runOptimization(baselinePrompt),
     runOptimization(candidatePrompt),
   ]);
 
-  // Estimate baseline tokens for efficiency scoring
-  const baselineTokenCount = Math.ceil(baselineOutput.length / 4);
-
-  // Evaluate outputs
   const [baselineEval, candidateEval] = await Promise.all([
-    evaluate(testCase.id, baseline.id, testCase.userRequest, testCase.additionalContext, baselineOutput, undefined),
-    evaluate(
-      testCase.id,
-      candidate.id,
-      testCase.userRequest,
-      testCase.additionalContext,
-      candidateOutput,
-      baselineTokenCount,
-    ),
+    evaluate(testCase.id, baseline.id, testCase.userRequest, testCase.additionalContext, baselineOutput),
+    evaluate(testCase.id, candidate.id, testCase.userRequest, testCase.additionalContext, candidateOutput),
   ]);
 
   return { baseline: baselineEval, candidate: candidateEval };
@@ -286,33 +305,45 @@ async function main(): Promise<void> {
     console.log("\n⚠️  Skipping context preservation check (--skip-context-check)");
   }
 
+  // Filter test cases
+  let testCases = args.mode ? getTestCasesByMode(args.mode) : TEST_CASES;
+  if (args.category) {
+    testCases = testCases.filter((tc) => tc.category === args.category);
+  }
+
+  const total = testCases.length;
+
+  if (total === 0) {
+    console.error(`\n❌ No test cases found for mode=${args.mode || "all"}, category=${args.category || "all"}`);
+    process.exit(1);
+  }
+
   // Dry run mode
   if (args.dryRun) {
-    handleDryRun(baseline, candidate);
+    handleDryRun(baseline, candidate, testCases);
     process.exit(0);
   }
 
   // Execution phase
-  console.log(`\n🚀 Running A/B test (concurrency: ${args.concurrency})...`);
+  console.log(`\n🚀 Running A/B test (concurrency: ${args.concurrency}, test cases: ${total})...`);
 
   const limit = pLimit(args.concurrency);
   const results: Array<{ testCaseId: string; baseline: EvaluationResult; candidate: EvaluationResult }> = [];
   const gateFailures: BenchmarkReport["gateFailures"] = { baseline: [], candidate: [] };
+  const failures: BenchmarkReport["failures"] = [];
 
   let completed = 0;
-  const total = TEST_CASES.length;
 
-  const promises = TEST_CASES.map((testCase) =>
+  const promises = testCases.map((testCase) =>
     limit(async () => {
       try {
-        const result = await runTestCase(testCase, baseline, candidate);
+        const result = await runTestCase(testCase, baseline, candidate, args.engine, args.model);
         results.push({
           testCaseId: testCase.id,
           baseline: result.baseline,
           candidate: result.candidate,
         });
 
-        // Track gate failures
         if (!result.baseline.structurePass) {
           gateFailures.baseline.push({ testCaseId: testCase.id, gate: "structure" });
         }
@@ -331,6 +362,11 @@ async function main(): Promise<void> {
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
         console.error(`\n  ❌ ${testCase.id} failed: ${msg}`);
+        failures.push({
+          testCaseId: testCase.id,
+          version: "baseline",
+          error: msg,
+        });
       }
     }),
   );
@@ -346,16 +382,31 @@ async function main(): Promise<void> {
 
   const { decision, stats } = decideWinner(baselineScores, candidateScores);
 
+  // Committee role analysis
+  const candidateSyntheses = results.map((r) => ({
+    testCaseId: r.testCaseId,
+    synthesis: r.candidate.synthesis,
+  }));
+  const analysis = analyzeResults(candidateSyntheses);
+
+  if (analysis.committeeCount > 0) {
+    console.log(`\n⚠️  Committee-style roles detected in ${analysis.committeeCount} test cases:`);
+    console.log(`   ${analysis.flagged.join(", ")}`);
+  }
+
   const durationSeconds = (Date.now() - startTime) / 1000;
 
   // Build report
   const report: BenchmarkReport = {
+    schemaVersion: "2.0",
     timestamp: new Date().toISOString(),
     baselineVersion: baseline.id,
     candidateVersion: candidate.id,
-    testCaseCount: TEST_CASES.length,
+    testCaseCount: testCases.length,
     concurrency: args.concurrency,
     durationSeconds,
+    mode: args.mode,
+    category: args.category,
     results,
     summary: {
       baselineAvgScore: stats.baselineAvg,
@@ -366,10 +417,17 @@ async function main(): Promise<void> {
       decision,
     },
     gateFailures,
+    failures,
+    analysis,
   };
 
-  // Save report
-  const reportPath = path.join(process.cwd(), "ab_test_results.json");
+  // Save report with timestamp
+  const reportDir = path.join(process.cwd(), "ab_results");
+  if (!fs.existsSync(reportDir)) {
+    fs.mkdirSync(reportDir, { recursive: true });
+  }
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const reportPath = path.join(reportDir, `ab_test_results_${timestamp}.json`);
   fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
   console.log(`\n📄 Report saved to: ${reportPath}`);
 
@@ -379,6 +437,8 @@ async function main(): Promise<void> {
   console.log("═".repeat(50));
   console.log(`Duration: ${durationSeconds.toFixed(1)}s`);
   console.log(`Test cases: ${report.testCaseCount}`);
+  if (args.mode) console.log(`Mode filter: ${args.mode}`);
+  if (args.category) console.log(`Category filter: ${args.category}`);
   console.log("");
   console.log(`Baseline (${baseline.id}):  avg score = ${stats.baselineAvg.toFixed(2)}`);
   console.log(`Candidate (${candidate.id}): avg score = ${stats.candidateAvg.toFixed(2)}`);
@@ -397,6 +457,21 @@ async function main(): Promise<void> {
     if (gateFailures.candidate.length > 0) {
       console.log(`   Candidate: ${gateFailures.candidate.map((f) => `${f.testCaseId}(${f.gate})`).join(", ")}`);
     }
+    console.log("");
+  }
+
+  // Execution failures
+  if (failures.length > 0) {
+    console.log(`❌ Execution Failures: ${failures.length}`);
+    for (const f of failures) {
+      console.log(`   ${f.testCaseId}: ${f.error.slice(0, 80)}`);
+    }
+    console.log("");
+  }
+
+  // Analysis
+  if (analysis.committeeCount > 0) {
+    console.log(`🔍 Analysis: ${analysis.committeeCount}/${analysis.total} outputs have committee-style roles`);
     console.log("");
   }
 
