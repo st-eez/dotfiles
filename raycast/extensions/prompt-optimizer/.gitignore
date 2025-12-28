@@ -12,3 +12,7 @@ compiled_raycast_rust
 
 # misc
 .DS_Store
+
+# Test output
+ab_results/
+ab_test_report.json
