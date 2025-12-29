@@ -1,9 +1,9 @@
 # Prompt Optimizer Performance Optimization Plan
 
-**Document Version:** 2.0  
+**Document Version:** 2.1  
 **Created:** 2025-12-29  
 **Updated:** 2025-12-29  
-**Status:** DRAFT - Pending Approval  
+**Status:** PHASE 0 COMPLETE - Baseline Captured  
 **Extension Path:** `raycast/extensions/prompt-optimizer/`
 
 ---
@@ -159,6 +159,80 @@ npx ts-node src/test-bench.ts judge \
 | Isolation Teardown         | 20-50ms            | 1-3%       |
 | **Total (Standard Mode)**  | **4,000-15,000ms** | 100%       |
 | **Total (Smart Mode)**     | **8,000-25,000ms** | 100%       |
+
+### 2.5 Baseline Results (Phase 0 - Captured 2025-12-29)
+
+**Benchmark Run Details:**
+
+- Strategy: `v1-baseline.ts`
+- Engine: Gemini
+- Model: `gemini-3-flash-preview`
+- Judge: `codex-high`
+- Test Cases: 27
+- Report: `ab_results/test_bench_v1-baseline_codex-high_2025-12-29T19-06-09-802Z.json`
+
+#### Latency Metrics
+
+| Metric          | Value    | Notes                        |
+| --------------- | -------- | ---------------------------- |
+| P50 Duration    | 10,451ms | Median optimization time     |
+| P90 Duration    | 17,305ms | 90th percentile              |
+| Avg Duration    | 11,695ms | Mean across 27 cases         |
+| Min Duration    | 7,167ms  | Best case                    |
+| Max Duration    | 23,951ms | Worst case (complex-004)     |
+| Total Batch     | 111.4s   | All 27 cases (concurrency=3) |
+| Avg API Latency | 9,373ms  | Pure Gemini inference time   |
+
+#### Token Metrics
+
+| Metric            | Value | Notes                      |
+| ----------------- | ----- | -------------------------- |
+| Avg Input Tokens  | 8,087 | Strategy prompt + context  |
+| Avg Output Tokens | 585   | Generated optimized prompt |
+| Avg Total Tokens  | 9,927 | Input + output + thoughts  |
+
+#### Quality Metrics (Judge: codex-high)
+
+| Metric                  | Value         | Target | Status |
+| ----------------------- | ------------- | ------ | ------ |
+| Structure Pass Rate     | 100% (27/27)  | 100%   | ✅     |
+| Context Pass Rate       | 96.3% (26/27) | 100%   | ⚠️     |
+| Avg Clarity Score       | 4.41          | ≥4.0   | ✅     |
+| Avg Actionability Score | 4.52          | ≥4.0   | ✅     |
+| Avg Completeness Score  | 4.30          | ≥4.0   | ✅     |
+| Avg Total Score         | 4.26          | ≥4.0   | ✅     |
+| Gate Failures           | 1             | 0      | ⚠️     |
+
+#### Context Preservation Failure
+
+| Test Case  | Issue                                                            | Impact                              |
+| ---------- | ---------------------------------------------------------------- | ----------------------------------- |
+| design-001 | Space inserted in `actions/checkout@v3` → `actions/checkout @v3` | Judge detected non-verbatim context |
+
+**Root Cause:** The optimizer modified whitespace in the GitHub Actions YAML context. This is a known edge case with code/YAML preservation.
+
+#### Per-Category Breakdown
+
+| Category    | Count | Avg Score | Structure Pass | Context Pass |
+| ----------- | ----- | --------- | -------------- | ------------ |
+| code        | 5     | 4.52      | 5/5            | 5/5          |
+| write       | 4     | 4.68      | 4/4            | 4/4 (N/A)    |
+| design      | 3     | 3.33\*    | 3/3            | 2/3          |
+| data        | 3     | 4.77      | 3/3            | 3/3          |
+| complex     | 4     | 4.33      | 4/4            | 4/4          |
+| edge        | 2     | 3.70      | 2/2            | 2/2          |
+| ops         | 3     | 4.33      | 3/3            | 3/3          |
+| calibration | 3     | 3.90      | 3/3            | 3/3 (N/A)    |
+
+\*design category avg penalized by design-001 context failure (score=0)
+
+#### Key Observations
+
+1. **Latency is higher than estimated**: Avg 11.7s vs expected 4-15s range, P90 at 17.3s
+2. **Quality exceeds targets**: 4.26 avg score vs 4.0 target
+3. **Structure gate is solid**: 100% pass rate
+4. **Context preservation needs work**: 1 failure due to whitespace modification
+5. **Token usage is efficient**: ~9.9k total tokens per optimization
 
 ---
 
@@ -800,5 +874,5 @@ npx ts-node src/test-bench.ts judge --strategy src/prompts/v1-baseline.ts --judg
 
 **Document End**
 
-_Last Updated: 2025-12-29 (v2.0)_
-_Changes: Added Phases 0.5, 4B, 6, 7; Added Sections 6-9; Updated estimates and dependencies_
+_Last Updated: 2025-12-29 (v2.1)_
+_Changes: Phase 0 complete - Added Section 2.5 with baseline metrics (latency, tokens, quality scores)_
