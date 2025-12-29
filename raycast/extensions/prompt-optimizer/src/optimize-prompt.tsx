@@ -11,7 +11,8 @@ import {
   getSelectedText,
 } from "@raycast/api";
 import { useEffect, useState } from "react";
-import { engines, PERSONAS, type SmartModeResult } from "./utils/engines";
+import { engines, PERSONAS, type SmartModeResult, type StreamingCallbacks } from "./utils/engines";
+import { StreamingDetail, type StreamingConfig } from "./components/StreamingDetail";
 import { formatPromptForDisplay } from "./utils/format";
 import { addToHistory } from "./utils/history";
 import { useDebounce } from "./hooks/useDebounce";
@@ -118,6 +119,25 @@ export default function Command() {
       return;
     }
 
+    const engine = currentEngine;
+    if (!engine) {
+      showToast({ style: Toast.Style.Failure, title: "Selected engine not found" });
+      return;
+    }
+
+    const modelToUse = engine.models?.length
+      ? (ensureValidModel(selectedModel, engine) ?? getDefaultModel(engine))
+      : undefined;
+    const finalPrompt = applyTemplate(prompt, variableValues);
+
+    const canStreamSmart = smartMode && engine.runOrchestratedStreaming;
+    const canStreamNormal = !smartMode && engine.runStreaming;
+
+    if (canStreamSmart || canStreamNormal) {
+      handleStreamingSubmit(engine, finalPrompt, modelToUse);
+      return;
+    }
+
     setIsLoading(true);
     const toast = await showToast({
       style: Toast.Style.Animated,
@@ -132,18 +152,6 @@ export default function Command() {
     }, 1000);
 
     try {
-      const engine = currentEngine;
-      if (!engine) {
-        throw new Error("Selected engine not found");
-      }
-
-      const modelToUse = engine.models?.length
-        ? (ensureValidModel(selectedModel, engine) ?? getDefaultModel(engine))
-        : undefined;
-
-      // Apply variable substitution
-      const finalPrompt = applyTemplate(prompt, variableValues);
-
       let optimizedPrompt = "";
       let results: { persona: string; output: string }[] = [];
       let personasToRun: string[] = [];
@@ -242,6 +250,31 @@ export default function Command() {
       clearInterval(timer);
       setIsLoading(false);
     }
+  }
+
+  function handleStreamingSubmit(
+    engine: (typeof engines)[number],
+    finalPrompt: string,
+    modelToUse: string | undefined,
+  ) {
+    const config: StreamingConfig = {
+      originalPrompt: prompt,
+      additionalContext: additionalContext || undefined,
+      engineName: engine.displayName,
+      model: modelToUse,
+      persona: selectedPersona,
+      smartMode,
+      doStream: (callbacks: StreamingCallbacks) =>
+        engine.runStreaming
+          ? engine.runStreaming(finalPrompt, callbacks, modelToUse, additionalContext, selectedPersona)
+          : Promise.reject(new Error("Streaming not supported")),
+      doStreamSmart: engine.runOrchestratedStreaming
+        ? (callbacks: StreamingCallbacks) =>
+            engine.runOrchestratedStreaming!(finalPrompt, callbacks, modelToUse, additionalContext)
+        : undefined,
+    };
+
+    push(<StreamingDetail config={config} />);
   }
 
   async function handleCriticSubmit() {

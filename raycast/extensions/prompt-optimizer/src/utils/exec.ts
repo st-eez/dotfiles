@@ -72,6 +72,155 @@ export function getTimeout(isOrchestrated: boolean): number {
   return getTimeoutMs(isOrchestrated);
 }
 
+// --- Streaming Execution ---
+
+export interface StreamingOptions {
+  onChunk: (chunk: string) => void;
+  onError?: (error: Error) => void;
+  abortSignal?: AbortSignal;
+}
+
+export async function safeExecStreaming(
+  command: string,
+  args: string[],
+  input?: string,
+  timeoutMs: number = config.timeoutStandardMs,
+  env?: NodeJS.ProcessEnv,
+  options?: StreamingOptions,
+): Promise<string> {
+  const normalizedPath = getNormalizedPath();
+
+  const subprocess = execa(command, args, {
+    env: {
+      ...env,
+      PATH: normalizedPath,
+    },
+    shell: false,
+    stderr: "pipe",
+    input,
+    timeout: timeoutMs,
+    killSignal: "SIGTERM",
+  });
+
+  let fullOutput = "";
+
+  if (options?.abortSignal) {
+    options.abortSignal.addEventListener("abort", () => {
+      subprocess.kill("SIGTERM");
+    });
+  }
+
+  if (subprocess.stdout && options?.onChunk) {
+    subprocess.stdout.setEncoding("utf8");
+    subprocess.stdout.on("data", (chunk: string) => {
+      fullOutput += chunk;
+      try {
+        options.onChunk(chunk);
+      } catch (err) {
+        if (options.onError && err instanceof Error) {
+          options.onError(err);
+        }
+      }
+    });
+  }
+
+  try {
+    const result = await subprocess;
+    return fullOutput || result.stdout;
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      const execError = error as Error & { code?: string; timedOut?: boolean; stderr?: string; isCanceled?: boolean };
+
+      if (execError.isCanceled) {
+        throw new Error("Operation cancelled");
+      }
+      if (execError.code === "ENOENT") {
+        throw new Error(`Command '${command}' not found. Install it or add it to PATH.`);
+      }
+      if (execError.timedOut) {
+        throw new Error(`${command} timed out after ${(timeoutMs / 1000).toFixed(0)}s`);
+      }
+      if (execError.stderr) {
+        throw new Error(execError.stderr);
+      }
+      throw error;
+    }
+    throw new Error(String(error));
+  }
+}
+
+// --- Streaming Parsers ---
+
+export interface GeminiStreamEvent {
+  type: "init" | "message" | "result";
+  role?: "user" | "assistant";
+  content?: string;
+  delta?: boolean;
+  stats?: Record<string, unknown>;
+}
+
+export interface StreamParserState {
+  buffer: string;
+  accumulated: string;
+}
+
+export function createStreamParserState(): StreamParserState {
+  return { buffer: "", accumulated: "" };
+}
+
+export function parseGeminiStreamChunk(chunk: string, state: StreamParserState): string {
+  state.buffer += chunk;
+  const lines = state.buffer.split("\n");
+  state.buffer = lines.pop() || "";
+
+  let newText = "";
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    try {
+      const event = JSON.parse(line) as GeminiStreamEvent;
+      if (event.type === "message" && event.role === "assistant" && event.content) {
+        if (event.delta) {
+          newText += event.content;
+        } else {
+          newText = event.content;
+          state.accumulated = "";
+        }
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  state.accumulated += newText;
+  return newText;
+}
+
+export function parseCodexStreamChunk(chunk: string, state: StreamParserState): string {
+  state.buffer += chunk;
+  const lines = state.buffer.split("\n");
+  state.buffer = lines.pop() || "";
+
+  let newText = "";
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    try {
+      const event = JSON.parse(line) as { type?: string; text?: string; content?: string };
+      if (event.type === "text" && event.text) {
+        newText += event.text;
+      } else if (event.type === "content" && event.content) {
+        newText += event.content;
+      }
+    } catch {
+      newText += line + "\n";
+    }
+  }
+
+  state.accumulated += newText;
+  return newText;
+}
+
+// --- JSON Parsers ---
+
 /**
  * Gemini CLI JSON response structure
  */

@@ -1,5 +1,13 @@
 import { Icon } from "@raycast/api";
-import { safeExec, getTimeout, parseGeminiJson } from "./exec";
+import {
+  safeExec,
+  safeExecStreaming,
+  getTimeout,
+  parseGeminiJson,
+  createStreamParserState,
+  parseGeminiStreamChunk,
+  parseCodexStreamChunk,
+} from "./exec";
 import { getGeminiIsolation, getCodexIsolation } from "./isolation";
 import { buildPrompt } from "../prompts/v1-baseline";
 import { PERSONA_INSTRUCTIONS } from "../prompts/personas";
@@ -152,6 +160,11 @@ export function parseSmartAuditOutput(raw: string): { personasUsed: string[]; qu
   }
 }
 
+export interface StreamingCallbacks {
+  onChunk: (text: string) => void;
+  abortSignal?: AbortSignal;
+}
+
 export interface Engine {
   name: string;
   displayName: string;
@@ -161,8 +174,22 @@ export interface Engine {
 
   run: (prompt: string, model?: string, context?: string, personaId?: string) => Promise<string>;
 
+  runStreaming?: (
+    prompt: string,
+    callbacks: StreamingCallbacks,
+    model?: string,
+    context?: string,
+    personaId?: string,
+  ) => Promise<string>;
+
   audit: (prompt: string, model?: string, context?: string, personaId?: string) => Promise<ClarificationQuestion[]>;
   runOrchestrated?: (prompt: string, model?: string, context?: string) => Promise<SmartModeResult>;
+  runOrchestratedStreaming?: (
+    prompt: string,
+    callbacks: StreamingCallbacks,
+    model?: string,
+    context?: string,
+  ) => Promise<SmartModeResult>;
   runWithClarifications: (
     prompt: string,
     clarifications: { question: string; answer: string }[],
@@ -206,6 +233,36 @@ export const engines: Engine[] = [
         env,
       );
       return parseGeminiJson(output);
+    },
+    runStreaming: async (
+      prompt,
+      callbacks,
+      model = "gemini-3-flash-preview",
+      context = "",
+      persona = "prompt_engineer",
+    ) => {
+      const timeout = getTimeout(false);
+      const { env } = getGeminiIsolation();
+      const state = createStreamParserState();
+
+      const output = await safeExecStreaming(
+        "gemini",
+        ["--model", model, "--output-format", "stream-json"],
+        buildOptimizationPrompt(prompt, context, persona),
+        timeout,
+        env,
+        {
+          onChunk: (chunk) => {
+            const text = parseGeminiStreamChunk(chunk, state);
+            if (text) {
+              callbacks.onChunk(text);
+            }
+          },
+          abortSignal: callbacks.abortSignal,
+        },
+      );
+
+      return state.accumulated || output;
     },
     audit: async (prompt, model = "gemini-3-flash-preview", context = "", persona = "prompt_engineer") => {
       const { env } = getGeminiIsolation();
@@ -254,6 +311,31 @@ export const engines: Engine[] = [
       );
       return parseSmartModeOutput(parseGeminiJson(output));
     },
+    runOrchestratedStreaming: async (prompt, callbacks, model = "gemini-3-flash-preview", context = "") => {
+      const timeout = getTimeout(true);
+      const { env } = getGeminiIsolation();
+      const state = createStreamParserState();
+
+      const output = await safeExecStreaming(
+        "gemini",
+        ["--model", model, "--output-format", "stream-json"],
+        buildSmartPrompt(prompt, context),
+        timeout,
+        env,
+        {
+          onChunk: (chunk) => {
+            const text = parseGeminiStreamChunk(chunk, state);
+            if (text) {
+              callbacks.onChunk(text);
+            }
+          },
+          abortSignal: callbacks.abortSignal,
+        },
+      );
+
+      const rawOutput = state.accumulated || output;
+      return parseSmartModeOutput(rawOutput);
+    },
     auditOrchestrated: async (prompt, model = "gemini-3-flash-preview", context = "") => {
       const timeout = getTimeout(true);
       const { env } = getGeminiIsolation();
@@ -301,6 +383,30 @@ export const engines: Engine[] = [
         env,
       );
     },
+    runStreaming: async (prompt, callbacks, model = "gpt-5.2-codex", context = "", persona = "prompt_engineer") => {
+      const timeout = getTimeout(false);
+      const { env } = getCodexIsolation();
+      const state = createStreamParserState();
+
+      const output = await safeExecStreaming(
+        "codex",
+        ["exec", "-m", model, "--config", `model_reasoning_effort="high"`, "--skip-git-repo-check"],
+        buildOptimizationPrompt(prompt, context, persona),
+        timeout,
+        env,
+        {
+          onChunk: (chunk) => {
+            const text = parseCodexStreamChunk(chunk, state);
+            if (text) {
+              callbacks.onChunk(text);
+            }
+          },
+          abortSignal: callbacks.abortSignal,
+        },
+      );
+
+      return state.accumulated || output;
+    },
     audit: async (prompt, model = "gpt-5.2-codex", context = "", persona = "prompt_engineer") => {
       const { env } = getCodexIsolation();
       const result = await safeExec(
@@ -345,6 +451,31 @@ export const engines: Engine[] = [
         env,
       );
       return parseSmartModeOutput(output);
+    },
+    runOrchestratedStreaming: async (prompt, callbacks, model = "gpt-5.2-codex", context = "") => {
+      const timeout = getTimeout(true);
+      const { env } = getCodexIsolation();
+      const state = createStreamParserState();
+
+      const output = await safeExecStreaming(
+        "codex",
+        ["exec", "-m", model, "--config", `model_reasoning_effort="high"`, "--skip-git-repo-check"],
+        buildSmartPrompt(prompt, context),
+        timeout,
+        env,
+        {
+          onChunk: (chunk) => {
+            const text = parseCodexStreamChunk(chunk, state);
+            if (text) {
+              callbacks.onChunk(text);
+            }
+          },
+          abortSignal: callbacks.abortSignal,
+        },
+      );
+
+      const rawOutput = state.accumulated || output;
+      return parseSmartModeOutput(rawOutput);
     },
     auditOrchestrated: async (prompt, model = "gpt-5.2-codex", context = "") => {
       const timeout = getTimeout(true);

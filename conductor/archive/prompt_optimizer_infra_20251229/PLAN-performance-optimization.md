@@ -1,9 +1,9 @@
 # Prompt Optimizer Performance Optimization Plan
 
-**Document Version:** 2.5  
+**Document Version:** 2.6  
 **Created:** 2025-12-29  
 **Updated:** 2025-12-29  
-**Status:** PHASE 2 COMPLETE - Ready for Phase 3  
+**Status:** PHASE 3 COMPLETE - Ready for Phase 4  
 **Extension Path:** `raycast/extensions/prompt-optimizer/`
 
 ---
@@ -119,6 +119,21 @@ Transform the Prompt Optimizer Raycast extension from a functional but slow tool
 | `src/utils/engines.ts`   | Uses `getGeminiIsolation()` / `getCodexIsolation()`     |
 
 **Impact:** Eliminated per-call isolation overhead (50-100ms → ~0ms after first call)
+
+#### Phase 3: Response Streaming (2025-12-29) ✅
+
+| File | Change |
+| ---- | ------ |
+| `src/utils/exec.ts` | Added `safeExecStreaming()`, `StreamingOptions`, stream parsers (`parseGeminiStreamChunk`, `parseCodexStreamChunk`), `StreamParserState` |
+| `src/utils/engines.ts` | Added `StreamingCallbacks` interface, `runStreaming` + `runOrchestratedStreaming` for both Gemini and Codex |
+| `src/components/StreamingDetail.tsx` | NEW - Self-contained streaming component with abort support |
+| `src/optimize-prompt.tsx` | Integrated streaming path for both standard and smart mode |
+
+**Impact:**
+- TTFT reduced from ~11s to <2s (view appears immediately, content streams progressively)
+- Both standard mode and smart mode now stream
+- Cancellation support via ⌘. shortcut
+- Smart mode streams raw XML output (personas → perspectives → synthesis)
 
 ---
 
@@ -1036,5 +1051,5 @@ npx ts-node src/test-bench.ts judge --strategy src/prompts/v1-baseline.ts --judg
 
 **Document End**
 
-_Last Updated: 2025-12-29 (v2.4)_
-_Changes: Added judge variance analysis (Section 11.5) with 64-evaluation empirical study. Phase 0 complete, ready for Phase 1._
+_Last Updated: 2025-12-29 (v2.6)_
+_Changes: Phase 3 (Response Streaming) complete. Added streaming for both standard and smart modes._
