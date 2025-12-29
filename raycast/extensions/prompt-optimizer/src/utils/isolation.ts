@@ -28,18 +28,10 @@ function registerCleanupHandlers(): void {
   if (cleanupRegistered) return;
   cleanupRegistered = true;
 
-  const cleanup = () => {
+  // Only register exit handler - avoids conflict with cli-cancel.ts signal handlers
+  // The exit handler runs when process.exit() is called from anywhere
+  process.on("exit", () => {
     cleanupIsolation();
-  };
-
-  process.on("exit", cleanup);
-  process.on("SIGINT", () => {
-    cleanup();
-    process.exit(0);
-  });
-  process.on("SIGTERM", () => {
-    cleanup();
-    process.exit(0);
   });
 }
 

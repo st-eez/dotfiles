@@ -242,7 +242,10 @@ export async function evaluate(
     if (gatesFailed) {
       totalScore = 0;
     } else {
-      totalScore = judgeResponse.clarity * 0.4 + judgeResponse.completeness * 0.3 + judgeResponse.actionability * 0.3;
+      totalScore =
+        judgeResponse.clarity * config.weights.clarity +
+        judgeResponse.completeness * config.weights.completeness +
+        judgeResponse.actionability * config.weights.actionability;
     }
 
     return {
