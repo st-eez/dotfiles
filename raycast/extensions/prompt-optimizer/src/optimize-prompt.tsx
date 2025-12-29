@@ -14,6 +14,8 @@ import { useEffect, useState } from "react";
 import { engines, PERSONAS, type SmartModeResult } from "./utils/engines";
 import { formatPromptForDisplay } from "./utils/format";
 import { addToHistory } from "./utils/history";
+import { useDebounce } from "./hooks/useDebounce";
+import { config } from "./config";
 import HistoryCommand from "./history";
 import Templates from "./templates";
 import SaveTemplate from "./save-template";
@@ -53,18 +55,16 @@ export default function Command() {
     }
   }, [selectedEngine, currentEngine]);
 
-  // Dynamic Variable Extraction
   const [templateVariables, setTemplateVariables] = useState<string[]>([]);
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
+  const debouncedPrompt = useDebounce(prompt, config.templateVariableDebounceMs);
 
   useEffect(() => {
-    // Regex to find {{variable}}
-    const matches = prompt.match(/\{\{([^}]+)\}\}/g);
+    const matches = debouncedPrompt.match(/\{\{([^}]+)\}\}/g);
     if (matches) {
       const uniqueVars = Array.from(new Set(matches.map((m) => m.slice(2, -2).trim())));
       setTemplateVariables(uniqueVars);
 
-      // Preserve existing values for vars that still exist, clear others
       setVariableValues((prev) => {
         const next: Record<string, string> = {};
         uniqueVars.forEach((v) => {
@@ -74,11 +74,9 @@ export default function Command() {
       });
     } else {
       setTemplateVariables([]);
-      // Don't clear values strictly if we want to remember them?
-      // Better to clear if they don't exist in prompt to keep state clean.
       setVariableValues({});
     }
-  }, [prompt]);
+  }, [debouncedPrompt]);
 
   function handleInsertVariable() {
     setPrompt((prev) => prev + "{{}}");

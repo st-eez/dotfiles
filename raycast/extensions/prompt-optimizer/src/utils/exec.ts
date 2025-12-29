@@ -4,37 +4,41 @@ import * as path from "path";
 import * as os from "os";
 import * as crypto from "crypto";
 import { TokenData } from "./types";
+import { config, getTimeoutMs } from "../config";
 
 const { homedir } = os;
 
-/**
- * Safely executes a shell command and returns the output.
- * @param command The command to execute.
- * @param args The arguments to pass to the command.
- * @returns A promise that resolves to the stdout of the command.
- */
-const DEFAULT_TIMEOUT_MS = 180_000;
+let cachedNormalizedPath: string | null = null;
 
-export async function safeExec(
-  command: string,
-  args: string[],
-  input?: string,
-  timeoutMs: number = DEFAULT_TIMEOUT_MS,
-  env?: NodeJS.ProcessEnv,
-): Promise<string> {
+function getNormalizedPath(): string {
+  if (cachedNormalizedPath) return cachedNormalizedPath;
+
   const basePath = process.env.PATH ?? "";
   const bunPath = `${homedir()}/.bun/bin`;
   let normalizedPath = basePath;
+
   if (!basePath.includes(bunPath)) {
     normalizedPath = `${bunPath}:${normalizedPath}`;
   }
   if (!basePath.includes("/opt/homebrew/bin")) {
     normalizedPath = `/opt/homebrew/bin:${normalizedPath}`;
   }
+
+  cachedNormalizedPath = normalizedPath;
+  return normalizedPath;
+}
+
+export async function safeExec(
+  command: string,
+  args: string[],
+  input?: string,
+  timeoutMs: number = config.timeoutStandardMs,
+  env?: NodeJS.ProcessEnv,
+): Promise<string> {
+  const normalizedPath = getNormalizedPath();
   try {
     const { stdout } = await execa(command, args, {
       env: {
-        ...process.env,
         ...env,
         PATH: normalizedPath,
       },
@@ -65,8 +69,7 @@ export async function safeExec(
 }
 
 export function getTimeout(isOrchestrated: boolean): number {
-  const base = 180_000;
-  return isOrchestrated ? base * 1.5 : base;
+  return getTimeoutMs(isOrchestrated);
 }
 
 /**
