@@ -1,6 +1,6 @@
 # Prompt Optimizer Performance Optimization Plan
 
-**Document Version:** 2.4  
+**Document Version:** 2.5  
 **Created:** 2025-12-29  
 **Updated:** 2025-12-29  
 **Status:** PHASE 2 COMPLETE - Ready for Phase 3  
@@ -85,6 +85,40 @@ Transform the Prompt Optimizer Raycast extension from a functional but slow tool
 | **Phase 6: Unit Test Coverage**       | 3-4 days       | Medium | Low    | ← **NEW** |
 | **Phase 7: Input Hardening**          | 2 days         | Medium | Medium | ← **NEW** |
 | **Total**                             | **18-23 days** |        |        |
+
+### 1.6 Completed Work Log
+
+#### Phase 0: Benchmarking (2025-12-29) ✅
+
+**Commits:** `c3c3912`, `e704c7f`, `c840fa4`, `be6a213`
+
+- Established baseline metrics: P50=10.5s, P90=17.3s, avg=11.7s
+- Quality baseline: 4.26 avg score, 100% structure pass, 96.3% context pass
+- Latency breakdown: 80% API (9.4s), 20% overhead (2.3s)
+- Judge selection validated: `codex-medium` (64 evaluations, same accuracy as codex-high)
+- Identified design-001 context failure (whitespace in YAML)
+
+#### Phase 1: Quick Wins (2025-12-29) ✅
+
+**Commit:** `c0d0aa3`
+
+| File                       | Change                                                    |
+| -------------------------- | --------------------------------------------------------- |
+| `src/config.ts`            | NEW - Centralized configuration with documented rationale |
+| `src/hooks/useDebounce.ts` | NEW - Generic debounce hook (300ms)                       |
+| `src/optimize-prompt.tsx`  | Uses debounced template variable detection                |
+| `src/utils/exec.ts`        | Cached PATH resolution, uses config for timeouts          |
+
+#### Phase 2: Persistent Isolation (2025-12-29) ✅
+
+**Commit:** `b3bf646`
+
+| File                     | Change                                                  |
+| ------------------------ | ------------------------------------------------------- |
+| `src/utils/isolation.ts` | NEW - Singleton isolation manager with cleanup handlers |
+| `src/utils/engines.ts`   | Uses `getGeminiIsolation()` / `getCodexIsolation()`     |
+
+**Impact:** Eliminated per-call isolation overhead (50-100ms → ~0ms after first call)
 
 ---
 
