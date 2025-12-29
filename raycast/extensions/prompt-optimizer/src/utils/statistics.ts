@@ -12,6 +12,8 @@ export interface StatResult {
   improvement: number;
   pValue: number;
   significant: boolean;
+  effectSize: number;
+  effectSizeLabel: "negligible" | "small" | "medium" | "large";
 }
 
 export type Decision = "ship_candidate" | "keep_baseline" | "inconclusive";
@@ -38,7 +40,7 @@ const MIN_IMPROVEMENT_THRESHOLD = 0.5;
 /**
  * Calculate the average of an array of numbers.
  */
-function average(arr: number[]): number {
+export function average(arr: number[]): number {
   if (arr.length === 0) return 0;
   return arr.reduce((sum, val) => sum + val, 0) / arr.length;
 }
@@ -50,6 +52,240 @@ function sign(x: number): number {
   if (x > 0) return 1;
   if (x < 0) return -1;
   return 0;
+}
+
+export function median(arr: number[]): number {
+  if (arr.length === 0) return 0;
+  const sorted = [...arr].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+export function stdDev(arr: number[]): number {
+  if (arr.length < 2) return 0;
+  const avg = average(arr);
+  const squareDiffs = arr.map((v) => Math.pow(v - avg, 2));
+  return Math.sqrt(squareDiffs.reduce((a, b) => a + b, 0) / (arr.length - 1));
+}
+
+export function confidenceInterval(arr: number[]): { lower: number; upper: number } {
+  if (arr.length < 2) return { lower: 0, upper: 0 };
+  const avg = average(arr);
+  const se = stdDev(arr) / Math.sqrt(arr.length);
+  const margin = 1.96 * se;
+  return { lower: avg - margin, upper: avg + margin };
+}
+
+// --- Effect Size ---
+
+/**
+ * Calculate Cohen's d effect size for standardized difference measurement.
+ *
+ * Effect size interpretation:
+ * - |d| < 0.2: negligible effect
+ * - |d| < 0.5: small effect
+ * - |d| < 0.8: medium effect
+ * - |d| >= 0.8: large effect
+ *
+ * @param baseline - Array of baseline scores
+ * @param candidate - Array of candidate scores
+ * @returns Cohen's d value (positive = candidate better, negative = baseline better)
+ */
+export function cohensD(baseline: number[], candidate: number[]): number {
+  if (baseline.length === 0 || candidate.length === 0) return 0;
+
+  const baselineAvg = average(baseline);
+  const candidateAvg = average(candidate);
+  const meanDiff = candidateAvg - baselineAvg;
+
+  // Pooled standard deviation
+  const baselineVar = Math.pow(stdDev(baseline), 2);
+  const candidateVar = Math.pow(stdDev(candidate), 2);
+
+  const pooledStd = Math.sqrt(
+    ((baseline.length - 1) * baselineVar + (candidate.length - 1) * candidateVar) /
+      (baseline.length + candidate.length - 2),
+  );
+
+  return pooledStd === 0 ? 0 : meanDiff / pooledStd;
+}
+
+/**
+ * Convert Cohen's d value to human-readable label.
+ */
+export function effectSizeLabel(d: number): "negligible" | "small" | "medium" | "large" {
+  const absD = Math.abs(d);
+  if (absD < 0.2) return "negligible";
+  if (absD < 0.5) return "small";
+  if (absD < 0.8) return "medium";
+  return "large";
+}
+
+// --- Bootstrap Confidence Interval ---
+
+/**
+ * Bootstrap confidence interval for score difference.
+ * Uses resampling with replacement to estimate uncertainty.
+ *
+ * @param baseline - Array of baseline scores
+ * @param candidate - Array of candidate scores (same length as baseline)
+ * @param confidence - Confidence level (default 0.95 for 95% CI)
+ * @param nBootstrap - Number of bootstrap samples (default 1000)
+ * @returns Lower and upper bounds of the confidence interval for the difference
+ */
+export function bootstrapCIDifference(
+  baseline: number[],
+  candidate: number[],
+  confidence: number = 0.95,
+  nBootstrap: number = 1000,
+): { lower: number; upper: number } {
+  if (baseline.length === 0 || candidate.length === 0) return { lower: 0, upper: 0 };
+  if (baseline.length !== candidate.length) return { lower: 0, upper: 0 };
+
+  const n = baseline.length;
+  const differences: number[] = [];
+
+  for (let i = 0; i < nBootstrap; i++) {
+    // Bootstrap sample with replacement
+    const baselineSample: number[] = [];
+    const candidateSample: number[] = [];
+
+    for (let j = 0; j < n; j++) {
+      const idx = Math.floor(Math.random() * n);
+      baselineSample.push(baseline[idx]);
+      candidateSample.push(candidate[idx]);
+    }
+
+    const diff = average(candidateSample) - average(baselineSample);
+    differences.push(diff);
+  }
+
+  differences.sort((a, b) => a - b);
+  const lowerIdx = Math.floor(((1 - confidence) / 2) * nBootstrap);
+  const upperIdx = Math.floor(((1 + confidence) / 2) * nBootstrap);
+
+  return {
+    lower: differences[lowerIdx],
+    upper: differences[upperIdx - 1], // -1 because array is 0-indexed
+  };
+}
+
+export function checkSRM(
+  baselineN: number,
+  candidateN: number,
+  expectedRatio: number = 1.0,
+): { hasSRM: boolean; observedRatio: number; pValue: number } {
+  const total = baselineN + candidateN;
+  if (total === 0) return { hasSRM: false, observedRatio: 0, pValue: 1 };
+
+  const expectedBaseline = total * (expectedRatio / (1 + expectedRatio));
+  const expectedCandidate = total - expectedBaseline;
+
+  const chiSq =
+    Math.pow(baselineN - expectedBaseline, 2) / expectedBaseline +
+    Math.pow(candidateN - expectedCandidate, 2) / expectedCandidate;
+
+  const pValue = 2 * (1 - normalCDF(Math.sqrt(chiSq)));
+
+  return {
+    hasSRM: pValue < 0.01,
+    observedRatio: candidateN > 0 ? baselineN / candidateN : 0,
+    pValue,
+  };
+}
+
+export interface EnhancedSummary {
+  baselineAvgScore: number;
+  candidateAvgScore: number;
+  improvement: number;
+  pValue: number;
+  significant: boolean;
+  decision: Decision;
+
+  effectSize: {
+    cohensD: number;
+    label: "negligible" | "small" | "medium" | "large";
+    bootstrapCI: { lower: number; upper: number };
+  };
+
+  timing: {
+    baselineMedianMs: number;
+    candidateMedianMs: number;
+    latencyReductionPct: number;
+    baselineCI: { lower: number; upper: number };
+    candidateCI: { lower: number; upper: number };
+  };
+  tokens: {
+    baselineMedian: number;
+    candidateMedian: number;
+    tokenReductionPct: number;
+  };
+
+  srmCheck: { hasSRM: boolean; observedRatio: number; pValue: number };
+}
+
+export function buildEnhancedSummary(
+  results: Array<{
+    baseline: {
+      optimization: { timing: { durationMs: number }; tokens: { input: number } | null };
+      totalScore: number;
+    };
+    candidate: {
+      optimization: { timing: { durationMs: number }; tokens: { input: number } | null };
+      totalScore: number;
+    };
+  }>,
+  baselineScores: number[],
+  candidateScores: number[],
+): EnhancedSummary {
+  const { decision, stats } = decideWinner(baselineScores, candidateScores);
+
+  const baselineTiming = results.map((r) => r.baseline.optimization.timing.durationMs);
+  const candidateTiming = results.map((r) => r.candidate.optimization.timing.durationMs);
+
+  const baselineTokens = results
+    .map((r) => r.baseline.optimization.tokens?.input)
+    .filter((t): t is number => t != null);
+  const candidateTokens = results
+    .map((r) => r.candidate.optimization.tokens?.input)
+    .filter((t): t is number => t != null);
+
+  const baselineMedianMs = median(baselineTiming);
+  const candidateMedianMs = median(candidateTiming);
+  const latencyReductionPct =
+    baselineMedianMs > 0 ? ((baselineMedianMs - candidateMedianMs) / baselineMedianMs) * 100 : 0;
+
+  const baselineTokenMedian = median(baselineTokens);
+  const candidateTokenMedian = median(candidateTokens);
+  const tokenReductionPct =
+    baselineTokenMedian > 0 ? ((baselineTokenMedian - candidateTokenMedian) / baselineTokenMedian) * 100 : 0;
+
+  return {
+    baselineAvgScore: stats.baselineAvg,
+    candidateAvgScore: stats.candidateAvg,
+    improvement: stats.improvement,
+    pValue: stats.pValue,
+    significant: stats.significant,
+    decision,
+    effectSize: {
+      cohensD: stats.effectSize,
+      label: stats.effectSizeLabel,
+      bootstrapCI: bootstrapCIDifference(baselineScores, candidateScores),
+    },
+    timing: {
+      baselineMedianMs,
+      candidateMedianMs,
+      latencyReductionPct,
+      baselineCI: confidenceInterval(baselineTiming),
+      candidateCI: confidenceInterval(candidateTiming),
+    },
+    tokens: {
+      baselineMedian: baselineTokenMedian,
+      candidateMedian: candidateTokenMedian,
+      tokenReductionPct,
+    },
+    srmCheck: checkSRM(results.length, results.length),
+  };
 }
 
 /**
@@ -97,12 +333,15 @@ export function wilcoxonSignedRank(baseline: number[], candidate: number[]): Sta
       improvement: 0,
       pValue: 1,
       significant: false,
+      effectSize: 0,
+      effectSizeLabel: "negligible",
     };
   }
 
   const baselineAvg = average(baseline);
   const candidateAvg = average(candidate);
   const improvement = candidateAvg - baselineAvg;
+  const d = cohensD(baseline, candidate);
 
   // Calculate differences and filter out zeros
   const differences: Array<{ diff: number; absDiff: number }> = [];
@@ -121,6 +360,8 @@ export function wilcoxonSignedRank(baseline: number[], candidate: number[]): Sta
       improvement,
       pValue: 1,
       significant: false,
+      effectSize: d,
+      effectSizeLabel: effectSizeLabel(d),
     };
   }
 
@@ -183,6 +424,8 @@ export function wilcoxonSignedRank(baseline: number[], candidate: number[]): Sta
     improvement,
     pValue,
     significant: pValue < SIGNIFICANCE_THRESHOLD,
+    effectSize: d,
+    effectSizeLabel: effectSizeLabel(d),
   };
 }
 
@@ -190,7 +433,7 @@ export function wilcoxonSignedRank(baseline: number[], candidate: number[]): Sta
  * Standard normal cumulative distribution function.
  * Approximation using error function.
  */
-function normalCDF(x: number): number {
+export function normalCDF(x: number): number {
   const a1 = 0.254829592;
   const a2 = -0.284496736;
   const a3 = 1.421413741;
@@ -223,6 +466,7 @@ function normalCDF(x: number): number {
  */
 export function decideWinner(baselineScores: number[], candidateScores: number[]): DecisionResult {
   if (baselineScores.length < 5 || candidateScores.length < 5) {
+    const d = cohensD(baselineScores, candidateScores);
     return {
       decision: "inconclusive",
       stats: {
@@ -231,6 +475,8 @@ export function decideWinner(baselineScores: number[], candidateScores: number[]
         improvement: average(candidateScores) - average(baselineScores),
         pValue: 1,
         significant: false,
+        effectSize: d,
+        effectSizeLabel: effectSizeLabel(d),
       },
     };
   }

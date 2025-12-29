@@ -250,7 +250,7 @@ export const engines: Engine[] = [
       return withIsolatedGemini(async (homeDir) => {
         const output = await safeExec(
           "gemini",
-          ["--allowed-mcp-server-names", "none", "-e", "none", "--model", model, "--output-format", "json"],
+          ["--model", model, "--output-format", "json"],
           buildOptimizationPrompt(prompt, mode, context, persona),
           timeout,
           { HOME: homeDir },
@@ -262,7 +262,7 @@ export const engines: Engine[] = [
       return withIsolatedGemini(async (homeDir) => {
         const output = await safeExec(
           "gemini",
-          ["--allowed-mcp-server-names", "none", "-e", "none", "--model", model, "--output-format", "json"],
+          ["--model", model, "--output-format", "json"],
           buildAuditPrompt(prompt, context, persona),
           undefined,
           { HOME: homeDir },
@@ -288,7 +288,7 @@ export const engines: Engine[] = [
       return withIsolatedGemini(async (homeDir) => {
         const output = await safeExec(
           "gemini",
-          ["--allowed-mcp-server-names", "none", "-e", "none", "--model", model, "--output-format", "json"],
+          ["--model", model, "--output-format", "json"],
           buildClarificationPrompt(prompt, mode, context, persona, clarifications),
           undefined,
           { HOME: homeDir },
@@ -302,7 +302,7 @@ export const engines: Engine[] = [
       return withIsolatedGemini(async (homeDir) => {
         const output = await safeExec(
           "gemini",
-          ["--allowed-mcp-server-names", "none", "-e", "none", "--model", model, "--output-format", "json"],
+          ["--model", model, "--output-format", "json"],
           buildSmartPrompt(prompt, context, mode),
           timeout,
           { HOME: homeDir },
@@ -314,7 +314,7 @@ export const engines: Engine[] = [
       return withIsolatedGemini(async (homeDir) => {
         const output = await safeExec(
           "gemini",
-          ["--allowed-mcp-server-names", "none", "-e", "none", "--model", model, "--output-format", "json"],
+          ["--model", model, "--output-format", "json"],
           buildSmartAuditPrompt(prompt, context),
           undefined,
           { HOME: homeDir },
@@ -333,7 +333,7 @@ export const engines: Engine[] = [
       return withIsolatedGemini(async (homeDir) => {
         const output = await safeExec(
           "gemini",
-          ["--allowed-mcp-server-names", "none", "-e", "none", "--model", model, "--output-format", "json"],
+          ["--model", model, "--output-format", "json"],
           buildSmartClarificationPrompt(prompt, context, clarifications, mode),
           timeout,
           { HOME: homeDir },

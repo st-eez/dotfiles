@@ -4,7 +4,37 @@
  * Uses GPT-5.2-Codex to evaluate optimized prompts against quality criteria.
  */
 
-import { safeExec, withIsolatedCodex } from "./exec";
+import {
+  safeExec,
+  withIsolatedCodex,
+  withIsolatedGemini,
+  withIsolatedOpencode,
+  parseGeminiJson,
+  parseOpencodeJson,
+} from "./exec";
+import { TimingData, RetryData, TokenData, OptimizationMetadata } from "./types";
+
+export type { TimingData, RetryData, TokenData, OptimizationMetadata };
+
+// --- Judge Configuration ---
+
+export type JudgeEngine = "codex" | "gemini" | "opencode";
+
+export interface JudgeConfig {
+  engine: JudgeEngine;
+  model: string;
+  reasoningEffort?: "high" | "medium" | "low"; // codex only
+}
+
+export const JUDGES = {
+  "codex-high": { engine: "codex" as const, model: "gpt-5.2-codex", reasoningEffort: "high" as const },
+  "codex-medium": { engine: "codex" as const, model: "gpt-5.2-codex", reasoningEffort: "medium" as const },
+  "gemini-flash": { engine: "gemini" as const, model: "gemini-3-flash-preview" },
+  "gemini-2.5-flash": { engine: "gemini" as const, model: "gemini-2.5-flash" },
+  "grok-code": { engine: "opencode" as const, model: "opencode/grok-code" },
+} as const;
+
+export type JudgeId = keyof typeof JUDGES;
 
 // --- Types ---
 
@@ -23,6 +53,11 @@ export interface EvaluationResult {
   tokenCount: number;
 }
 
+export interface EvaluationResultV3 extends EvaluationResult {
+  schemaVersion: "3.0";
+  optimization: OptimizationMetadata;
+}
+
 interface JudgeResponse {
   structure: boolean;
   context: boolean;
@@ -35,8 +70,7 @@ interface JudgeResponse {
 
 // --- Constants ---
 
-const EVALUATOR_MODEL = "gpt-5.2-codex";
-const EVALUATOR_TIMEOUT_MS = 120_000;
+const EVALUATOR_TIMEOUT_MS = 60_000;
 
 // --- Evaluator Prompt ---
 
@@ -100,7 +134,7 @@ ${optimizedOutput}
  * Local structure validation before LLM evaluation.
  * Uses multiline regex to find tags at start of lines (avoiding false positives in code blocks).
  */
-function validateStructureLocally(output: string): boolean {
+export function validateStructureLocally(output: string): boolean {
   // Match tags that appear at the start of a line (with optional whitespace)
   const hasRole = /^\s*<role>/im.test(output);
   const hasObjective = /^\s*<objective>/im.test(output);
@@ -113,6 +147,56 @@ function validateStructureLocally(output: string): boolean {
  */
 function estimateTokenCount(text: string): number {
   return Math.ceil(text.length / 4);
+}
+
+async function runCodexJudge(prompt: string, judge: JudgeConfig): Promise<string> {
+  const reasoningConfig = judge.reasoningEffort ? `model_reasoning_effort="${judge.reasoningEffort}"` : "";
+  return withIsolatedCodex(async (homeDir) => {
+    return safeExec(
+      "codex",
+      ["exec", "-m", judge.model, ...(reasoningConfig ? ["--config", reasoningConfig] : []), "--skip-git-repo-check"],
+      prompt,
+      EVALUATOR_TIMEOUT_MS,
+      { CODEX_HOME: homeDir },
+    );
+  });
+}
+
+async function runGeminiJudge(prompt: string, judge: JudgeConfig): Promise<string> {
+  return withIsolatedGemini(async (homeDir) => {
+    const rawOutput = await safeExec(
+      "gemini",
+      // --sandbox disables agentic tools (read_file, execute_command, etc.)
+      ["--sandbox", "--model", judge.model, "--output-format", "json"],
+      prompt,
+      EVALUATOR_TIMEOUT_MS,
+      { HOME: homeDir },
+    );
+    return parseGeminiJson(rawOutput);
+  });
+}
+
+async function runOpencodeJudge(prompt: string, judge: JudgeConfig): Promise<string> {
+  return withIsolatedOpencode(async (env) => {
+    const rawOutput = await safeExec(
+      "opencode",
+      ["run", "--model", judge.model, "--format", "json"],
+      prompt,
+      EVALUATOR_TIMEOUT_MS,
+      { ...env },
+    );
+    return parseOpencodeJson(rawOutput);
+  });
+}
+
+async function runJudge(prompt: string, judge: JudgeConfig): Promise<string> {
+  if (judge.engine === "gemini") {
+    return runGeminiJudge(prompt, judge);
+  }
+  if (judge.engine === "opencode") {
+    return runOpencodeJudge(prompt, judge);
+  }
+  return runCodexJudge(prompt, judge);
 }
 
 // --- Main Evaluate Function ---
@@ -131,10 +215,10 @@ export async function evaluate(
   originalPrompt: string,
   originalContext: string | undefined,
   optimizedOutput: string,
+  judge: JudgeConfig = JUDGES["codex-high"],
 ): Promise<EvaluationResult> {
   const tokenCount = estimateTokenCount(optimizedOutput);
 
-  // Fast local validation - skip expensive LLM call if obviously malformed
   if (!validateStructureLocally(optimizedOutput)) {
     return {
       testCaseId,
@@ -156,15 +240,7 @@ export async function evaluate(
   try {
     const evaluatorPrompt = buildEvaluatorPrompt(originalPrompt, originalContext, optimizedOutput);
 
-    const rawOutput = await withIsolatedCodex(async (homeDir) => {
-      return safeExec(
-        "codex",
-        ["exec", "-m", EVALUATOR_MODEL, "--config", 'model_reasoning_effort="high"', "--skip-git-repo-check"],
-        evaluatorPrompt,
-        EVALUATOR_TIMEOUT_MS,
-        { CODEX_HOME: homeDir },
-      );
-    });
+    const rawOutput = await runJudge(evaluatorPrompt, judge);
 
     const jsonStr = rawOutput.replace(/```json\n?|\n?```/g, "").trim();
     const judgeResponse: JudgeResponse = JSON.parse(jsonStr);
@@ -233,4 +309,22 @@ export async function evaluateBatch(
       evaluate(item.testCaseId, item.version, item.originalPrompt, item.originalContext, item.optimizedOutput),
     ),
   );
+}
+
+export async function evaluateWithMetadata(
+  testCaseId: string,
+  version: string,
+  originalPrompt: string,
+  originalContext: string | undefined,
+  optimizedOutput: string,
+  optimizationMeta: OptimizationMetadata,
+  judge: JudgeConfig = JUDGES["codex-high"],
+): Promise<EvaluationResultV3> {
+  const baseResult = await evaluate(testCaseId, version, originalPrompt, originalContext, optimizedOutput, judge);
+
+  return {
+    ...baseResult,
+    schemaVersion: "3.0",
+    optimization: optimizationMeta,
+  };
 }
