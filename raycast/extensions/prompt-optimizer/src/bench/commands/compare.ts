@@ -1,22 +1,23 @@
 import * as fs from "fs";
 import * as path from "path";
-import color from "picocolors";
-import { TestBenchArgs, formatTable } from "../types";
+import { log, c, subheader, keyValue } from "../../utils/cli-output";
+import { printSimpleTable } from "../../utils/cli-table";
+import { TestBenchArgs } from "../types";
 
 export function runCompare(args: TestBenchArgs): void {
   if (!args.runs || args.runs.length !== 2) {
-    console.error("Error: --runs requires exactly two file paths");
+    log.error("--runs requires exactly two file paths");
     process.exit(1);
   }
 
   const [file1, file2] = args.runs;
 
   if (!fs.existsSync(file1)) {
-    console.error(`File not found: ${file1}`);
+    log.error(`File not found: ${file1}`);
     process.exit(1);
   }
   if (!fs.existsSync(file2)) {
-    console.error(`File not found: ${file2}`);
+    log.error(`File not found: ${file2}`);
     process.exit(1);
   }
 
@@ -29,9 +30,9 @@ export function runCompare(args: TestBenchArgs): void {
   const data1: ResultFile = JSON.parse(fs.readFileSync(file1, "utf-8"));
   const data2: ResultFile = JSON.parse(fs.readFileSync(file2, "utf-8"));
 
-  console.log(`\n${color.cyan("Comparing Results")}\n`);
-  console.log(`File A: ${path.basename(file1)}`);
-  console.log(`File B: ${path.basename(file2)}\n`);
+  subheader("Comparing Results");
+  keyValue("File A", path.basename(file1));
+  keyValue("File B", path.basename(file2));
 
   const scores1 = new Map<string, number>();
   const scores2 = new Map<string, number>();
@@ -46,7 +47,7 @@ export function runCompare(args: TestBenchArgs): void {
   }
 
   const allIds = new Set([...scores1.keys(), ...scores2.keys()]);
-  const rows: string[][] = [];
+  const rows: Array<Array<string | number>> = [];
   let totalA = 0;
   let totalB = 0;
   let count = 0;
@@ -67,11 +68,14 @@ export function runCompare(args: TestBenchArgs): void {
   const avgA = count > 0 ? totalA / count : 0;
   const avgB = count > 0 ? totalB / count : 0;
   const avgDelta = avgB - avgA;
-  rows.push(["Average", avgA.toFixed(2), avgB.toFixed(2), (avgDelta >= 0 ? "+" : "") + avgDelta.toFixed(2)]);
+  rows.push([c.bold("Average"), avgA.toFixed(2), avgB.toFixed(2), (avgDelta >= 0 ? "+" : "") + avgDelta.toFixed(2)]);
 
-  console.log("Score Comparison:");
-  console.log(formatTable(["Test Case", "File A", "File B", "Delta"], rows));
+  log.blank();
+  log.plain(c.bold("Score Comparison:"));
+  printSimpleTable(["Test Case", "File A", "File B", "Delta"], rows);
 
   const agreementRate = count > 0 ? (agree / count) * 100 : 0;
-  console.log(`\nAgreement: ${agreementRate.toFixed(1)}% (${agree}/${count} same pass/fail)\n`);
+  log.blank();
+  log.plain(`Agreement: ${agreementRate.toFixed(1)}% (${agree}/${count} same pass/fail)`);
+  log.blank();
 }

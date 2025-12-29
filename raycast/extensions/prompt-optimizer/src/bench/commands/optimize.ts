@@ -1,9 +1,9 @@
-import color from "picocolors";
 import pLimit from "p-limit";
 import { TestCase } from "../../test-data/test-cases";
 import { CacheManager, CachedOptimizationEntry } from "../../utils/cache";
 import { runGeminiWithMetadata, runWithEngine, withRetry, GeminiRunResult } from "../../test/lib/test-utils";
 import { OptimizationMetadata, TimingData } from "../../utils/types";
+import { log, c, symbols, subheader, keyValue } from "../../utils/cli-output";
 import {
   TestBenchArgs,
   OptimizeResult,
@@ -17,7 +17,7 @@ import {
 
 export async function runOptimize(args: TestBenchArgs): Promise<void> {
   if (!args.strategy) {
-    console.error("Error: --strategy is required for optimize command");
+    log.error("--strategy is required for optimize command");
     process.exit(1);
   }
 
@@ -31,9 +31,8 @@ export async function runOptimize(args: TestBenchArgs): Promise<void> {
   const limit = pLimit(concurrency);
 
   const reasoningInfo = engine === "codex" ? ` (reasoning: ${reasoning})` : "";
-  console.log(
-    `\n${color.cyan("Optimizing")} with ${strategy.id} (${engine}/${model}${reasoningInfo}) [concurrency: ${concurrency}]...\n`,
-  );
+  subheader(`Optimizing with ${strategy.id} (${engine}/${model}${reasoningInfo})`);
+  keyValue("Concurrency", concurrency);
 
   const startTime = Date.now();
 
@@ -105,12 +104,12 @@ export async function runOptimize(args: TestBenchArgs): Promise<void> {
 
   for (const result of results) {
     if (result.status === "cached") {
-      console.log(`  ${color.green("✓")} ${result.testCaseId} ${color.dim("(cached)")}`);
+      log.plain(`  ${symbols.ok} ${result.testCaseId} ${c.dim("(cached)")}`);
     } else if (result.status === "optimized") {
       const duration = ((result.durationMs ?? 0) / 1000).toFixed(1);
-      console.log(`  ${color.green("→")} ${result.testCaseId} optimized in ${duration}s`);
+      log.plain(`  ${symbols.arrow} ${result.testCaseId} optimized in ${duration}s`);
     } else {
-      console.log(`  ${color.red("✗")} ${result.testCaseId} - ${result.error}`);
+      log.plain(`  ${symbols.fail} ${result.testCaseId} - ${result.error}`);
     }
   }
 
@@ -119,8 +118,10 @@ export async function runOptimize(args: TestBenchArgs): Promise<void> {
   const errors = results.filter((r) => r.status === "error").length;
   const totalDuration = ((Date.now() - startTime) / 1000).toFixed(1);
 
-  console.log(
-    `\n${color.bold("Summary:")} ${testCases.length} test cases, ${cacheHits} cache hits, ${apiCalls} API calls${errors > 0 ? `, ${errors} errors` : ""}`,
+  log.blank();
+  log.plain(
+    `${c.bold("Summary:")} ${testCases.length} test cases, ${cacheHits} cache hits, ${apiCalls} API calls${errors > 0 ? `, ${errors} errors` : ""}`,
   );
-  console.log(`${color.bold("Duration:")} ${totalDuration}s\n`);
+  log.plain(`${c.bold("Duration:")} ${totalDuration}s`);
+  log.blank();
 }

@@ -177,64 +177,6 @@ export function formatRelativeTime(isoDate: string): string {
   return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
 }
 
-export function formatTable(headers: string[], rows: string[][]): string {
-  const colWidths = headers.map((h, i) => Math.max(h.length, ...rows.map((r) => (r[i] || "").length)));
-
-  const separator = "+" + colWidths.map((w) => "-".repeat(w + 2)).join("+") + "+";
-  const formatRow = (row: string[]) =>
-    "|" + row.map((cell, i) => ` ${(cell || "").padEnd(colWidths[i])} `).join("|") + "|";
-
-  return [separator, formatRow(headers), separator, ...rows.map(formatRow), separator].join("\n");
-}
-
-export function formatABComparisonTable(
-  results: ABComparisonEntry[],
-  summary: ABSummary,
-  baselineLabel: string,
-  candidateLabel: string,
-): string {
-  const headers = ["Test Case", "Baseline", "Candidate", "Delta", "Winner"];
-  const rows: string[][] = results.map((r) => {
-    const deltaStr = r.delta >= 0 ? `+${r.delta.toFixed(2)}` : r.delta.toFixed(2);
-    let winner = "";
-    if (r.delta > 0.01) winner = "★";
-    else if (r.delta < -0.01) winner = "☆";
-    else winner = "=";
-    return [r.testCaseId, r.baselineScore.toFixed(2), r.candidateScore.toFixed(2), deltaStr, winner];
-  });
-
-  const summaryDeltaStr = summary.avgDelta >= 0 ? `+${summary.avgDelta.toFixed(2)}` : summary.avgDelta.toFixed(2);
-  rows.push([
-    "AVERAGE",
-    summary.avgBaseline.toFixed(2),
-    summary.avgCandidate.toFixed(2),
-    summaryDeltaStr,
-    summary.winner === "candidate" ? "★ WIN" : summary.winner === "baseline" ? "☆ WIN" : "TIE",
-  ]);
-
-  const table = formatTable(headers, rows);
-
-  const winnerText =
-    summary.winner === "candidate"
-      ? `★ Candidate wins by ${summary.percentImprovement.toFixed(1)}%`
-      : summary.winner === "baseline"
-        ? `☆ Baseline wins by ${Math.abs(summary.percentImprovement).toFixed(1)}%`
-        : `= Tie (no significant difference)`;
-
-  const summaryLines = [
-    "",
-    `Baseline:  ${baselineLabel}`,
-    `Candidate: ${candidateLabel}`,
-    "",
-    `Results: ${summary.candidateWins} candidate wins, ${summary.baselineWins} baseline wins, ${summary.ties} ties`,
-    `Verdict: ${winnerText}`,
-    "",
-    `Legend: ★ = candidate better, ☆ = baseline better, = = tie`,
-  ];
-
-  return table + summaryLines.join("\n");
-}
-
 export async function loadStrategy(strategyPath: string): Promise<PromptStrategy> {
   const absolutePath = path.resolve(process.cwd(), strategyPath);
 

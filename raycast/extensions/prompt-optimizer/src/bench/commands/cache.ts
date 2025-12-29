@@ -1,47 +1,51 @@
-import color from "picocolors";
 import { CacheManager } from "../../utils/cache";
-import { TestBenchArgs, formatBytes, formatRelativeTime, formatTable } from "../types";
+import { log, subheader, keyValue } from "../../utils/cli-output";
+import { printSimpleTable } from "../../utils/cli-table";
+import { TestBenchArgs, formatBytes, formatRelativeTime } from "../types";
 
 export function runCacheStatus(): void {
   const cache = new CacheManager();
   const manifest = cache.getStatus();
 
-  console.log(`\n${color.cyan("Cache Status")} (.prompt-cache/)\n`);
-  console.log(`Total entries: ${manifest.totalEntries}`);
-  console.log(`Disk usage: ${formatBytes(manifest.diskUsageBytes)}\n`);
+  subheader("Cache Status (.prompt-cache/)");
+  keyValue("Total entries", manifest.totalEntries);
+  keyValue("Disk usage", formatBytes(manifest.diskUsageBytes));
 
   if (Object.keys(manifest.byStrategy).length > 0) {
-    console.log("By Strategy:");
+    log.blank();
+    log.plain("By Strategy:");
     const rows = Object.entries(manifest.byStrategy).map(([strategy, data]) => [
       strategy,
       String(data.count),
       data.engines.join(", "),
       formatRelativeTime(data.lastUpdated),
     ]);
-    console.log(formatTable(["Strategy", "Count", "Engines", "Last Updated"], rows));
+    printSimpleTable(["Strategy", "Count", "Engines", "Last Updated"], rows);
   }
 
   if (manifest.staleEntries.length > 0) {
-    console.log(`\n${color.yellow("Stale entries:")} ${manifest.staleEntries.length}`);
+    log.blank();
+    log.warn(`Stale entries: ${manifest.staleEntries.length}`);
     for (const entry of manifest.staleEntries.slice(0, 5)) {
-      console.log(`  - ${entry}`);
+      log.plain(`  - ${entry}`);
     }
     if (manifest.staleEntries.length > 5) {
-      console.log(`  ... and ${manifest.staleEntries.length - 5} more`);
+      log.plain(`  ... and ${manifest.staleEntries.length - 5} more`);
     }
   }
 
-  console.log("");
+  log.blank();
 }
 
 export function runCacheClear(args: TestBenchArgs): void {
   const cache = new CacheManager();
   const filterDesc = args.strategy ? `strategy=${args.strategy}` : args.all ? "all" : "all";
 
-  console.log(`\n${color.cyan("Clearing cache")}... (filter: ${filterDesc})\n`);
+  subheader(`Clearing cache (filter: ${filterDesc})`);
 
   const result = cache.clear(args.strategy ? { strategy: args.strategy } : undefined);
 
-  console.log(`Cleared: ${result.cleared} entries (${formatBytes(result.bytesFreed)} freed)`);
-  console.log(`Remaining: ${result.total - result.cleared} entries\n`);
+  log.success(`Cleared: ${result.cleared} entries (${formatBytes(result.bytesFreed)} freed)`);
+  keyValue("Remaining", `${result.total - result.cleared} entries`);
+  log.blank();
 }

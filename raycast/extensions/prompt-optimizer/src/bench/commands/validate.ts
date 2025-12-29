@@ -1,14 +1,14 @@
-import color from "picocolors";
+import { log, c, subheader, testResult } from "../../utils/cli-output";
 import { validateStructureLocally } from "../../utils/evaluator";
 import { TestBenchArgs, loadStrategy, filterTestCases, generatePrompt } from "../types";
 
 export async function runValidate(args: TestBenchArgs): Promise<void> {
   if (!args.strategy) {
-    console.error("Error: --strategy is required for validate command");
+    log.error("--strategy is required for validate command");
     process.exit(1);
   }
 
-  console.log(`\n${color.cyan("Validating")} ${args.strategy}...\n`);
+  subheader(`Validating ${args.strategy}`);
 
   const strategy = await loadStrategy(args.strategy);
   const testCases = filterTestCases(args.cases, args.mode, args.category);
@@ -21,18 +21,20 @@ export async function runValidate(args: TestBenchArgs): Promise<void> {
       const hasStructure = validateStructureLocally(prompt);
 
       if (hasStructure) {
-        console.log(`  ${color.green("✓")} ${testCase.id}`);
+        testResult(testCase.id, true);
         passed++;
       } else {
-        console.log(`  ${color.red("✗")} ${testCase.id} - Missing required tags (<role>, <objective>, <instructions>)`);
+        testResult(testCase.id, false, "Missing required tags (<role>, <objective>, <instructions>)");
         failed++;
       }
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
-      console.log(`  ${color.red("✗")} ${testCase.id} - ${msg}`);
+      testResult(testCase.id, false, msg);
       failed++;
     }
   }
 
-  console.log(`\n${color.bold("Summary:")} ${passed}/${passed + failed} passed\n`);
+  log.blank();
+  log.plain(`${c.bold("Summary:")} ${passed}/${passed + failed} passed`);
+  log.blank();
 }

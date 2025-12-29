@@ -1,32 +1,32 @@
 import * as fs from "fs";
 import * as path from "path";
-import color from "picocolors";
 import pLimit from "p-limit";
 import { TEST_CASES } from "../../test-data/test-cases";
 import { CacheManager, CachedOptimizationRun } from "../../utils/cache";
 import { evaluateWithMetadata, JUDGES, JudgeConfig } from "../../utils/evaluator";
 import { PromptStrategy } from "../../prompts/types";
+import { log, c, symbols, labeledHeader, keyValue } from "../../utils/cli-output";
+import { printSimpleTable } from "../../utils/cli-table";
 import {
   TestBenchArgs,
   ABComparisonEntry,
   computeTestCaseIntersection,
   computeABSummary,
-  formatABComparisonTable,
   loadStrategy,
   generatePrompt,
 } from "../types";
 
 export async function runAB(args: TestBenchArgs): Promise<void> {
   if (!args.baselineRun) {
-    console.error("Error: --baseline is required for ab command");
+    log.error("--baseline is required for ab command");
     process.exit(1);
   }
   if (!args.candidateRun) {
-    console.error("Error: --candidate is required for ab command");
+    log.error("--candidate is required for ab command");
     process.exit(1);
   }
   if (!args.judge) {
-    console.error("Error: --judge is required for ab command");
+    log.error("--judge is required for ab command");
     process.exit(1);
   }
 
@@ -37,22 +37,22 @@ export async function runAB(args: TestBenchArgs): Promise<void> {
   const candidateRun = cachedRuns.find((r) => r.dirName === args.candidateRun);
 
   if (!baselineRun) {
-    console.error(`Error: Baseline run not found: ${args.baselineRun}`);
-    console.error(`Available runs: ${cachedRuns.map((r) => r.dirName).join(", ") || "(none)"}`);
+    log.error(`Baseline run not found: ${args.baselineRun}`);
+    log.plain(`Available runs: ${cachedRuns.map((r) => r.dirName).join(", ") || "(none)"}`);
     process.exit(1);
   }
   if (!candidateRun) {
-    console.error(`Error: Candidate run not found: ${args.candidateRun}`);
-    console.error(`Available runs: ${cachedRuns.map((r) => r.dirName).join(", ") || "(none)"}`);
+    log.error(`Candidate run not found: ${args.candidateRun}`);
+    log.plain(`Available runs: ${cachedRuns.map((r) => r.dirName).join(", ") || "(none)"}`);
     process.exit(1);
   }
 
   const intersection = computeTestCaseIntersection(baselineRun.testCaseIds, candidateRun.testCaseIds);
 
   if (intersection.common.length === 0) {
-    console.error("Error: No common test cases between baseline and candidate.");
-    console.error(`Baseline has: ${baselineRun.testCaseIds.join(", ")}`);
-    console.error(`Candidate has: ${candidateRun.testCaseIds.join(", ")}`);
+    log.error("No common test cases between baseline and candidate.");
+    log.plain(`Baseline has: ${baselineRun.testCaseIds.join(", ")}`);
+    log.plain(`Candidate has: ${candidateRun.testCaseIds.join(", ")}`);
     process.exit(1);
   }
 
@@ -62,7 +62,7 @@ export async function runAB(args: TestBenchArgs): Promise<void> {
       : intersection.common;
 
   if (testCaseIds.length === 0) {
-    console.error("Error: None of the specified test cases are in both baseline and candidate.");
+    log.error("None of the specified test cases are in both baseline and candidate.");
     process.exit(1);
   }
 
@@ -70,22 +70,22 @@ export async function runAB(args: TestBenchArgs): Promise<void> {
   const concurrency = args.concurrency ?? 3;
   const limit = pLimit(concurrency);
 
-  console.log(`\n${color.bgCyan(color.black(" A/B Comparison "))}\n`);
-  console.log(`${color.bold("Baseline:")}  ${baselineRun.strategyId} (${baselineRun.engine}/${baselineRun.model})`);
-  console.log(`${color.bold("Candidate:")} ${candidateRun.strategyId} (${candidateRun.engine}/${candidateRun.model})`);
-  console.log(`${color.bold("Judge:")}     ${args.judge}`);
-  console.log(`${color.bold("Cases:")}     ${testCaseIds.length}`);
+  labeledHeader("A/B Comparison", "blue");
+  keyValue("Baseline", `${baselineRun.strategyId} (${baselineRun.engine}/${baselineRun.model})`);
+  keyValue("Candidate", `${candidateRun.strategyId} (${candidateRun.engine}/${candidateRun.model})`);
+  keyValue("Judge", args.judge);
+  keyValue("Cases", testCaseIds.length);
 
   if (intersection.onlyInBaseline.length > 0 || intersection.onlyInCandidate.length > 0) {
-    console.log("");
+    log.blank();
     if (intersection.onlyInBaseline.length > 0) {
-      console.log(`${color.dim(`Skipped (baseline only): ${intersection.onlyInBaseline.join(", ")}`)}`);
+      log.plain(c.dim(`Skipped (baseline only): ${intersection.onlyInBaseline.join(", ")}`));
     }
     if (intersection.onlyInCandidate.length > 0) {
-      console.log(`${color.dim(`Skipped (candidate only): ${intersection.onlyInCandidate.join(", ")}`)}`);
+      log.plain(c.dim(`Skipped (candidate only): ${intersection.onlyInCandidate.join(", ")}`));
     }
   }
-  console.log("");
+  log.blank();
 
   const startTime = Date.now();
 
@@ -127,17 +127,18 @@ export async function runAB(args: TestBenchArgs): Promise<void> {
     }
   };
 
-  console.log(`${color.cyan("→")} Judging baseline (${baselineRun.strategyId})...`);
+  log.plain(`${symbols.arrow} Judging baseline (${baselineRun.strategyId})...`);
   const baselineResults = await Promise.all(
     testCaseIds.map((id) => limit(() => judgeForRun(baselineRun, baselineStrategy, id))),
   );
-  console.log(`${color.green("✓")} Baseline complete`);
+  log.success("Baseline complete");
 
-  console.log(`${color.cyan("→")} Judging candidate (${candidateRun.strategyId})...`);
+  log.plain(`${symbols.arrow} Judging candidate (${candidateRun.strategyId})...`);
   const candidateResults = await Promise.all(
     testCaseIds.map((id) => limit(() => judgeForRun(candidateRun, candidateStrategy, id))),
   );
-  console.log(`${color.green("✓")} Candidate complete\n`);
+  log.success("Candidate complete");
+  log.blank();
 
   const baselineScores = new Map(baselineResults.map((r) => [r.testCaseId, r.score]));
   const candidateScores = new Map(candidateResults.map((r) => [r.testCaseId, r.score]));
@@ -153,8 +154,40 @@ export async function runAB(args: TestBenchArgs): Promise<void> {
   const baselineLabel = `${baselineRun.strategyId} (${baselineRun.engine}/${baselineRun.model})`;
   const candidateLabel = `${candidateRun.strategyId} (${candidateRun.engine}/${candidateRun.model})`;
 
-  console.log(color.bold("Score Comparison:"));
-  console.log(formatABComparisonTable(comparisonResults, summary, baselineLabel, candidateLabel));
+  log.plain(c.bold("Score Comparison:"));
+  const tableRows: Array<Array<string | number>> = comparisonResults.map((r) => {
+    const deltaStr = r.delta >= 0 ? `+${r.delta.toFixed(2)}` : r.delta.toFixed(2);
+    let winner = "";
+    if (r.delta > 0.01) winner = "★";
+    else if (r.delta < -0.01) winner = "☆";
+    else winner = "=";
+    return [r.testCaseId, r.baselineScore.toFixed(2), r.candidateScore.toFixed(2), deltaStr, winner];
+  });
+  const summaryDeltaStr = summary.avgDelta >= 0 ? `+${summary.avgDelta.toFixed(2)}` : summary.avgDelta.toFixed(2);
+  tableRows.push([
+    c.bold("AVERAGE"),
+    summary.avgBaseline.toFixed(2),
+    summary.avgCandidate.toFixed(2),
+    summaryDeltaStr,
+    summary.winner === "candidate" ? "★ WIN" : summary.winner === "baseline" ? "☆ WIN" : "TIE",
+  ]);
+  printSimpleTable(["Test Case", "Baseline", "Candidate", "Delta", "Winner"], tableRows);
+
+  log.blank();
+  keyValue("Baseline", baselineLabel);
+  keyValue("Candidate", candidateLabel);
+  log.blank();
+  const winnerText =
+    summary.winner === "candidate"
+      ? `★ Candidate wins by ${summary.percentImprovement.toFixed(1)}%`
+      : summary.winner === "baseline"
+        ? `☆ Baseline wins by ${Math.abs(summary.percentImprovement).toFixed(1)}%`
+        : `= Tie (no significant difference)`;
+  log.plain(
+    `Results: ${summary.candidateWins} candidate wins, ${summary.baselineWins} baseline wins, ${summary.ties} ties`,
+  );
+  log.plain(`Verdict: ${winnerText}`);
+  log.plain(c.dim(`Legend: ★ = candidate better, ☆ = baseline better, = = tie`));
 
   const reportDir = path.join(process.cwd(), "ab_results");
   if (!fs.existsSync(reportDir)) {
@@ -194,5 +227,7 @@ export async function runAB(args: TestBenchArgs): Promise<void> {
   };
 
   fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
-  console.log(`\n${color.bold("Results saved to:")} ${reportPath}\n`);
+  log.blank();
+  log.plain(`${c.bold("Results saved to:")} ${reportPath}`);
+  log.blank();
 }

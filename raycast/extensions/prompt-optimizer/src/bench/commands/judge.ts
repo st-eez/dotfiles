@@ -1,10 +1,10 @@
 import * as fs from "fs";
 import * as path from "path";
-import color from "picocolors";
 import pLimit from "p-limit";
 import { TestCase } from "../../test-data/test-cases";
 import { CacheManager } from "../../utils/cache";
 import { evaluateWithMetadata, JUDGES, JudgeConfig, EvaluationResultV3 } from "../../utils/evaluator";
+import { log, c, symbols, subheader, keyValue } from "../../utils/cli-output";
 import {
   TestBenchArgs,
   JudgeResultEntry,
@@ -18,11 +18,11 @@ import {
 
 export async function runJudge(args: TestBenchArgs): Promise<void> {
   if (!args.strategy) {
-    console.error("Error: --strategy is required for judge command");
+    log.error("--strategy is required for judge command");
     process.exit(1);
   }
   if (!args.judge) {
-    console.error("Error: --judge is required for judge command");
+    log.error("--judge is required for judge command");
     process.exit(1);
   }
 
@@ -35,7 +35,8 @@ export async function runJudge(args: TestBenchArgs): Promise<void> {
   const concurrency = args.concurrency ?? 3;
   const limit = pLimit(concurrency);
 
-  console.log(`\n${color.cyan("Judging")} ${strategy.id} with ${args.judge} [concurrency: ${concurrency}]...\n`);
+  subheader(`Judging ${strategy.id} with ${args.judge}`);
+  keyValue("Concurrency", concurrency);
 
   const startTime = Date.now();
 
@@ -76,16 +77,14 @@ export async function runJudge(args: TestBenchArgs): Promise<void> {
 
   for (const result of judgeResults) {
     if (result.status === "no_cache") {
-      console.log(`  ${color.red("✗")} ${result.testCaseId} - No cached optimization (run optimize first)`);
+      log.plain(`  ${symbols.fail} ${result.testCaseId} - No cached optimization (run optimize first)`);
     } else if (result.status === "error") {
-      console.log(`  ${color.red("✗")} ${result.testCaseId} - ${result.error}`);
+      log.plain(`  ${symbols.fail} ${result.testCaseId} - ${result.error}`);
     } else if (result.evaluation) {
       const score = result.evaluation.totalScore.toFixed(2);
       const structure = result.evaluation.structurePass ? "pass" : "fail";
       const context = result.hasContext ? (result.evaluation.contextPass ? "pass" : "fail") : "N/A";
-      console.log(
-        `  ${color.green("✓")} ${result.testCaseId}: score=${score} (structure: ${structure}, context: ${context})`,
-      );
+      log.plain(`  ${symbols.ok} ${result.testCaseId}: score=${score} (structure: ${structure}, context: ${context})`);
     }
   }
 
@@ -98,9 +97,8 @@ export async function runJudge(args: TestBenchArgs): Promise<void> {
       ? successResults.reduce((sum, r) => sum + r.evaluation.totalScore, 0) / successResults.length
       : 0;
 
-  console.log(
-    `\n${color.bold("Summary:")} ${passed}/${successResults.length} passed, avg score: ${avgScore.toFixed(2)}`,
-  );
+  log.blank();
+  log.plain(`${c.bold("Summary:")} ${passed}/${successResults.length} passed, avg score: ${avgScore.toFixed(2)}`);
 
   const reportDir = path.join(process.cwd(), "ab_results");
   if (!fs.existsSync(reportDir)) {
@@ -123,5 +121,6 @@ export async function runJudge(args: TestBenchArgs): Promise<void> {
   };
 
   fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
-  console.log(`${color.bold("Results saved to:")} ${reportPath}\n`);
+  log.plain(`${c.bold("Results saved to:")} ${reportPath}`);
+  log.blank();
 }

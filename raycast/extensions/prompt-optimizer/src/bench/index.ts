@@ -1,3 +1,5 @@
+import { initCliOutput } from "../utils/cli-args";
+import { installCancelHandler } from "../utils/cli-cancel";
 import { parseArgs } from "./args";
 import { interactiveMode } from "./interactive";
 import { runValidate } from "./commands/validate";
@@ -8,6 +10,8 @@ import { runCompare } from "./commands/compare";
 import { runAB } from "./commands/ab";
 
 export async function main(): Promise<void> {
+  initCliOutput();
+  installCancelHandler();
   const args = parseArgs();
 
   if (!args) {
