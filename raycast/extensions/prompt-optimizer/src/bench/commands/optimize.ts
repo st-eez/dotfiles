@@ -4,6 +4,8 @@ import { CacheManager, CachedOptimizationEntry } from "../../utils/cache";
 import { runGeminiWithMetadata, runWithEngine, withRetry, GeminiRunResult } from "../../test/lib/test-utils";
 import { OptimizationMetadata, TimingData } from "../../utils/types";
 import { log, c, symbols, subheader, keyValue } from "../../utils/cli-output";
+import { startProgress, incrementProgress, finishProgress } from "../../utils/cli-progress";
+import { wasCancelled, setPartialResults, onCancel, printCancellationSummary } from "../../utils/cli-cancel";
 import {
   TestBenchArgs,
   OptimizeResult,
@@ -35,20 +37,37 @@ export async function runOptimize(args: TestBenchArgs): Promise<void> {
   keyValue("Concurrency", concurrency);
 
   const startTime = Date.now();
+  const results: OptimizeResult[] = [];
+
+  onCancel(() => {
+    finishProgress();
+    printCancellationSummary();
+  });
+
+  startProgress(testCases.length, "Optimizing", { showCacheStats: true });
 
   const optimizeOne = async (testCase: TestCase): Promise<OptimizeResult> => {
+    if (wasCancelled()) {
+      return { testCaseId: testCase.id, status: "error", error: "cancelled" };
+    }
+
     const prompt = generatePrompt(strategy, testCase);
     const promptHash = cache.computePromptHash(prompt);
 
     const existing = cache.get(strategy.id, engine, model, testCase.id, promptHash);
 
     if (existing && !args.force) {
+      incrementProgress({ cacheHit: true });
       return { testCaseId: testCase.id, status: "cached" };
     }
 
     const optStart = Date.now();
 
     try {
+      if (wasCancelled()) {
+        return { testCaseId: testCase.id, status: "error", error: "cancelled" };
+      }
+
       let optimizedOutput: string;
       let metadata: OptimizationMetadata;
 
@@ -93,14 +112,28 @@ export async function runOptimize(args: TestBenchArgs): Promise<void> {
       };
 
       cache.set(entry);
+      incrementProgress({ cacheHit: false });
       return { testCaseId: testCase.id, status: "optimized", durationMs: Date.now() - optStart };
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
+      incrementProgress({ error: true });
       return { testCaseId: testCase.id, status: "error", error: msg.slice(0, 60) };
     }
   };
 
-  const results = await Promise.all(testCases.map((tc) => limit(() => optimizeOne(tc))));
+  const processOne = async (testCase: TestCase): Promise<void> => {
+    const result = await optimizeOne(testCase);
+    results.push(result);
+    setPartialResults({
+      completed: results.length,
+      total: testCases.length,
+      startTime,
+    });
+  };
+
+  await Promise.all(testCases.map((tc) => limit(() => processOne(tc))));
+
+  finishProgress();
 
   for (const result of results) {
     if (result.status === "cached") {

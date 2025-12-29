@@ -5,8 +5,10 @@ import { TEST_CASES } from "../../test-data/test-cases";
 import { CacheManager, CachedOptimizationRun } from "../../utils/cache";
 import { evaluateWithMetadata, JUDGES, JudgeConfig } from "../../utils/evaluator";
 import { PromptStrategy } from "../../prompts/types";
-import { log, c, symbols, labeledHeader, keyValue } from "../../utils/cli-output";
+import { log, c, labeledHeader, keyValue } from "../../utils/cli-output";
 import { printSimpleTable } from "../../utils/cli-table";
+import { startProgress, incrementProgress, finishProgress, setProgressPhase } from "../../utils/cli-progress";
+import { wasCancelled, setPartialResults, onCancel, printCancellationSummary } from "../../utils/cli-cancel";
 import {
   TestBenchArgs,
   ABComparisonEntry,
@@ -89,16 +91,28 @@ export async function runAB(args: TestBenchArgs): Promise<void> {
 
   const startTime = Date.now();
 
+  onCancel(() => {
+    finishProgress();
+    printCancellationSummary();
+  });
+
   const baselineStrategy = await loadStrategy(`src/prompts/${baselineRun.strategyId}.ts`);
   const candidateStrategy = await loadStrategy(`src/prompts/${candidateRun.strategyId}.ts`);
+
+  type JudgeResult = { testCaseId: string; score: number; error?: string };
 
   const judgeForRun = async (
     run: CachedOptimizationRun,
     strategy: PromptStrategy,
     testCaseId: string,
-  ): Promise<{ testCaseId: string; score: number; error?: string }> => {
+  ): Promise<JudgeResult> => {
+    if (wasCancelled()) {
+      return { testCaseId, score: 0, error: "cancelled" };
+    }
+
     const testCase = TEST_CASES.find((tc) => tc.id === testCaseId);
     if (!testCase) {
+      incrementProgress();
       return { testCaseId, score: 0, error: "Test case not found" };
     }
 
@@ -107,10 +121,15 @@ export async function runAB(args: TestBenchArgs): Promise<void> {
     const cached = cache.get(run.strategyId, run.engine, run.model, testCaseId, promptHash);
 
     if (!cached) {
+      incrementProgress();
       return { testCaseId, score: 0, error: "No cache" };
     }
 
     try {
+      if (wasCancelled()) {
+        return { testCaseId, score: 0, error: "cancelled" };
+      }
+
       const evalResult = await evaluateWithMetadata(
         testCaseId,
         strategy.id,
@@ -120,24 +139,55 @@ export async function runAB(args: TestBenchArgs): Promise<void> {
         cached.metadata,
         judgeConfig,
       );
+      incrementProgress();
       return { testCaseId, score: evalResult.totalScore };
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
+      incrementProgress({ error: true });
       return { testCaseId, score: 0, error: msg.slice(0, 40) };
     }
   };
 
-  log.plain(`${symbols.arrow} Judging baseline (${baselineRun.strategyId})...`);
-  const baselineResults = await Promise.all(
-    testCaseIds.map((id) => limit(() => judgeForRun(baselineRun, baselineStrategy, id))),
-  );
-  log.success("Baseline complete");
+  const totalWork = testCaseIds.length * 2;
+  startProgress(totalWork, `Baseline (${baselineRun.strategyId})`);
 
-  log.plain(`${symbols.arrow} Judging candidate (${candidateRun.strategyId})...`);
-  const candidateResults = await Promise.all(
-    testCaseIds.map((id) => limit(() => judgeForRun(candidateRun, candidateStrategy, id))),
-  );
-  log.success("Candidate complete");
+  const baselineResults: JudgeResult[] = [];
+  for (const id of testCaseIds) {
+    if (wasCancelled()) break;
+    const result = await limit(() => judgeForRun(baselineRun, baselineStrategy, id));
+    baselineResults.push(result);
+    setPartialResults({
+      completed: baselineResults.length,
+      total: totalWork,
+      startTime,
+    });
+  }
+
+  if (wasCancelled()) {
+    finishProgress();
+    return;
+  }
+
+  setProgressPhase(`Candidate (${candidateRun.strategyId})`);
+
+  const candidateResults: JudgeResult[] = [];
+  for (const id of testCaseIds) {
+    if (wasCancelled()) break;
+    const result = await limit(() => judgeForRun(candidateRun, candidateStrategy, id));
+    candidateResults.push(result);
+    setPartialResults({
+      completed: baselineResults.length + candidateResults.length,
+      total: totalWork,
+      startTime,
+    });
+  }
+
+  finishProgress();
+
+  if (wasCancelled()) {
+    return;
+  }
+
   log.blank();
 
   const baselineScores = new Map(baselineResults.map((r) => [r.testCaseId, r.score]));

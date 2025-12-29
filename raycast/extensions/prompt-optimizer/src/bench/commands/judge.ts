@@ -5,6 +5,8 @@ import { TestCase } from "../../test-data/test-cases";
 import { CacheManager } from "../../utils/cache";
 import { evaluateWithMetadata, JUDGES, JudgeConfig, EvaluationResultV3 } from "../../utils/evaluator";
 import { log, c, symbols, subheader, keyValue } from "../../utils/cli-output";
+import { startProgress, incrementProgress, finishProgress } from "../../utils/cli-progress";
+import { wasCancelled, setPartialResults, onCancel, printCancellationSummary } from "../../utils/cli-cancel";
 import {
   TestBenchArgs,
   JudgeResultEntry,
@@ -39,18 +41,35 @@ export async function runJudge(args: TestBenchArgs): Promise<void> {
   keyValue("Concurrency", concurrency);
 
   const startTime = Date.now();
+  const judgeResults: JudgeResultEntry[] = [];
+
+  onCancel(() => {
+    finishProgress();
+    printCancellationSummary();
+  });
+
+  startProgress(testCases.length, "Judging");
 
   const judgeOne = async (testCase: TestCase): Promise<JudgeResultEntry> => {
+    if (wasCancelled()) {
+      return { testCaseId: testCase.id, status: "error", error: "cancelled" };
+    }
+
     const prompt = generatePrompt(strategy, testCase);
     const promptHash = cache.computePromptHash(prompt);
 
     const cached = cache.get(strategy.id, engine, model, testCase.id, promptHash);
 
     if (!cached) {
+      incrementProgress();
       return { testCaseId: testCase.id, status: "no_cache" };
     }
 
     try {
+      if (wasCancelled()) {
+        return { testCaseId: testCase.id, status: "error", error: "cancelled" };
+      }
+
       const evalResult = await evaluateWithMetadata(
         testCase.id,
         strategy.id,
@@ -61,6 +80,7 @@ export async function runJudge(args: TestBenchArgs): Promise<void> {
         judgeConfig,
       );
 
+      incrementProgress();
       return {
         testCaseId: testCase.id,
         status: "success",
@@ -69,11 +89,24 @@ export async function runJudge(args: TestBenchArgs): Promise<void> {
       };
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
+      incrementProgress({ error: true });
       return { testCaseId: testCase.id, status: "error", error: msg.slice(0, 60) };
     }
   };
 
-  const judgeResults = await Promise.all(testCases.map((tc) => limit(() => judgeOne(tc))));
+  const processOne = async (testCase: TestCase): Promise<void> => {
+    const result = await judgeOne(testCase);
+    judgeResults.push(result);
+    setPartialResults({
+      completed: judgeResults.length,
+      total: testCases.length,
+      startTime,
+    });
+  };
+
+  await Promise.all(testCases.map((tc) => limit(() => processOne(tc))));
+
+  finishProgress();
 
   for (const result of judgeResults) {
     if (result.status === "no_cache") {
