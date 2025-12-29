@@ -81,8 +81,12 @@ export const DEFAULT_CONFIG: PromptOptimizerConfig = {
 /**
  * Active configuration instance.
  * Currently uses defaults; can be extended to load from environment or file.
+ * Deep clone to prevent mutation of DEFAULT_CONFIG via shared nested objects.
  */
-export const config: PromptOptimizerConfig = { ...DEFAULT_CONFIG };
+export const config: PromptOptimizerConfig = {
+  ...DEFAULT_CONFIG,
+  weights: { ...DEFAULT_CONFIG.weights },
+};
 
 /**
  * Helper to get timeout for a given mode.

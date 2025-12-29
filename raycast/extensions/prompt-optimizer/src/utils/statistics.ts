@@ -4,6 +4,8 @@
  * Implements Wilcoxon signed-rank test for paired samples.
  */
 
+import { config } from "../config";
+
 // --- Types ---
 
 export interface StatResult {
@@ -22,18 +24,6 @@ export interface DecisionResult {
   decision: Decision;
   stats: StatResult;
 }
-
-// --- Constants ---
-
-const SIGNIFICANCE_THRESHOLD = 0.05;
-
-/**
- * Minimum improvement threshold for shipping candidate.
- *
- * Rationale: On a 1-5 scale, 0.5 points = 10% relative improvement.
- * Filters out statistically significant but practically insignificant gains.
- */
-const MIN_IMPROVEMENT_THRESHOLD = 0.5;
 
 // --- Helper Functions ---
 
@@ -423,7 +413,7 @@ export function wilcoxonSignedRank(baseline: number[], candidate: number[]): Sta
     candidateAvg,
     improvement,
     pValue,
-    significant: pValue < SIGNIFICANCE_THRESHOLD,
+    significant: pValue < config.significanceThreshold,
     effectSize: d,
     effectSizeLabel: effectSizeLabel(d),
   };
@@ -484,7 +474,7 @@ export function decideWinner(baselineScores: number[], candidateScores: number[]
   const stats = wilcoxonSignedRank(baselineScores, candidateScores);
 
   let decision: Decision;
-  if (stats.significant && stats.improvement >= MIN_IMPROVEMENT_THRESHOLD) {
+  if (stats.significant && stats.improvement >= config.minImprovementThreshold) {
     decision = "ship_candidate";
   } else if (stats.significant && stats.improvement < 0) {
     // Candidate is significantly WORSE

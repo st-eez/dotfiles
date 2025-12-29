@@ -255,12 +255,13 @@ export const engines: Engine[] = [
       return parseSmartModeOutput(parseGeminiJson(output));
     },
     auditOrchestrated: async (prompt, model = "gemini-3-flash-preview", context = "") => {
+      const timeout = getTimeout(true);
       const { env } = getGeminiIsolation();
       const output = await safeExec(
         "gemini",
         ["--model", model, "--output-format", "json"],
         buildSmartAuditPrompt(prompt, context),
-        undefined,
+        timeout,
         env,
       );
       return parseSmartAuditOutput(parseGeminiJson(output));
@@ -346,12 +347,13 @@ export const engines: Engine[] = [
       return parseSmartModeOutput(output);
     },
     auditOrchestrated: async (prompt, model = "gpt-5.2-codex", context = "") => {
+      const timeout = getTimeout(true);
       const { env } = getCodexIsolation();
       const output = await safeExec(
         "codex",
         ["exec", "-m", model, "--config", `model_reasoning_effort="high"`, "--skip-git-repo-check"],
         buildSmartAuditPrompt(prompt, context),
-        undefined,
+        timeout,
         env,
       );
       return parseSmartAuditOutput(output);

@@ -4,14 +4,9 @@
  * Uses GPT-5.2-Codex to evaluate optimized prompts against quality criteria.
  */
 
-import {
-  safeExec,
-  withIsolatedCodex,
-  withIsolatedGemini,
-  withIsolatedOpencode,
-  parseGeminiJson,
-  parseOpencodeJson,
-} from "./exec";
+import { safeExec, parseGeminiJson, parseOpencodeJson } from "./exec";
+import { getCodexIsolation, getGeminiIsolation, getOpencodeIsolation } from "./isolation";
+import { config } from "../config";
 import { TimingData, RetryData, TokenData, OptimizationMetadata } from "./types";
 
 export type { TimingData, RetryData, TokenData, OptimizationMetadata };
@@ -67,10 +62,6 @@ interface JudgeResponse {
   rationale: string;
   synthesis: string;
 }
-
-// --- Constants ---
-
-const EVALUATOR_TIMEOUT_MS = 60_000;
 
 // --- Evaluator Prompt ---
 
@@ -151,42 +142,38 @@ function estimateTokenCount(text: string): number {
 
 async function runCodexJudge(prompt: string, judge: JudgeConfig): Promise<string> {
   const reasoningConfig = judge.reasoningEffort ? `model_reasoning_effort="${judge.reasoningEffort}"` : "";
-  return withIsolatedCodex(async (homeDir) => {
-    return safeExec(
-      "codex",
-      ["exec", "-m", judge.model, ...(reasoningConfig ? ["--config", reasoningConfig] : []), "--skip-git-repo-check"],
-      prompt,
-      EVALUATOR_TIMEOUT_MS,
-      { CODEX_HOME: homeDir },
-    );
-  });
+  const { env } = getCodexIsolation();
+  return safeExec(
+    "codex",
+    ["exec", "-m", judge.model, ...(reasoningConfig ? ["--config", reasoningConfig] : []), "--skip-git-repo-check"],
+    prompt,
+    config.timeoutEvaluatorMs,
+    env,
+  );
 }
 
 async function runGeminiJudge(prompt: string, judge: JudgeConfig): Promise<string> {
-  return withIsolatedGemini(async (homeDir) => {
-    const rawOutput = await safeExec(
-      "gemini",
-      // --sandbox disables agentic tools (read_file, execute_command, etc.)
-      ["--sandbox", "--model", judge.model, "--output-format", "json"],
-      prompt,
-      EVALUATOR_TIMEOUT_MS,
-      { HOME: homeDir },
-    );
-    return parseGeminiJson(rawOutput);
-  });
+  const { env } = getGeminiIsolation();
+  const rawOutput = await safeExec(
+    "gemini",
+    ["--sandbox", "--model", judge.model, "--output-format", "json"],
+    prompt,
+    config.timeoutEvaluatorMs,
+    env,
+  );
+  return parseGeminiJson(rawOutput);
 }
 
 async function runOpencodeJudge(prompt: string, judge: JudgeConfig): Promise<string> {
-  return withIsolatedOpencode(async (env) => {
-    const rawOutput = await safeExec(
-      "opencode",
-      ["run", "--model", judge.model, "--format", "json"],
-      prompt,
-      EVALUATOR_TIMEOUT_MS,
-      { ...env },
-    );
-    return parseOpencodeJson(rawOutput);
-  });
+  const { env } = getOpencodeIsolation();
+  const rawOutput = await safeExec(
+    "opencode",
+    ["run", "--model", judge.model, "--format", "json"],
+    prompt,
+    config.timeoutEvaluatorMs,
+    env,
+  );
+  return parseOpencodeJson(rawOutput);
 }
 
 async function runJudge(prompt: string, judge: JudgeConfig): Promise<string> {
