@@ -40,7 +40,33 @@ npx ts-node src/test-ab-runner.ts \
   [--mode quick|detailed] \
   [--category code|writing|system-design|data-analysis|simple|edge] \
   [--judge codex-high|codex-medium|gemini-flash]
+
+# Test Bench (interactive or CLI)
+npx ts-node src/test-bench.ts                    # Interactive mode
+npx ts-node src/test-bench.ts validate --strategy src/prompts/v1-baseline.ts
+npx ts-node src/test-bench.ts optimize --strategy src/prompts/v1-baseline.ts --case code-001
+npx ts-node src/test-bench.ts judge --strategy src/prompts/v1-baseline.ts --judge gemini-flash
+npx ts-node src/test-bench.ts cache status
+npx ts-node src/test-bench.ts ab --baseline <run> --candidate <run> --judge codex-high
 ```
+
+### CLI Output Options
+
+All test scripts support these output options:
+
+| Flag | Description |
+|------|-------------|
+| `--json` | Output results as JSON (implies --quiet for logs) |
+| `--quiet`, `-q` | Suppress non-error output |
+| `--verbose`, `-v` | Enable debug logging |
+| `--no-color` | Disable colored output |
+| `--ascii` | Use ASCII characters instead of Unicode |
+| `--simple` | Linear output without animations (accessibility/CI friendly) |
+
+Environment variables:
+- `NO_COLOR=1` - Disable colors (standard)
+- `FORCE_COLOR=1` - Force colors even in non-TTY
+- `CI=true` - Detected automatically, disables interactive prompts
 
 ## Prerequisites
 
@@ -65,6 +91,12 @@ npx ts-node src/test-ab-runner.ts \
   /test-data/            # Test case definitions
     test-cases.ts        # Main test case registry
   /utils/
+    cli-args.ts          # CLI argument parsing (--json, --quiet, --simple, etc.)
+    cli-cancel.ts        # Graceful cancellation handling (SIGINT/SIGTERM)
+    cli-output.ts        # Centralized logging, colors, symbols, headers
+    cli-progress.ts      # Progress bars with ETA, spinners
+    cli-table.ts         # Table rendering with cli-table3
+    cli-types.ts         # Shared CLI type definitions
     engines.ts           # Engine definitions, personas, smart mode parsing
     evaluator.ts         # A/B test evaluation logic
     exec.ts              # Safe CLI execution wrapper
@@ -73,6 +105,12 @@ npx ts-node src/test-ab-runner.ts \
     statistics.ts        # Statistical analysis (p-value, SRM detection)
     templates.ts         # Template variable substitution
     types.ts             # Shared types (timing, tokens, metadata)
+  /bench/                  # Test bench CLI modules
+    index.ts             # Main entry, CLI routing
+    args.ts              # Argument parsing for test-bench
+    interactive.ts       # @clack/prompts interactive mode
+    types.ts             # Shared types, constants, utilities
+    commands/            # Individual command implementations
   optimize-prompt.tsx    # Main command - form UI
   resolve-ambiguity.tsx  # Critic flow - clarification wizard
   history.tsx            # History list view
