@@ -1,9 +1,9 @@
 # Prompt Optimizer Performance Optimization Plan
 
-**Document Version:** 2.1  
+**Document Version:** 2.2  
 **Created:** 2025-12-29  
 **Updated:** 2025-12-29  
-**Status:** PHASE 0 COMPLETE - Baseline Captured  
+**Status:** PHASE 0 COMPLETE - Baseline + Judge Selection Finalized  
 **Extension Path:** `raycast/extensions/prompt-optimizer/`
 
 ---
@@ -792,14 +792,50 @@ Phase 0 ─► Phase 4 ────────────┘
 
 ## 11. Testing & Verification Strategy
 
-### Automated Quality Verification
+### 11.1 Judge Selection (Phase 0 Finding)
+
+**Comparison run on same 27 cached outputs (2025-12-29):**
+
+| Judge            | Avg Score | Passed | design-001 (has bug) | edge-001 | Cost |
+| ---------------- | --------- | ------ | -------------------- | -------- | ---- |
+| codex-high       | 4.26      | 26/27  | 0.00 ✅ caught       | 3.40     | $$$  |
+| **codex-medium** | 4.27      | 26/27  | 0.00 ✅ caught       | 2.40     | $$   |
+| gemini-flash     | 5.00      | 27/27  | 5.00 ❌ missed       | 5.00     | $    |
+
+**Decision: Use `codex-medium` as default judge.**
+
+Rationale:
+
+- Same bug detection as codex-high (both caught design-001 context corruption)
+- Lower cost (medium reasoning effort vs high)
+- More score variance on edge cases (useful signal)
+- **Never use gemini-flash** — it missed a real context preservation bug
+
+### 11.2 Testing Workflow
+
+**Do NOT cache judge results.** LLM judges are non-deterministic; re-judging reveals variance.
+
+| Stage                | Command                          | Cost | Purpose                      |
+| -------------------- | -------------------------------- | ---- | ---------------------------- |
+| **Local dev**        | `validate --strategy ...`        | FREE | Structure check only, no LLM |
+| **Quick check**      | `judge --case code-001,code-002` | $    | Spot check 2-3 cases         |
+| **Pre-commit**       | `judge --judge codex-medium`     | $$   | Full run, accept variance    |
+| **Final validation** | 3x judge runs, take median       | $$$  | Statistical robustness       |
+| **A/B comparison**   | `ab --judge codex-medium`        | $$   | Compare strategies           |
 
 ```bash
-npx ts-node src/test-bench.ts optimize --strategy src/prompts/v1-baseline.ts --force
-npx ts-node src/test-bench.ts judge --strategy src/prompts/v1-baseline.ts --judge codex-high
+# Local dev (FREE)
+npx ts-node src/test-bench.ts validate --strategy src/prompts/v1-baseline.ts
+
+# Pre-commit (single run)
+npx ts-node src/test-bench.ts judge --strategy src/prompts/v1-baseline.ts --judge codex-medium
+
+# Final validation (3x median - run 3 times, compare results)
+npx ts-node src/test-bench.ts judge --strategy src/prompts/v1-baseline.ts --judge codex-medium
+# Repeat 2 more times, take median scores
 ```
 
-### Final Acceptance Criteria (Updated)
+### 11.3 Final Acceptance Criteria
 
 | Criterion                     | Target   |
 | ----------------------------- | -------- |
@@ -813,15 +849,21 @@ npx ts-node src/test-bench.ts judge --strategy src/prompts/v1-baseline.ts --judg
 | **Edge case pass rate**       | 100%     |
 | **Parsing function coverage** | 100%     |
 
-### Judge Consistency Validation
+### 11.4 Judge Variance Management
 
-**Known Issue:** Different judges produce varying scores for identical prompts.
+**Known Issue:** Same output → different scores on different runs.
 
-**Mitigation:**
+**Mitigation Strategy:**
 
-1. Use consistent judge (codex-high) for all comparisons
-2. Run each evaluation 3x and take median
-3. Document inter-judge variance in results
+1. **Default:** Accept single-run variance for routine testing
+2. **Final validation:** Run 3x, take median score per test case
+3. **A/B testing:** Run both strategies 3x each, compare medians
+4. **Never cache judge results** — caching hides variance and locks in bad rolls
+5. **Control costs via selective runs**, not caching:
+   ```bash
+   # Quick: 3 cases instead of 27
+   npx ts-node src/test-bench.ts judge --case code-001,code-002,code-003 --judge codex-medium
+   ```
 
 ---
 
@@ -840,7 +882,7 @@ npx ts-node src/test-bench.ts judge --strategy src/prompts/v1-baseline.ts --judg
 2. **~5% Test Coverage:** Critical parsing functions completely untested
 3. **Input Validation Gaps:** Special characters, code snippets, non-English not tested
 4. **Hardcoded Values:** 15+ magic numbers without configuration or rationale
-5. **Inter-Judge Variance:** Same prompt gets different scores from different judges
+5. ~~**Inter-Judge Variance:** Same prompt gets different scores from different judges~~ → **RESOLVED:** See Section 11.1-11.4 for judge selection and variance management
 
 ---
 
@@ -874,5 +916,5 @@ npx ts-node src/test-bench.ts judge --strategy src/prompts/v1-baseline.ts --judg
 
 **Document End**
 
-_Last Updated: 2025-12-29 (v2.1)_
-_Changes: Phase 0 complete - Added Section 2.5 with baseline metrics (latency, tokens, quality scores)_
+_Last Updated: 2025-12-29 (v2.2)_
+_Changes: Added judge comparison (Section 11.1), testing workflow (11.2), variance management (11.4). Changed default judge from codex-high to codex-medium._
