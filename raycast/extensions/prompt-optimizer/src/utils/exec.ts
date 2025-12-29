@@ -212,12 +212,6 @@ export async function withIsolatedGemini<T>(callback: (homeDir: string) => Promi
 }
 
 /**
- * Creates a temporary, isolated CODEX_HOME environment.
- * 1. Symlinks ~/.codex/auth.json to preserve authentication.
- * 2. Creates an empty AGENTS.md to prevent loading global instructions.
- * 3. Does NOT copy config.toml, preventing MCP server startup.
- */
-/**
  * Parse OpenCode CLI JSON streaming output.
  * Extracts text from "text" events in NDJSON stream.
  */

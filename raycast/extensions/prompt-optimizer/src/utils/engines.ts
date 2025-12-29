@@ -1,5 +1,6 @@
 import { Icon } from "@raycast/api";
-import { safeExec, getTimeout, parseGeminiJson, withIsolatedGemini, withIsolatedCodex } from "./exec";
+import { safeExec, getTimeout, parseGeminiJson } from "./exec";
+import { getGeminiIsolation, getCodexIsolation } from "./isolation";
 import { buildPrompt } from "../prompts/v1-baseline";
 import { PERSONA_INSTRUCTIONS } from "../prompts/personas";
 import { buildSmartPrompt, buildSmartAuditPrompt, buildSmartClarificationPrompt } from "../prompts/smart";
@@ -196,35 +197,33 @@ export const engines: Engine[] = [
     ],
     run: async (prompt, model = "gemini-3-flash-preview", context = "", persona = "prompt_engineer") => {
       const timeout = getTimeout(false);
-      return withIsolatedGemini(async (homeDir) => {
-        const output = await safeExec(
-          "gemini",
-          ["--model", model, "--output-format", "json"],
-          buildOptimizationPrompt(prompt, context, persona),
-          timeout,
-          { HOME: homeDir },
-        );
-        return parseGeminiJson(output);
-      });
+      const { env } = getGeminiIsolation();
+      const output = await safeExec(
+        "gemini",
+        ["--model", model, "--output-format", "json"],
+        buildOptimizationPrompt(prompt, context, persona),
+        timeout,
+        env,
+      );
+      return parseGeminiJson(output);
     },
     audit: async (prompt, model = "gemini-3-flash-preview", context = "", persona = "prompt_engineer") => {
-      return withIsolatedGemini(async (homeDir) => {
-        const output = await safeExec(
-          "gemini",
-          ["--model", model, "--output-format", "json"],
-          buildAuditPrompt(prompt, context, persona),
-          undefined,
-          { HOME: homeDir },
-        );
-        try {
-          const response = parseGeminiJson(output);
-          const jsonStr = response.replace(/```json\n?|\n?```/g, "").trim();
-          return JSON.parse(jsonStr);
-        } catch (e) {
-          console.error("Failed to parse audit JSON", e, output);
-          return [];
-        }
-      });
+      const { env } = getGeminiIsolation();
+      const output = await safeExec(
+        "gemini",
+        ["--model", model, "--output-format", "json"],
+        buildAuditPrompt(prompt, context, persona),
+        undefined,
+        env,
+      );
+      try {
+        const response = parseGeminiJson(output);
+        const jsonStr = response.replace(/```json\n?|\n?```/g, "").trim();
+        return JSON.parse(jsonStr);
+      } catch (e) {
+        console.error("Failed to parse audit JSON", e, output);
+        return [];
+      }
     },
     runWithClarifications: async (
       prompt,
@@ -233,41 +232,38 @@ export const engines: Engine[] = [
       context = "",
       persona = "prompt_engineer",
     ) => {
-      return withIsolatedGemini(async (homeDir) => {
-        const output = await safeExec(
-          "gemini",
-          ["--model", model, "--output-format", "json"],
-          buildClarificationPrompt(prompt, context, persona, clarifications),
-          undefined,
-          { HOME: homeDir },
-        );
-        return parseGeminiJson(output);
-      });
+      const { env } = getGeminiIsolation();
+      const output = await safeExec(
+        "gemini",
+        ["--model", model, "--output-format", "json"],
+        buildClarificationPrompt(prompt, context, persona, clarifications),
+        undefined,
+        env,
+      );
+      return parseGeminiJson(output);
     },
     runOrchestrated: async (prompt, model = "gemini-3-flash-preview", context = "") => {
       const timeout = getTimeout(true);
-      return withIsolatedGemini(async (homeDir) => {
-        const output = await safeExec(
-          "gemini",
-          ["--model", model, "--output-format", "json"],
-          buildSmartPrompt(prompt, context),
-          timeout,
-          { HOME: homeDir },
-        );
-        return parseSmartModeOutput(parseGeminiJson(output));
-      });
+      const { env } = getGeminiIsolation();
+      const output = await safeExec(
+        "gemini",
+        ["--model", model, "--output-format", "json"],
+        buildSmartPrompt(prompt, context),
+        timeout,
+        env,
+      );
+      return parseSmartModeOutput(parseGeminiJson(output));
     },
     auditOrchestrated: async (prompt, model = "gemini-3-flash-preview", context = "") => {
-      return withIsolatedGemini(async (homeDir) => {
-        const output = await safeExec(
-          "gemini",
-          ["--model", model, "--output-format", "json"],
-          buildSmartAuditPrompt(prompt, context),
-          undefined,
-          { HOME: homeDir },
-        );
-        return parseSmartAuditOutput(parseGeminiJson(output));
-      });
+      const { env } = getGeminiIsolation();
+      const output = await safeExec(
+        "gemini",
+        ["--model", model, "--output-format", "json"],
+        buildSmartAuditPrompt(prompt, context),
+        undefined,
+        env,
+      );
+      return parseSmartAuditOutput(parseGeminiJson(output));
     },
     runOrchestratedWithClarifications: async (
       prompt,
@@ -276,16 +272,15 @@ export const engines: Engine[] = [
       context = "",
     ) => {
       const timeout = getTimeout(true);
-      return withIsolatedGemini(async (homeDir) => {
-        const output = await safeExec(
-          "gemini",
-          ["--model", model, "--output-format", "json"],
-          buildSmartClarificationPrompt(prompt, context, clarifications),
-          timeout,
-          { HOME: homeDir },
-        );
-        return parseSmartModeOutput(parseGeminiJson(output));
-      });
+      const { env } = getGeminiIsolation();
+      const output = await safeExec(
+        "gemini",
+        ["--model", model, "--output-format", "json"],
+        buildSmartClarificationPrompt(prompt, context, clarifications),
+        timeout,
+        env,
+      );
+      return parseSmartModeOutput(parseGeminiJson(output));
     },
   },
   {
@@ -296,33 +291,31 @@ export const engines: Engine[] = [
     models: [{ id: "gpt-5.2-codex", label: "gpt-5.2-codex" }],
     run: async (prompt, model = "gpt-5.2-codex", context = "", persona = "prompt_engineer") => {
       const timeout = getTimeout(false);
-      return withIsolatedCodex(async (homeDir) => {
-        return safeExec(
-          "codex",
-          ["exec", "-m", model, "--config", `model_reasoning_effort="high"`, "--skip-git-repo-check"],
-          buildOptimizationPrompt(prompt, context, persona),
-          timeout,
-          { CODEX_HOME: homeDir },
-        );
-      });
+      const { env } = getCodexIsolation();
+      return safeExec(
+        "codex",
+        ["exec", "-m", model, "--config", `model_reasoning_effort="high"`, "--skip-git-repo-check"],
+        buildOptimizationPrompt(prompt, context, persona),
+        timeout,
+        env,
+      );
     },
     audit: async (prompt, model = "gpt-5.2-codex", context = "", persona = "prompt_engineer") => {
-      return withIsolatedCodex(async (homeDir) => {
-        const result = await safeExec(
-          "codex",
-          ["exec", "-m", model, "--config", `model_reasoning_effort="high"`, "--skip-git-repo-check"],
-          buildAuditPrompt(prompt, context, persona),
-          undefined,
-          { CODEX_HOME: homeDir },
-        );
-        try {
-          const jsonStr = result.replace(/```json\n?|\n?```/g, "").trim();
-          return JSON.parse(jsonStr);
-        } catch (e) {
-          console.error("Failed to parse audit JSON", e, result);
-          return [];
-        }
-      });
+      const { env } = getCodexIsolation();
+      const result = await safeExec(
+        "codex",
+        ["exec", "-m", model, "--config", `model_reasoning_effort="high"`, "--skip-git-repo-check"],
+        buildAuditPrompt(prompt, context, persona),
+        undefined,
+        env,
+      );
+      try {
+        const jsonStr = result.replace(/```json\n?|\n?```/g, "").trim();
+        return JSON.parse(jsonStr);
+      } catch (e) {
+        console.error("Failed to parse audit JSON", e, result);
+        return [];
+      }
     },
     runWithClarifications: async (
       prompt,
@@ -331,53 +324,49 @@ export const engines: Engine[] = [
       context = "",
       persona = "prompt_engineer",
     ) => {
-      return withIsolatedCodex(async (homeDir) => {
-        return safeExec(
-          "codex",
-          ["exec", "-m", model, "--config", `model_reasoning_effort="high"`, "--skip-git-repo-check"],
-          buildClarificationPrompt(prompt, context, persona, clarifications),
-          undefined,
-          { CODEX_HOME: homeDir },
-        );
-      });
+      const { env } = getCodexIsolation();
+      return safeExec(
+        "codex",
+        ["exec", "-m", model, "--config", `model_reasoning_effort="high"`, "--skip-git-repo-check"],
+        buildClarificationPrompt(prompt, context, persona, clarifications),
+        undefined,
+        env,
+      );
     },
     runOrchestrated: async (prompt, model = "gpt-5.2-codex", context = "") => {
       const timeout = getTimeout(true);
-      return withIsolatedCodex(async (homeDir) => {
-        const output = await safeExec(
-          "codex",
-          ["exec", "-m", model, "--config", `model_reasoning_effort="high"`, "--skip-git-repo-check"],
-          buildSmartPrompt(prompt, context),
-          timeout,
-          { CODEX_HOME: homeDir },
-        );
-        return parseSmartModeOutput(output);
-      });
+      const { env } = getCodexIsolation();
+      const output = await safeExec(
+        "codex",
+        ["exec", "-m", model, "--config", `model_reasoning_effort="high"`, "--skip-git-repo-check"],
+        buildSmartPrompt(prompt, context),
+        timeout,
+        env,
+      );
+      return parseSmartModeOutput(output);
     },
     auditOrchestrated: async (prompt, model = "gpt-5.2-codex", context = "") => {
-      return withIsolatedCodex(async (homeDir) => {
-        const output = await safeExec(
-          "codex",
-          ["exec", "-m", model, "--config", `model_reasoning_effort="high"`, "--skip-git-repo-check"],
-          buildSmartAuditPrompt(prompt, context),
-          undefined,
-          { CODEX_HOME: homeDir },
-        );
-        return parseSmartAuditOutput(output);
-      });
+      const { env } = getCodexIsolation();
+      const output = await safeExec(
+        "codex",
+        ["exec", "-m", model, "--config", `model_reasoning_effort="high"`, "--skip-git-repo-check"],
+        buildSmartAuditPrompt(prompt, context),
+        undefined,
+        env,
+      );
+      return parseSmartAuditOutput(output);
     },
     runOrchestratedWithClarifications: async (prompt, clarifications, model = "gpt-5.2-codex", context = "") => {
       const timeout = getTimeout(true);
-      return withIsolatedCodex(async (homeDir) => {
-        const output = await safeExec(
-          "codex",
-          ["exec", "-m", model, "--config", `model_reasoning_effort="high"`, "--skip-git-repo-check"],
-          buildSmartClarificationPrompt(prompt, context, clarifications),
-          timeout,
-          { CODEX_HOME: homeDir },
-        );
-        return parseSmartModeOutput(output);
-      });
+      const { env } = getCodexIsolation();
+      const output = await safeExec(
+        "codex",
+        ["exec", "-m", model, "--config", `model_reasoning_effort="high"`, "--skip-git-repo-check"],
+        buildSmartClarificationPrompt(prompt, context, clarifications),
+        timeout,
+        env,
+      );
+      return parseSmartModeOutput(output);
     },
   },
 ];
