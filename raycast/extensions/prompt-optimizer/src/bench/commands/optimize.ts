@@ -1,0 +1,126 @@
+import color from "picocolors";
+import pLimit from "p-limit";
+import { TestCase } from "../../test-data/test-cases";
+import { CacheManager, CachedOptimizationEntry } from "../../utils/cache";
+import { runGeminiWithMetadata, runWithEngine, withRetry, GeminiRunResult } from "../../test/lib/test-utils";
+import { OptimizationMetadata, TimingData } from "../../utils/types";
+import {
+  TestBenchArgs,
+  OptimizeResult,
+  DEFAULT_ENGINE,
+  DEFAULT_MODEL_GEMINI,
+  DEFAULT_MODEL_CODEX,
+  loadStrategy,
+  filterTestCases,
+  generatePrompt,
+} from "../types";
+
+export async function runOptimize(args: TestBenchArgs): Promise<void> {
+  if (!args.strategy) {
+    console.error("Error: --strategy is required for optimize command");
+    process.exit(1);
+  }
+
+  const strategy = await loadStrategy(args.strategy);
+  const testCases = filterTestCases(args.cases, args.mode, args.category);
+  const engine = args.engine || DEFAULT_ENGINE;
+  const model = args.model || (engine === "gemini" ? DEFAULT_MODEL_GEMINI : DEFAULT_MODEL_CODEX);
+  const reasoning = args.reasoning || "high";
+  const cache = new CacheManager();
+  const concurrency = args.concurrency ?? 3;
+  const limit = pLimit(concurrency);
+
+  const reasoningInfo = engine === "codex" ? ` (reasoning: ${reasoning})` : "";
+  console.log(
+    `\n${color.cyan("Optimizing")} with ${strategy.id} (${engine}/${model}${reasoningInfo}) [concurrency: ${concurrency}]...\n`,
+  );
+
+  const startTime = Date.now();
+
+  const optimizeOne = async (testCase: TestCase): Promise<OptimizeResult> => {
+    const prompt = generatePrompt(strategy, testCase);
+    const promptHash = cache.computePromptHash(prompt);
+
+    const existing = cache.get(strategy.id, engine, model, testCase.id, promptHash);
+
+    if (existing && !args.force) {
+      return { testCaseId: testCase.id, status: "cached" };
+    }
+
+    const optStart = Date.now();
+
+    try {
+      let optimizedOutput: string;
+      let metadata: OptimizationMetadata;
+
+      if (engine === "gemini") {
+        const result: GeminiRunResult = await runGeminiWithMetadata(prompt, { model });
+        optimizedOutput = result.response;
+        metadata = {
+          timing: result.timing,
+          retry: {
+            attempts: result.retry.attempts,
+            totalRetryDelayMs: result.retry.totalRetryDelayMs,
+            failedAttempts: result.retry.failedAttempts,
+          },
+          tokens: result.tokens,
+          promptCharCount: prompt.length,
+          outputCharCount: result.response.length,
+        };
+      } else {
+        const runStart = Date.now();
+        optimizedOutput = await withRetry(() => runWithEngine(engine, prompt, { model, reasoningEffort: reasoning }));
+        const runEnd = Date.now();
+        const timing: TimingData = { startMs: runStart, endMs: runEnd, durationMs: runEnd - runStart };
+        metadata = {
+          timing,
+          retry: { attempts: 1, totalRetryDelayMs: 0, failedAttempts: [] },
+          tokens: null,
+          promptCharCount: prompt.length,
+          outputCharCount: optimizedOutput.length,
+        };
+      }
+
+      const entry: CachedOptimizationEntry = {
+        schemaVersion: "1.0",
+        testCaseId: testCase.id,
+        strategyId: strategy.id,
+        engine,
+        model,
+        promptHash,
+        optimizedOutput,
+        metadata,
+        cachedAt: new Date().toISOString(),
+      };
+
+      cache.set(entry);
+      return { testCaseId: testCase.id, status: "optimized", durationMs: Date.now() - optStart };
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      return { testCaseId: testCase.id, status: "error", error: msg.slice(0, 60) };
+    }
+  };
+
+  const results = await Promise.all(testCases.map((tc) => limit(() => optimizeOne(tc))));
+
+  for (const result of results) {
+    if (result.status === "cached") {
+      console.log(`  ${color.green("✓")} ${result.testCaseId} ${color.dim("(cached)")}`);
+    } else if (result.status === "optimized") {
+      const duration = ((result.durationMs ?? 0) / 1000).toFixed(1);
+      console.log(`  ${color.green("→")} ${result.testCaseId} optimized in ${duration}s`);
+    } else {
+      console.log(`  ${color.red("✗")} ${result.testCaseId} - ${result.error}`);
+    }
+  }
+
+  const cacheHits = results.filter((r) => r.status === "cached").length;
+  const apiCalls = results.filter((r) => r.status === "optimized").length;
+  const errors = results.filter((r) => r.status === "error").length;
+  const totalDuration = ((Date.now() - startTime) / 1000).toFixed(1);
+
+  console.log(
+    `\n${color.bold("Summary:")} ${testCases.length} test cases, ${cacheHits} cache hits, ${apiCalls} API calls${errors > 0 ? `, ${errors} errors` : ""}`,
+  );
+  console.log(`${color.bold("Duration:")} ${totalDuration}s\n`);
+}

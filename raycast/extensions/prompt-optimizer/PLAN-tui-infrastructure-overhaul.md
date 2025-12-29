@@ -1118,14 +1118,21 @@ Copy this checklist when starting implementation:
 - [x] Test Ctrl-C behavior (signal handling implemented)
 - [x] Verify partial report saving (setPartialResults/printCancellationSummary)
 
-## Phase 6: Modularization
+## Phase 6: Modularization ✅ COMPLETE (2025-12-28)
 
-- [ ] Create src/bench/ directory
-- [ ] Extract args.ts
-- [ ] Extract interactive.ts
-- [ ] Extract commands/\*.ts
-- [ ] Update test-bench.ts
-- [ ] Verify all commands work
+- [x] Create src/bench/ directory
+- [x] Create src/bench/types.ts (275 lines) - shared types, constants, utilities
+- [x] Create src/bench/args.ts (143 lines) - argument parsing
+- [x] Create src/bench/interactive.ts (663 lines) - @clack/prompts interactive mode
+- [x] Create src/bench/commands/validate.ts (38 lines)
+- [x] Create src/bench/commands/optimize.ts (111 lines)
+- [x] Create src/bench/commands/judge.ts (116 lines)
+- [x] Create src/bench/commands/cache.ts (47 lines)
+- [x] Create src/bench/commands/compare.ts (74 lines)
+- [x] Create src/bench/commands/ab.ts (177 lines)
+- [x] Create src/bench/index.ts (42 lines) - main entry with CLI routing
+- [x] Update test-bench.ts to thin wrapper (7 lines)
+- [x] Verify all commands work identically
 
 ## Phase 7: Polish
 
@@ -1144,10 +1151,11 @@ Copy this checklist when starting implementation:
 
 **End of Implementation Plan**
 
-_Document version: 1.5_
+_Document version: 1.6_
 _Last updated: 2025-12-28_
 _Phase 1: Complete_
 _Phase 2: Complete_
 _Phase 3: Complete_
 _Phase 4: Complete_
 _Phase 5: Complete_
+_Phase 6: Complete_
