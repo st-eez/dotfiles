@@ -1,9 +1,9 @@
 # Prompt Optimizer Performance Optimization Plan
 
-**Document Version:** 2.2  
+**Document Version:** 2.3  
 **Created:** 2025-12-29  
 **Updated:** 2025-12-29  
-**Status:** PHASE 0 COMPLETE - Baseline + Judge Selection Finalized  
+**Status:** PHASE 0 COMPLETE - All Findings Documented  
 **Extension Path:** `raycast/extensions/prompt-optimizer/`
 
 ---
@@ -226,6 +226,39 @@ npx ts-node src/test-bench.ts judge \
 
 \*design category avg penalized by design-001 context failure (score=0)
 
+#### Latency Breakdown Analysis
+
+| Component       | Value    | % of Total | Notes                                      |
+| --------------- | -------- | ---------- | ------------------------------------------ |
+| **API Latency** | 9,373ms  | 80%        | Pure Gemini inference (from cache stats)   |
+| **Overhead**    | 2,322ms  | 20%        | CLI spawn + isolation setup/teardown + I/O |
+| Total Duration  | 11,695ms | 100%       | Measured end-to-end                        |
+
+**Overhead Variance:** 1.9s to 4.0s across test cases. High variance suggests opportunity for optimization in Phase 1-2.
+
+**Overhead Breakdown (Estimated):**
+
+- CLI spawn: ~50-150ms (process creation + env setup)
+- Isolation setup: ~30-80ms (mkdir + symlinks + write settings)
+- Response parsing: ~10-50ms (JSON + NDJSON handling)
+- Isolation teardown: ~20-50ms (rm -rf temp dirs)
+
+#### TTFT Baseline
+
+**Finding: TTFT is NOT measurable with current infrastructure.**
+
+| Metric | Status | Reason                                           |
+| ------ | ------ | ------------------------------------------------ |
+| TTFT   | ❌ N/A | `safeExec` in exec.ts blocks until full response |
+
+Current implementation uses `execa()` which buffers all output and returns only after CLI exits. No streaming callback exists.
+
+**Implication:**
+
+- Cannot establish TTFT baseline until Phase 3 (Response Streaming) is implemented
+- Phase 3 is **required** before measuring TTFT improvement
+- Estimated current TTFT ≈ Total Duration (user sees nothing until complete)
+
 #### Key Observations
 
 1. **Latency is higher than estimated**: Avg 11.7s vs expected 4-15s range, P90 at 17.3s
@@ -233,6 +266,8 @@ npx ts-node src/test-bench.ts judge \
 3. **Structure gate is solid**: 100% pass rate
 4. **Context preservation needs work**: 1 failure due to whitespace modification
 5. **Token usage is efficient**: ~9.9k total tokens per optimization
+6. **80% of latency is API time**: Only 20% is controllable overhead
+7. **TTFT not measurable**: Requires streaming infrastructure (Phase 3)
 
 ---
 
@@ -916,5 +951,5 @@ npx ts-node src/test-bench.ts judge --strategy src/prompts/v1-baseline.ts --judg
 
 **Document End**
 
-_Last Updated: 2025-12-29 (v2.2)_
-_Changes: Added judge comparison (Section 11.1), testing workflow (11.2), variance management (11.4). Changed default judge from codex-high to codex-medium._
+_Last Updated: 2025-12-29 (v2.3)_
+_Changes: Added latency breakdown and TTFT baseline findings to Section 2.5. Phase 0 now fully complete with all measurements documented._
