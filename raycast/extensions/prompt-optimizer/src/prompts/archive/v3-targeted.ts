@@ -1,5 +1,36 @@
-import { PERSONA_INSTRUCTIONS } from "./personas";
-import { PromptStrategy } from "./types";
+/**
+ * ARCHIVED: v3-targeted.ts
+ * Date: 2025-12-29
+ * Result: FAILED A/B test vs v1-baseline
+ *
+ * Hypothesis: Explicit section-specific quality criteria (Role Derivation,
+ * Objective Quality, Instructions Quality) would improve output quality.
+ *
+ * Results:
+ *   - v1-baseline avg: 4.76
+ *   - v3-targeted avg: 4.68 (-0.08, p=0.37)
+ *   - Decision: KEEP BASELINE
+ *
+ * Why it failed:
+ *   - Underperformed on system-design tasks (-0.33 avg)
+ *   - design-001 (GitHub Actions audit) dropped from 5.0 to 4.0
+ *   - Judge feedback: "do not specify depth of analysis or output schema
+ *     details beyond section names, leaving minor ambiguity"
+ *
+ * Root cause analysis:
+ *   The explicit constraints ("Number each step", "3-5 steps", "single
+ *   measurable goal") were too rigid for complex tasks. v1-baseline's
+ *   flexible "2-4 numbered steps" allowed the LLM to adapt output depth
+ *   to task complexity. v3's prescriptive rules caused over-simplification.
+ *
+ * Lessons for future iterations:
+ *   1. Avoid hard step counts - let LLM adapt to task complexity
+ *   2. Don't constrain output structure too rigidly
+ *   3. Focus quality criteria on WHAT to include, not HOW to format
+ */
+
+import { PERSONA_INSTRUCTIONS } from "../personas";
+import { PromptStrategy } from "../types";
 
 function buildPrompt(userPrompt: string, context?: string, personaId: string = "prompt_engineer"): string {
   const personaInstruction = PERSONA_INSTRUCTIONS[personaId] || PERSONA_INSTRUCTIONS["prompt_engineer"];
