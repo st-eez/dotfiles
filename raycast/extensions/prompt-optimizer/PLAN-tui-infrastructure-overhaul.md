@@ -1134,12 +1134,12 @@ Copy this checklist when starting implementation:
 - [x] Update test-bench.ts to thin wrapper (7 lines)
 - [x] Verify all commands work identically
 
-## Phase 7: Polish
+## Phase 7: Polish ✅ COMPLETE (2025-12-28)
 
-- [ ] Add --simple flag
-- [ ] Test NO_COLOR support
-- [ ] Update AGENTS.md
-- [ ] Final accessibility review
+- [x] Add --simple flag for linear, non-animated output
+- [x] Test NO_COLOR support works correctly
+- [x] Update AGENTS.md with CLI output options documentation
+- [x] Final accessibility review (symbols + text, never color alone)
 
 ## Phase 8: Advanced (Optional)
 
@@ -1151,7 +1151,7 @@ Copy this checklist when starting implementation:
 
 **End of Implementation Plan**
 
-_Document version: 1.6_
+_Document version: 1.7_
 _Last updated: 2025-12-28_
 _Phase 1: Complete_
 _Phase 2: Complete_
@@ -1159,3 +1159,4 @@ _Phase 3: Complete_
 _Phase 4: Complete_
 _Phase 5: Complete_
 _Phase 6: Complete_
+_Phase 7: Complete_

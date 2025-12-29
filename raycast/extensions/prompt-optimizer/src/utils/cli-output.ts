@@ -56,6 +56,7 @@ let outputOptions: OutputOptions = {
   mode: "normal",
   noColor: env.noColor && !env.forceColor,
   ascii: !env.supportsUnicode,
+  simple: false,
 };
 
 export function configureOutput(options: Partial<OutputOptions>): void {
@@ -82,6 +83,10 @@ export function isQuietMode(): boolean {
 
 export function isVerboseMode(): boolean {
   return outputOptions.mode === "verbose";
+}
+
+export function isSimpleMode(): boolean {
+  return outputOptions.simple;
 }
 
 // ============================================================================

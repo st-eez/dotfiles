@@ -34,6 +34,14 @@ ${color.cyan("Options:")}
   --baseline <run>     Baseline cached run for A/B (e.g., v1-baseline_gemini_gemini-3-flash-preview)
   --candidate <run>    Candidate cached run for A/B comparison
 
+${color.cyan("Output Options:")}
+  --json               Output results as JSON
+  --quiet, -q          Suppress non-error output
+  --verbose, -v        Enable debug logging
+  --no-color           Disable colored output
+  --ascii              Use ASCII characters instead of Unicode
+  --simple             Linear output without animations (accessibility/CI friendly)
+
 ${color.cyan("Examples:")}
   npx ts-node src/test-bench.ts validate --strategy src/prompts/v1-baseline.ts
   npx ts-node src/test-bench.ts optimize --strategy src/prompts/v1-baseline.ts --case code-001

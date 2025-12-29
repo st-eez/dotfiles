@@ -3,7 +3,16 @@
  * Provides throttled progress updates with ETA, throughput, and cache stats.
  */
 
-import { env, c, formatDuration, formatPercent, getOutputOptions, isJsonMode, isQuietMode } from "./cli-output";
+import {
+  env,
+  c,
+  formatDuration,
+  formatPercent,
+  getOutputOptions,
+  isJsonMode,
+  isQuietMode,
+  isSimpleMode,
+} from "./cli-output";
 import type { ProgressState, ProgressOptions } from "./cli-types";
 
 // ============================================================================
@@ -154,6 +163,7 @@ export class ProgressManager {
 
   private shouldRender(): boolean {
     if (isJsonMode() || isQuietMode()) return false;
+    if (isSimpleMode()) return false;
     if (!env.isTTY) return false;
     return true;
   }
@@ -299,6 +309,7 @@ export class Spinner {
 
   private shouldRender(): boolean {
     if (isJsonMode() || isQuietMode()) return false;
+    if (isSimpleMode()) return false;
     if (!env.isTTY) return false;
     return true;
   }

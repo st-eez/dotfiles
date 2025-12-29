@@ -33,6 +33,9 @@ export function parseCommonArgs(argv: string[] = process.argv): CommonCliArgs {
       case "--ascii":
         args.ascii = true;
         break;
+      case "--simple":
+        args.simple = true;
+        break;
     }
   }
 
@@ -54,6 +57,7 @@ export function applyCommonArgs(args: CommonCliArgs): void {
     mode,
     noColor: args.noColor ?? env.noColor,
     ascii: args.ascii ?? !env.supportsUnicode,
+    simple: args.simple ?? false,
   });
 }
 
@@ -84,6 +88,7 @@ Output Options:
   --verbose, -v   Enable debug logging
   --no-color      Disable colored output
   --ascii         Use ASCII characters instead of Unicode
+  --simple        Linear output without animations (accessibility/CI friendly)
 `.trim();
 }
 
@@ -183,4 +188,4 @@ export function warnNonInteractive(feature: string): boolean {
 // Convenience Exports
 // ============================================================================
 
-export { configureOutput, getOutputOptions, isJsonMode, isQuietMode, isVerboseMode } from "./cli-output";
+export { configureOutput, getOutputOptions, isJsonMode, isQuietMode, isVerboseMode, isSimpleMode } from "./cli-output";

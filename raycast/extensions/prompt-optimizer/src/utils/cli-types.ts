@@ -27,6 +27,8 @@ export interface OutputOptions {
   mode: OutputMode;
   noColor: boolean;
   ascii: boolean;
+  /** Simple mode: linear output, no animations or progress bars */
+  simple: boolean;
 }
 
 // --- Symbols ---
@@ -116,4 +118,5 @@ export interface CommonCliArgs {
   verbose?: boolean;
   noColor?: boolean;
   ascii?: boolean;
+  simple?: boolean;
 }
