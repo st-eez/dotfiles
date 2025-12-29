@@ -1,30 +1,74 @@
 # Modular macOS Theming System - Implementation Plan
 
 **Created**: 2025-12-29
-**Status**: Ready for Implementation
+**Updated**: 2025-12-29
+**Status**: Ready for Implementation (validated by Oracle)
+
+## Validation Summary
+
+Plan validated against codebase and Oracle review. Key fixes applied:
+
+- macOS `sed -i ''` syntax for BSD compatibility
+- Mandatory `theme-set tokyo-night` post-Stow in install.sh
+- Neovim multi-theme plugin structure with all 3 colorscheme plugins
+- P10k uses **truecolor** (`#RRGGBB`) format
+- Single Obsidian vault path
+- Aerospace/Raycast explicitly out of scope
 
 ## Overview
 
-A zero-dependency theming system that enables one-command theme switching across 9 macOS apps. Uses central Lua palette files following the Omarchy pattern, self-contained within dotfiles.
+A zero-dependency theming system that enables one-command theme switching across macOS apps. Uses central palette files and pre-built per-app configs, self-contained within dotfiles.
 
-**Themes**: Tokyo Night, Gruvbox, Everforest
+**Themes**: Tokyo Night (default), Gruvbox, Everforest
+
+---
+
+## Key Decisions (from validation)
+
+| Decision               | Approach                                                                                                                                                           |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Stow compatibility** | Theme-variable files (colors.lua, bordersrc) are NOT Stow'd. They live in `themes/configs/` and are copied to destinations by `install.sh` and `theme-set`.        |
+| **P10k theming**       | External source file using **truecolor** (`#RRGGBB`). One-time setup adds `source ~/.p10k.theme.zsh` to `.p10k.zsh`. `theme-set` only rewrites that external file. |
+| **Neovim multi-theme** | Create `colorschemes.lua` with ALL theme plugins (tokyonight, gruvbox, everforest). Add theme loader that reads `current-theme.lua` with fallback to Tokyo Night.  |
+| **Antigravity**        | Local colorCustomizations via Python. Extract colors from official VS Code theme repos, store as JSON, merge into settings.json.                                   |
+| **Obsidian**           | Constant folder name `Steez`. Single vault: `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/Steve_Notes`. No jq needed - just copy CSS.                   |
+| **Safety**             | Backups to `~/.config/theme-backups/<timestamp>/` before changes, state persistence in `~/.config/current-theme`                                                   |
+| **Install flow**       | **MANDATORY**: Run `theme-set tokyo-night` after Stow completes to ensure configs exist                                                                            |
+| **Out of scope**       | Aerospace (window manager, no themes), Raycast (paid feature), Helium (future)                                                                                     |
 
 ---
 
 ## Critical Requirements
 
-1. **Tokyo Night configs are preserved exactly as-is** (except P10k)
-   - Current `sketchybar/colors.lua` - DO NOT MODIFY
-   - Current `ghostty/config` - DO NOT MODIFY
-   - Current `borders/bordersrc` - DO NOT MODIFY
-   - Current `nvim/lua/plugins/tokyonight.lua` - DO NOT MODIFY
+1. **Tokyo Night COLORS are preserved exactly as-is**
+   - Current color values in sketchybar, ghostty, borders, nvim remain unchanged
+   - File structure CAN be modified for multi-theme support
 
 2. **P10k gets themed for ALL themes** (including Tokyo Night)
    - Replace rainbow colors with theme-matching bubble colors
+   - Use external source file approach (not sed/append on main file)
 
 3. **Wallpaper uses exact same color as SketchyBar bar background** (`bg0`)
 
 4. **Fork official theme CSS/configs from GitHub** - don't reinvent colors
+
+5. **Zero external dependencies** - no jq, no npm, just bash + coreutils + Python3 (pre-installed on macOS)
+
+---
+
+## Color Format Reference
+
+**Canonical format**: `#RRGGBB` (used in `themes/meta/*.env`)
+
+| App         | Format Required   | Conversion from #RRGGBB                   |
+| ----------- | ----------------- | ----------------------------------------- |
+| SketchyBar  | `0xAARRGGBB`      | Prefix `0xff` + remove `#` → `0xff1a1b26` |
+| Borders     | `0xAARRGGBB`      | Same as SketchyBar                        |
+| Ghostty     | Theme name or hex | Use built-in theme names when available   |
+| P10k        | `#RRGGBB`         | Direct (truecolor support)                |
+| Neovim      | Plugin handles    | Just set colorscheme name                 |
+| Antigravity | `#RRGGBB`         | Direct in JSON                            |
+| Wallpaper   | PNG file          | Pre-generated solid color images          |
 
 ---
 
@@ -32,35 +76,42 @@ A zero-dependency theming system that enables one-command theme switching across
 
 ```
 themes/
-├── palettes/                    # Central color definitions (Lua)
-│   ├── tokyo-night.lua          # Reference palette (matches current setup)
-│   ├── gruvbox.lua              # Official Dark Hard variant
-│   └── everforest.lua           # Official Dark Medium variant
-├── configs/                     # Per-theme app configs
-│   ├── tokyo-night/             # Reference (copies of current working configs)
+├── meta/                        # Theme metadata (env files)
+│   ├── tokyo-night.env          # GHOSTTY_THEME, NVIM_COLORSCHEME, etc.
+│   ├── gruvbox.env
+│   └── everforest.env
+├── palettes/                    # Central color definitions (Lua, for reference)
+│   ├── tokyo-night.lua
+│   ├── gruvbox.lua
+│   └── everforest.lua
+├── configs/                     # Per-theme app configs (COPIED, not symlinked)
+│   ├── tokyo-night/
 │   │   ├── sketchybar-colors.lua
 │   │   ├── bordersrc
-│   │   └── p10k-theme.zsh
+│   │   ├── p10k-theme.zsh
+│   │   └── antigravity-colors.json
 │   ├── gruvbox/
 │   │   ├── sketchybar-colors.lua
 │   │   ├── bordersrc
-│   │   └── p10k-theme.zsh
+│   │   ├── p10k-theme.zsh
+│   │   └── antigravity-colors.json
 │   └── everforest/
 │       ├── sketchybar-colors.lua
 │       ├── bordersrc
-│       └── p10k-theme.zsh
-├── obsidian/                    # Forked Obsidian themes
+│       ├── p10k-theme.zsh
+│       └── antigravity-colors.json
+├── obsidian/                    # Forked Obsidian themes (copied to Steez folder)
 │   ├── tokyo-night/
 │   │   ├── manifest.json
-│   │   └── theme.css            # From tcmmichaelb139/obsidian-tokyonight
+│   │   └── theme.css
 │   ├── gruvbox/
 │   │   ├── manifest.json
-│   │   └── theme.css            # From insanum/obsidian_gruvbox
+│   │   └── theme.css
 │   └── everforest/
 │       ├── manifest.json
-│       └── theme.css            # From 0xGlitchbyte/obsidian-everforest-theme
+│       └── theme.css
 ├── wallpapers/                  # Pre-generated solid color PNGs
-│   ├── tokyo-night.png          # #1a1b26 (same as bar bg)
+│   ├── tokyo-night.png          # #1a1b26
 │   ├── gruvbox.png              # #1d2021
 │   └── everforest.png           # #2d353b
 ├── bin/
@@ -70,19 +121,76 @@ themes/
 
 ---
 
+## Stow Package Changes
+
+**Files to REMOVE from Stow packages** (move to `themes/configs/tokyo-night/`):
+
+| Current Location                           | New Location                                       | Reason         |
+| ------------------------------------------ | -------------------------------------------------- | -------------- |
+| `sketchybar/.config/sketchybar/colors.lua` | `themes/configs/tokyo-night/sketchybar-colors.lua` | Theme-variable |
+| `borders/.config/borders/bordersrc`        | `themes/configs/tokyo-night/bordersrc`             | Theme-variable |
+
+**Files that STAY in Stow packages** (not theme-variable):
+
+- `sketchybar/.config/sketchybar/*.lua` (except colors.lua)
+- `ghostty/.config/ghostty/config` (theme line updated in-place)
+- `nvim/.config/nvim/lua/plugins/tokyonight.lua` (restructured for multi-theme)
+- `zsh/.p10k.zsh` (one-time edit to add source line)
+
+---
+
 ## App Coverage
 
-| App             | Method                                     | Auto-reload | Notes                           |
-| --------------- | ------------------------------------------ | ----------- | ------------------------------- |
-| **SketchyBar**  | Copy pre-made colors.lua                   | Yes         | `sketchybar --reload`           |
-| **Ghostty**     | Swap theme name in config                  | Yes         | Watches config file             |
-| **Borders**     | Copy pre-made bordersrc                    | Yes         | `brew services restart borders` |
-| **Neovim**      | Switch colorscheme plugin                  | No          | Restart or `:colorscheme X`     |
-| **P10k**        | Append color overrides                     | No          | `source ~/.p10k.zsh`            |
-| **Antigravity** | Update settings.json                       | Yes         | Uses inline colorCustomizations |
-| **Obsidian**    | Copy theme folder + update appearance.json | No          | May need vault reload           |
-| **Wallpaper**   | Copy PNG + osascript                       | Yes         | Instant                         |
-| **Helium**      | SKIP                                       | -           | Phase 2                         |
+| App             | Method                                | Auto-reload | Reload Command                      |
+| --------------- | ------------------------------------- | ----------- | ----------------------------------- |
+| **SketchyBar**  | Copy pre-made colors.lua              | Yes\*       | `sketchybar --reload`               |
+| **Ghostty**     | Update theme line in config           | Yes         | Watches config file automatically   |
+| **Borders**     | Copy pre-made bordersrc               | Yes\*       | `brew services restart borders`     |
+| **Neovim**      | Update colorscheme in theme.lua       | No          | Restart nvim or `:colorscheme X`    |
+| **P10k**        | Rewrite ~/.p10k.theme.zsh             | No          | `exec zsh` or restart terminal      |
+| **Antigravity** | Update colorCustomizations via Python | Yes         | Watches settings.json automatically |
+| **Obsidian**    | Copy CSS to Steez folder              | No          | Reload vault (Cmd+R) or restart app |
+| **Wallpaper**   | osascript                             | Yes         | Instant                             |
+
+\*`theme-set` script triggers reload automatically
+
+---
+
+## Theme Metadata Files
+
+Each theme has a `.env` file for machine-readable metadata:
+
+```bash
+# themes/meta/tokyo-night.env
+THEME_NAME="Tokyo Night"
+GHOSTTY_THEME="TokyoNight"
+NVIM_COLORSCHEME="tokyonight-night"
+NVIM_PLUGIN="folke/tokyonight.nvim"
+ANTIGRAVITY_THEME="Tokyo Night"
+BG_COLOR="#1a1b26"
+```
+
+```bash
+# themes/meta/gruvbox.env
+THEME_NAME="Gruvbox Dark Hard"
+GHOSTTY_THEME="GruvboxDarkHard"
+NVIM_COLORSCHEME="gruvbox"
+NVIM_PLUGIN="ellisonleao/gruvbox.nvim"
+NVIM_SETUP="vim.o.background = 'dark'"
+ANTIGRAVITY_THEME="Gruvbox Dark Hard"
+BG_COLOR="#1d2021"
+```
+
+```bash
+# themes/meta/everforest.env
+THEME_NAME="Everforest Dark Medium"
+GHOSTTY_THEME="Everforest Dark Medium"
+NVIM_COLORSCHEME="everforest"
+NVIM_PLUGIN="sainnhe/everforest"
+NVIM_SETUP="vim.g.everforest_background = 'medium'"
+ANTIGRAVITY_THEME="Everforest Dark Medium"
+BG_COLOR="#2d353b"
+```
 
 ---
 
@@ -91,14 +199,14 @@ themes/
 ### Tokyo Night (Night variant)
 
 - **Canonical**: [folke/tokyonight.nvim](https://github.com/folke/tokyonight.nvim)
-- **Reference file**: `extras/lua/tokyonight_night.lua`
+- **Reference**: `extras/lua/tokyonight_night.lua`
 
 | Color        | Hex       | Usage                     |
 | ------------ | --------- | ------------------------- |
 | bg           | `#1a1b26` | Background, wallpaper     |
 | bg_highlight | `#292e42` | Current line              |
 | fg           | `#c0caf5` | Main text                 |
-| red          | `#f7768e` | Errors, keywords          |
+| red          | `#f7768e` | Errors                    |
 | orange       | `#ff9e64` | Numbers                   |
 | yellow       | `#e0af68` | Warnings                  |
 | green        | `#9ece6a` | Strings                   |
@@ -109,13 +217,9 @@ themes/
 | comment      | `#565f89` | Comments                  |
 | black        | `#414868` | Terminal black            |
 
-**Ghostty theme name**: `TokyoNight Night`
-**Neovim colorscheme**: `tokyonight-night`
-
 ### Gruvbox (Dark Hard variant)
 
 - **Canonical**: [morhetz/gruvbox](https://github.com/morhetz/gruvbox)
-- **Reference file**: `colors/gruvbox.vim`
 
 | Color        | Hex       | Usage                   |
 | ------------ | --------- | ----------------------- |
@@ -132,14 +236,9 @@ themes/
 | gray         | `#928374` | Comments                |
 | black        | `#282828` | dark0                   |
 
-**Ghostty theme name**: `Gruvbox Dark Hard`
-**Neovim colorscheme**: `gruvbox` (with `contrast = "hard"`)
-**Neovim plugin**: `ellisonleao/gruvbox.nvim`
-
 ### Everforest (Dark Medium variant)
 
 - **Canonical**: [sainnhe/everforest](https://github.com/sainnhe/everforest)
-- **Reference file**: `autoload/everforest.vim`
 
 | Color        | Hex       | Usage              |
 | ------------ | --------- | ------------------ |
@@ -157,60 +256,113 @@ themes/
 | gray         | `#859289` | Comments (grey1)   |
 | black        | `#4f585e` | bg4                |
 
-**Ghostty theme name**: `Everforest Dark Hard`
-**Neovim colorscheme**: `everforest` (with `vim.g.everforest_background = "medium"`)
-**Neovim plugin**: `sainnhe/everforest`
-
 ---
 
-## Obsidian Theme Sources
+## Antigravity Theming Approach
 
-Fork CSS directly from these GitHub repos:
+Antigravity (Google's VS Code fork) supports `workbench.colorCustomizations` in settings.json.
 
-| Theme       | Repository                                                                                          | File to Copy   |
-| ----------- | --------------------------------------------------------------------------------------------------- | -------------- |
-| Tokyo Night | [tcmmichaelb139/obsidian-tokyonight](https://github.com/tcmmichaelb139/obsidian-tokyonight)         | `theme.css`    |
-| Gruvbox     | [insanum/obsidian_gruvbox](https://github.com/insanum/obsidian_gruvbox)                             | `obsidian.css` |
-| Everforest  | [0xGlitchbyte/obsidian-everforest-theme](https://github.com/0xGlitchbyte/obsidian-everforest-theme) | `theme.css`    |
+**Strategy**: Extract colors from official VS Code theme repos, store as JSON, merge into settings.json via Python.
 
----
+### Theme Sources (VS Code repos)
 
-## Antigravity (VS Code) Approach
+| Theme       | Repository                                                                          | File                                  |
+| ----------- | ----------------------------------------------------------------------------------- | ------------------------------------- |
+| Tokyo Night | [enkia/tokyo-night-vscode-theme](https://github.com/enkia/tokyo-night-vscode-theme) | `themes/tokyo-night-color-theme.json` |
+| Gruvbox     | [jdinhlife/vscode-theme-gruvbox](https://github.com/jdinhlife/vscode-theme-gruvbox) | `themes/gruvbox-dark-hard.json`       |
+| Everforest  | [sainnhe/everforest-vscode](https://github.com/sainnhe/everforest-vscode)           | `themes/everforest-dark.json`         |
 
-Use inline `workbench.colorCustomizations` in settings.json.
+### Per-theme file (`themes/configs/<theme>/antigravity-colors.json`)
 
-Fork colors from official VS Code theme repos:
+```json
+{
+  "colors": {
+    "editor.background": "#1a1b26",
+    "editor.foreground": "#c0caf5",
+    "activityBar.background": "#1a1b26",
+    "sideBar.background": "#1a1b26",
+    "statusBar.background": "#1a1b26",
+    ...
+  },
+  "tokenColors": [
+    {
+      "scope": ["comment"],
+      "settings": { "foreground": "#565f89" }
+    },
+    ...
+  ]
+}
+```
 
-- Tokyo Night: [tokyo-night/tokyo-night-vscode-theme](https://github.com/tokyo-night/tokyo-night-vscode-theme)
-- Gruvbox: [jdinhlife/vscode-theme-gruvbox](https://github.com/jdinhlife/vscode-theme-gruvbox)
-- Everforest: [sainnhe/everforest-vscode](https://github.com/sainnhe/everforest-vscode)
+### Settings.json update (via Python)
 
-**Method**: Generate complete `colorCustomizations` and `tokenColorCustomizations` objects that replicate the theme without needing the extension installed.
+```python
+# In theme-set script
+python3 << 'EOF'
+import json
+settings_file = "$ANTIGRAVITY_SETTINGS"
+colors_file = "$THEMES_DIR/configs/$THEME/antigravity-colors.json"
+
+with open(settings_file, 'r') as f:
+    settings = json.load(f)
+with open(colors_file, 'r') as f:
+    colors = json.load(f)
+
+settings['workbench.colorCustomizations'] = colors.get('colors', {})
+settings['editor.tokenColorCustomizations'] = {'textMateRules': colors.get('tokenColors', [])}
+
+with open(settings_file, 'w') as f:
+    json.dump(settings, f, indent=2)
+EOF
+```
+
+### Settings.json location
+
+```
+~/Library/Application Support/Antigravity/User/settings.json
+```
 
 ---
 
 ## P10k Theming Approach
 
-P10k uses ANSI 256-color indices. Strategy:
+**Strategy**: External source file using **truecolor** (`#RRGGBB`) for accurate theme colors.
 
-1. Keep "rainbow" mode structure (colored backgrounds on segments)
-2. Replace rainbow colors with theme-appropriate colors
-3. Use marker comments to identify generated section
+### One-time setup (added to end of `.p10k.zsh`):
 
-**Segment color mapping**:
+```zsh
+# Theme colors - managed by theme-set
+[[ -r ~/.p10k.theme.zsh ]] && source ~/.p10k.theme.zsh
+```
 
-| Segment       | Tokyo Night       | Gruvbox          | Everforest       |
-| ------------- | ----------------- | ---------------- | ---------------- |
-| os_icon       | blue (#7aa2f7)    | blue (#83a598)   | green (#a7c080)  |
-| dir           | blue (#7aa2f7)    | blue (#83a598)   | green (#a7c080)  |
-| vcs clean     | green (#9ece6a)   | green (#b8bb26)  | green (#a7c080)  |
-| vcs modified  | yellow (#e0af68)  | yellow (#fabd2f) | yellow (#dbbc7f) |
-| vcs untracked | orange (#ff9e64)  | orange (#fe8019) | orange (#e69875) |
-| status ok     | green (#9ece6a)   | green (#b8bb26)  | green (#a7c080)  |
-| status error  | red (#f7768e)     | red (#fb4934)    | red (#e67e80)    |
-| time          | magenta (#bb9af7) | purple (#d3869b) | purple (#d699b6) |
+### Per-theme file (`~/.p10k.theme.zsh`) - Tokyo Night example:
 
-**Implementation**: Create `p10k-theme.zsh` snippets that get sourced at end of `.p10k.zsh`.
+```zsh
+# STEEZ THEME: tokyo-night
+# Auto-generated by theme-set - do not edit manually
+
+# Override rainbow colors with truecolor theme colors
+typeset -g POWERLEVEL9K_OS_ICON_FOREGROUND='#1a1b26'
+typeset -g POWERLEVEL9K_OS_ICON_BACKGROUND='#7aa2f7'      # blue
+
+typeset -g POWERLEVEL9K_DIR_FOREGROUND='#1a1b26'
+typeset -g POWERLEVEL9K_DIR_BACKGROUND='#7aa2f7'          # blue
+
+typeset -g POWERLEVEL9K_VCS_CLEAN_FOREGROUND='#1a1b26'
+typeset -g POWERLEVEL9K_VCS_CLEAN_BACKGROUND='#9ece6a'    # green
+typeset -g POWERLEVEL9K_VCS_MODIFIED_FOREGROUND='#1a1b26'
+typeset -g POWERLEVEL9K_VCS_MODIFIED_BACKGROUND='#e0af68' # yellow
+typeset -g POWERLEVEL9K_VCS_UNTRACKED_FOREGROUND='#1a1b26'
+typeset -g POWERLEVEL9K_VCS_UNTRACKED_BACKGROUND='#e0af68'
+
+typeset -g POWERLEVEL9K_STATUS_OK_FOREGROUND='#1a1b26'
+typeset -g POWERLEVEL9K_STATUS_OK_BACKGROUND='#9ece6a'    # green
+typeset -g POWERLEVEL9K_STATUS_ERROR_FOREGROUND='#1a1b26'
+typeset -g POWERLEVEL9K_STATUS_ERROR_BACKGROUND='#f7768e' # red
+
+typeset -g POWERLEVEL9K_COMMAND_EXECUTION_TIME_FOREGROUND='#1a1b26'
+typeset -g POWERLEVEL9K_COMMAND_EXECUTION_TIME_BACKGROUND='#e0af68'
+```
 
 ---
 
@@ -220,147 +372,298 @@ P10k uses ANSI 256-color indices. Strategy:
 #!/usr/bin/env bash
 # themes/bin/theme-set
 
-THEME="$1"
-DOTFILES="$HOME/Projects/Personal/dotfiles"
+set -euo pipefail
+
+THEME="${1:-}"
+DOTFILES="${DOTFILES:-$HOME/Projects/Personal/dotfiles}"
 THEMES_DIR="$DOTFILES/themes"
+STATE_FILE="$HOME/.config/current-theme"
 
-# Validate theme
-[[ ! -d "$THEMES_DIR/configs/$THEME" ]] && { echo "Unknown theme: $THEME"; exit 1; }
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+NC='\033[0m'
 
-# 1. SketchyBar - copy pre-made config
-cp "$THEMES_DIR/configs/$THEME/sketchybar-colors.lua" ~/.config/sketchybar/colors.lua
-sketchybar --reload
+usage() {
+    echo "Usage: theme-set <theme>"
+    echo ""
+    echo "Available themes:"
+    for d in "$THEMES_DIR/configs"/*/; do
+        echo "  - $(basename "$d")"
+    done
+    exit 1
+}
 
-# 2. Ghostty - update theme line
-GHOSTTY_THEME=$(grep "^ghostty_theme=" "$THEMES_DIR/palettes/$THEME.lua" | cut -d'"' -f2)
-sed -i '' "s/^theme = .*/theme = $GHOSTTY_THEME/" ~/.config/ghostty/config
+log() { echo -e "${GREEN}✓${NC} $1"; }
+warn() { echo -e "${YELLOW}!${NC} $1"; }
+error() { echo -e "${RED}✗${NC} $1"; exit 1; }
 
-# 3. Borders - copy pre-made config
-cp "$THEMES_DIR/configs/$THEME/bordersrc" ~/.config/borders/bordersrc
-brew services restart borders
-
-# 4. Neovim - update colorscheme in options or dedicated file
-# (handled via lua require in nvim config)
-
-# 5. P10k - replace theme section
-sed -i '' '/# STEEZ-THEME-START/,/# STEEZ-THEME-END/d' ~/.p10k.zsh
-cat "$THEMES_DIR/configs/$THEME/p10k-theme.zsh" >> ~/.p10k.zsh
-
-# 6. Antigravity - update settings.json
-# (use jq to update colorCustomizations)
-
-# 7. Obsidian - copy theme to all vaults
-for vault in \
-    "$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents/Steve_Notes" \
-    "$HOME/Library/Mobile Documents/com~apple~CloudDocs/Stel"; do
-    if [[ -d "$vault/.obsidian" ]]; then
-        rm -rf "$vault/.obsidian/themes/Steez"
-        cp -r "$THEMES_DIR/obsidian/$THEME" "$vault/.obsidian/themes/Steez"
-        # Update appearance.json to use Steez theme
-        jq '.cssTheme = "Steez"' "$vault/.obsidian/appearance.json" > /tmp/obs.json
-        mv /tmp/obs.json "$vault/.obsidian/appearance.json"
+backup_file() {
+    local file="$1"
+    if [[ -f "$file" ]]; then
+        cp "$file" "${file}.backup.$(date +%Y%m%d_%H%M%S)"
     fi
-done
+}
+
+# Validate
+[[ -z "$THEME" ]] && usage
+[[ ! -d "$THEMES_DIR/configs/$THEME" ]] && error "Unknown theme: $THEME"
+
+# Load theme metadata
+source "$THEMES_DIR/meta/$THEME.env"
+
+echo "Setting theme: $THEME_NAME"
+echo ""
+
+# 1. SketchyBar
+if [[ -f "$THEMES_DIR/configs/$THEME/sketchybar-colors.lua" ]]; then
+    backup_file ~/.config/sketchybar/colors.lua
+    cp "$THEMES_DIR/configs/$THEME/sketchybar-colors.lua" ~/.config/sketchybar/colors.lua
+    sketchybar --reload 2>/dev/null && log "SketchyBar" || warn "SketchyBar (not running)"
+fi
+
+# 2. Ghostty
+if [[ -f ~/.config/ghostty/config ]]; then
+    backup_file ~/.config/ghostty/config
+    sed -i '' "s/^theme = .*/theme = $GHOSTTY_THEME/" ~/.config/ghostty/config
+    log "Ghostty"
+fi
+
+# 3. Borders
+if [[ -f "$THEMES_DIR/configs/$THEME/bordersrc" ]]; then
+    backup_file ~/.config/borders/bordersrc
+    cp "$THEMES_DIR/configs/$THEME/bordersrc" ~/.config/borders/bordersrc
+    brew services restart borders 2>/dev/null && log "Borders" || warn "Borders (not running)"
+fi
+
+# 4. P10k (external file approach)
+if [[ -f "$THEMES_DIR/configs/$THEME/p10k-theme.zsh" ]]; then
+    cp "$THEMES_DIR/configs/$THEME/p10k-theme.zsh" ~/.p10k.theme.zsh
+    log "P10k theme file"
+fi
+
+# 5. Neovim (update theme file)
+if [[ -f ~/.config/nvim/lua/config/theme.lua ]]; then
+    echo "return '$NVIM_COLORSCHEME'" > ~/.config/nvim/lua/config/current-theme.lua
+    log "Neovim theme"
+fi
+
+# 6. Antigravity (update colorCustomizations via Python)
+ANTIGRAVITY_SETTINGS="$HOME/Library/Application Support/Antigravity/User/settings.json"
+if [[ -f "$ANTIGRAVITY_SETTINGS" && -f "$THEMES_DIR/configs/$THEME/antigravity-colors.json" ]]; then
+    backup_file "$ANTIGRAVITY_SETTINGS"
+    python3 << EOF
+import json
+with open('$ANTIGRAVITY_SETTINGS', 'r') as f:
+    settings = json.load(f)
+with open('$THEMES_DIR/configs/$THEME/antigravity-colors.json', 'r') as f:
+    colors = json.load(f)
+settings['workbench.colorCustomizations'] = colors.get('colors', {})
+settings['editor.tokenColorCustomizations'] = {'textMateRules': colors.get('tokenColors', [])}
+with open('$ANTIGRAVITY_SETTINGS', 'w') as f:
+    json.dump(settings, f, indent=2)
+EOF
+    log "Antigravity"
+fi
+
+# 7. Obsidian (copy to Steez folder)
+OBSIDIAN_VAULT="$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents/Steve_Notes"
+if [[ -d "$OBSIDIAN_VAULT/.obsidian" ]]; then
+    mkdir -p "$OBSIDIAN_VAULT/.obsidian/themes/Steez"
+    cp "$THEMES_DIR/obsidian/$THEME/"* "$OBSIDIAN_VAULT/.obsidian/themes/Steez/" 2>/dev/null || true
+    log "Obsidian vault: Steve_Notes"
+fi
 
 # 8. Wallpaper
-WALLPAPER="$THEMES_DIR/wallpapers/$THEME.png"
-osascript -e "tell application \"System Events\" to tell every desktop to set picture to POSIX file \"$WALLPAPER\""
+if [[ -f "$THEMES_DIR/wallpapers/$THEME.png" ]]; then
+    osascript -e "tell application \"System Events\" to tell every desktop to set picture to POSIX file \"$THEMES_DIR/wallpapers/$THEME.png\""
+    log "Wallpaper"
+fi
 
-# Save current theme
-echo "$THEME" > ~/.config/current-theme
+# Save state
+mkdir -p "$(dirname "$STATE_FILE")"
+echo "$THEME" > "$STATE_FILE"
 
-echo "Theme set to: $THEME"
 echo ""
-echo "Manual steps:"
-echo "  - Neovim: :colorscheme <name> or restart"
-echo "  - Zsh: source ~/.p10k.zsh"
-echo "  - Obsidian: Restart or reload vault"
+echo "Theme set to: $THEME_NAME"
+echo ""
+echo "Manual steps (if needed):"
+echo "  - Neovim: restart or run :colorscheme $NVIM_COLORSCHEME"
+echo "  - Zsh: run 'p10k reload' or restart terminal"
+echo "  - Obsidian: reload vault if theme doesn't update"
 ```
 
 ---
 
 ## Implementation Phases
 
-### Phase 1: Setup Structure
+### Phase 0: Safety & Structure Setup
+
+**Pre-phase**: No additional context needed
 
 1. Create `themes/` directory structure
-2. Create palette files from official sources
-3. Copy current Tokyo Night configs as reference
+2. Create theme metadata files (`themes/meta/*.env`)
+3. Verify Ghostty theme names exist (`ghostty +list-themes`)
 
-### Phase 2: Generate Gruvbox/Everforest Configs
+### Phase 1: Tokyo Night Baseline
 
-1. Generate `sketchybar-colors.lua` for each
-2. Generate `bordersrc` for each
-3. Create P10k theme snippets for all three
+**Pre-phase**: Ask user about any custom modifications to current configs
 
-### Phase 3: Fork Obsidian Themes
+1. Move current `sketchybar/colors.lua` to `themes/configs/tokyo-night/sketchybar-colors.lua`
+2. Move current `borders/bordersrc` to `themes/configs/tokyo-night/bordersrc`
+3. Create Tokyo Night palette file (reference only)
+4. Update `install.sh` to copy default theme configs
+5. Remove theme files from Stow packages
 
-1. Download official theme.css from GitHub
-2. Create manifest.json for each
-3. Test in Obsidian
+### Phase 2: P10k Theming
 
-### Phase 4: Antigravity Integration
+**Pre-phase**: Ask about any p10k customizations beyond colors
 
-1. Extract colorCustomizations from official VS Code themes
-2. Create settings.json merge logic
+1. Create Tokyo Night `p10k-theme.zsh`
+2. Add one-time source line to `.p10k.zsh`
+3. Create Gruvbox and Everforest `p10k-theme.zsh`
 
-### Phase 5: Neovim Plugin Setup
+### Phase 3: Gruvbox & Everforest Configs
 
-1. Add gruvbox.nvim and everforest plugins to lazy config
-2. Create theme switching mechanism
+**Pre-phase**: Confirm color mapping preferences
 
-### Phase 6: Wallpapers & Script
+1. Create `sketchybar-colors.lua` for Gruvbox
+2. Create `sketchybar-colors.lua` for Everforest
+3. Create `bordersrc` for Gruvbox
+4. Create `bordersrc` for Everforest
 
-1. Generate solid color PNGs
-2. Create theme-set script
+### Phase 4: Antigravity Theming
+
+**Pre-phase**: Confirm Antigravity settings.json location, review current settings
+
+1. Download official theme JSON files from GitHub repos
+2. Extract and format colors into `antigravity-colors.json` for each theme
+3. Test color application in Antigravity
+
+### Phase 5: Neovim Multi-Theme
+
+**Pre-phase**: Review current nvim plugin structure
+
+1. Rename `tokyonight.lua` → `colorschemes.lua` with ALL theme plugins:
+   - `folke/tokyonight.nvim`
+   - `ellisonleao/gruvbox.nvim`
+   - `sainnhe/everforest`
+2. Create `lua/config/theme.lua` - theme loader that:
+   - Reads `~/.config/nvim/lua/config/current-theme.lua` if exists
+   - Falls back to `tokyonight-night` if missing
+   - Sets colorscheme on startup
+3. Update `init.lua` or `lazy.lua` to require theme loader
+
+**Neovim colorschemes.lua structure**:
+
+```lua
+return {
+  { "folke/tokyonight.nvim", lazy = false, priority = 1000 },
+  { "ellisonleao/gruvbox.nvim", lazy = false, priority = 1000 },
+  { "sainnhe/everforest", lazy = false, priority = 1000 },
+}
+```
+
+**Neovim theme.lua loader**:
+
+```lua
+local theme_file = vim.fn.stdpath("config") .. "/lua/config/current-theme.lua"
+local ok, theme = pcall(dofile, theme_file)
+if not ok or not theme then
+  theme = "tokyonight-night"
+end
+vim.cmd.colorscheme(theme)
+```
+
+### Phase 6: Obsidian Themes
+
+**Pre-phase**: Ask about custom CSS modifications in Obsidian vaults
+
+1. Fork Tokyo Night theme CSS from GitHub
+2. Fork Gruvbox theme CSS from GitHub
+3. Fork Everforest theme CSS from GitHub
+4. Create manifest.json files with proper attribution
+5. Create `themes/obsidian/SOURCES.md` with repo URLs and commits used
+6. Document how to set Obsidian to use "Steez" theme
+
+**Obsidian Theme Sources**:
+| Theme | Repository |
+| ----------- | ------------------------------------------------------------------------------------ |
+| Tokyo Night | [tcmmichaelb139/obsidian-tokyonight](https://github.com/tcmmichaelb139/obsidian-tokyonight) |
+| Gruvbox | [insanum/obsidian_gruvbox](https://github.com/insanum/obsidian_gruvbox) |
+| Everforest | [0xGlitchbyte/obsidian_everforest](https://github.com/0xGlitchbyte/obsidian_everforest) |
+
+### Phase 7: Wallpapers & Script
+
+**Pre-phase**: Confirm wallpaper approach (solid color PNGs)
+
+1. Generate solid color PNG wallpapers
+2. Create `theme-set` script
 3. Test full switching flow
 
-### Phase 7: Documentation
+### Phase 8: Install.sh Integration & Docs
 
-1. Update README
-2. Fresh install instructions
+**Pre-phase**: None
+
+1. Add theme config copying to `install.sh`
+2. Create `themes/README.md`
+3. Update main README with theme instructions
 
 ---
 
 ## Files to Create
 
-| File                                               | Description                   |
-| -------------------------------------------------- | ----------------------------- |
-| `themes/palettes/tokyo-night.lua`                  | Tokyo Night color definitions |
-| `themes/palettes/gruvbox.lua`                      | Gruvbox color definitions     |
-| `themes/palettes/everforest.lua`                   | Everforest color definitions  |
-| `themes/configs/tokyo-night/sketchybar-colors.lua` | Copy of current               |
-| `themes/configs/tokyo-night/bordersrc`             | Copy of current               |
-| `themes/configs/tokyo-night/p10k-theme.zsh`        | New - themed colors           |
-| `themes/configs/gruvbox/sketchybar-colors.lua`     | Generated                     |
-| `themes/configs/gruvbox/bordersrc`                 | Generated                     |
-| `themes/configs/gruvbox/p10k-theme.zsh`            | Generated                     |
-| `themes/configs/everforest/sketchybar-colors.lua`  | Generated                     |
-| `themes/configs/everforest/bordersrc`              | Generated                     |
-| `themes/configs/everforest/p10k-theme.zsh`         | Generated                     |
-| `themes/obsidian/tokyo-night/theme.css`            | Forked from GitHub            |
-| `themes/obsidian/tokyo-night/manifest.json`        | Created                       |
-| `themes/obsidian/gruvbox/theme.css`                | Forked from GitHub            |
-| `themes/obsidian/gruvbox/manifest.json`            | Created                       |
-| `themes/obsidian/everforest/theme.css`             | Forked from GitHub            |
-| `themes/obsidian/everforest/manifest.json`         | Created                       |
-| `themes/wallpapers/tokyo-night.png`                | Solid #1a1b26                 |
-| `themes/wallpapers/gruvbox.png`                    | Solid #1d2021                 |
-| `themes/wallpapers/everforest.png`                 | Solid #2d353b                 |
-| `themes/bin/theme-set`                             | Main CLI script               |
-| `themes/README.md`                                 | Usage documentation           |
+| File                                                 | Description                       |
+| ---------------------------------------------------- | --------------------------------- |
+| `themes/meta/tokyo-night.env`                        | Tokyo Night metadata              |
+| `themes/meta/gruvbox.env`                            | Gruvbox metadata                  |
+| `themes/meta/everforest.env`                         | Everforest metadata               |
+| `themes/palettes/tokyo-night.lua`                    | Tokyo Night colors (reference)    |
+| `themes/palettes/gruvbox.lua`                        | Gruvbox colors (reference)        |
+| `themes/palettes/everforest.lua`                     | Everforest colors (reference)     |
+| `themes/configs/tokyo-night/sketchybar-colors.lua`   | Moved from sketchybar/            |
+| `themes/configs/tokyo-night/bordersrc`               | Moved from borders/               |
+| `themes/configs/tokyo-night/p10k-theme.zsh`          | Truecolor P10k overrides          |
+| `themes/configs/tokyo-night/antigravity-colors.json` | Extracted from VS Code theme repo |
+| `themes/configs/gruvbox/sketchybar-colors.lua`       | Generated                         |
+| `themes/configs/gruvbox/bordersrc`                   | Generated                         |
+| `themes/configs/gruvbox/p10k-theme.zsh`              | Truecolor P10k overrides          |
+| `themes/configs/gruvbox/antigravity-colors.json`     | Extracted from VS Code theme repo |
+| `themes/configs/everforest/sketchybar-colors.lua`    | Generated                         |
+| `themes/configs/everforest/bordersrc`                | Generated                         |
+| `themes/configs/everforest/p10k-theme.zsh`           | Truecolor P10k overrides          |
+| `themes/configs/everforest/antigravity-colors.json`  | Extracted from VS Code theme repo |
+| `themes/obsidian/SOURCES.md`                         | Attribution and source URLs       |
+| `themes/obsidian/*/theme.css`                        | Forked from GitHub                |
+| `themes/obsidian/*/manifest.json`                    | Created with attribution          |
+| `themes/wallpapers/*.png`                            | Generated solid colors            |
+| `themes/bin/theme-set`                               | Main CLI script                   |
+| `themes/README.md`                                   | Usage documentation               |
+| `nvim/.config/nvim/lua/plugins/colorschemes.lua`     | Multi-theme plugin spec           |
+| `nvim/.config/nvim/lua/config/theme.lua`             | Theme loader with fallback        |
 
 ---
 
 ## Files to Modify
 
-| File                             | Change                                  |
-| -------------------------------- | --------------------------------------- |
-| `nvim/.config/nvim/lua/plugins/` | Add gruvbox.nvim and everforest plugins |
-| `zsh/.p10k.zsh`                  | Add theme section markers at end        |
+| File                                           | Change                                             |
+| ---------------------------------------------- | -------------------------------------------------- |
+| `sketchybar/.config/sketchybar/colors.lua`     | DELETE (moved to themes/)                          |
+| `borders/.config/borders/bordersrc`            | DELETE (moved to themes/)                          |
+| `nvim/.config/nvim/lua/plugins/tokyonight.lua` | RENAME → `colorschemes.lua`, add all theme plugins |
+| `nvim/.config/nvim/lua/config/` (new)          | Add `theme.lua` loader and `current-theme.lua`     |
+| `zsh/.p10k.zsh`                                | Add source line for theme file at end              |
+| `installer/install.sh`                         | Add `theme-set tokyo-night` after Stow completes   |
 
 ---
 
-## Skipped (Phase 2)
+## Out of Scope
 
-- **Helium browser** - Chrome theme folder approach, experimental
+| App       | Reason                                       |
+| --------- | -------------------------------------------- |
+| Aerospace | Window manager - no theming capability       |
+| Raycast   | Theme customization requires paid plan       |
+| Helium    | Chrome theme approach - future consideration |
+| Karabiner | No visual theming                            |
+| AutoRaise | No visual theming                            |
