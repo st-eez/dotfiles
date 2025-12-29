@@ -29,7 +29,7 @@ export async function runJudge(args: TestBenchArgs): Promise<void> {
   }
 
   const strategy = await loadStrategy(args.strategy);
-  const testCases = filterTestCases(args.cases, args.mode, args.category);
+  const testCases = filterTestCases(args.cases, args.category);
   const engine = args.engine || DEFAULT_ENGINE;
   const model = args.model || (engine === "gemini" ? DEFAULT_MODEL_GEMINI : DEFAULT_MODEL_CODEX);
   const judgeConfig: JudgeConfig = JUDGES[args.judge];

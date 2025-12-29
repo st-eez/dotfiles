@@ -5,5 +5,4 @@ export const testCase: TestCase = {
   category: "writing",
   description: "Technical documentation for API",
   userRequest: "Write developer documentation for an OAuth2 authentication flow including code examples.",
-  mode: "detailed",
 };

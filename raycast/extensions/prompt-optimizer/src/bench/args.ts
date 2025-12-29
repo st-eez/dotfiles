@@ -21,7 +21,6 @@ ${color.cyan("Commands:")}
 ${color.cyan("Options:")}
   --strategy <path>    Strategy file path (e.g., src/prompts/v1-baseline.ts)
   --case <id>          Specific test case ID (can be repeated)
-  --mode <mode>        Filter test cases: quick or detailed
   --category <name>    Filter by category: ${CATEGORIES.join(", ")}
   --engine <name>      Engine: gemini or codex (default: gemini)
   --model <name>       Model override
@@ -80,13 +79,6 @@ export function parseArgs(): TestBenchArgs | null {
       case "--case":
         cases.push(args[++i]);
         break;
-      case "--mode": {
-        const modeArg = args[++i];
-        if (modeArg === "quick" || modeArg === "detailed") {
-          result.mode = modeArg;
-        }
-        break;
-      }
       case "--category":
         result.category = args[++i];
         break;
@@ -147,8 +139,19 @@ export function parseArgs(): TestBenchArgs | null {
           result.cacheSubcommand = arg;
         }
         break;
+      // Common output flags handled by initCliOutput() - skip silently
+      case "--json":
+      case "--quiet":
+      case "-q":
+      case "--verbose":
+      case "-v":
+      case "--no-color":
+      case "--no-colors":
+      case "--ascii":
+      case "--simple":
+        break;
       default:
-        if (arg.startsWith("--")) {
+        if (arg.startsWith("--") || arg.startsWith("-")) {
           console.error(`Unknown option: ${arg}`);
           process.exit(1);
         }

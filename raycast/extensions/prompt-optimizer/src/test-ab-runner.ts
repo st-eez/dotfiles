@@ -9,7 +9,6 @@
  *     [--dry-run] \
  *     [--skip-context-check] \
  *     [--concurrency 5] \
- *     [--mode quick|detailed] \
  *     [--category code|writing|...]
  */
 
@@ -17,7 +16,7 @@ import "./setup-test";
 import * as fs from "fs";
 import * as path from "path";
 import pLimit from "p-limit";
-import { TEST_CASES, TestCase, getTestCasesByMode } from "./test-data/test-cases";
+import { AB_TEST_CASES, TestCase } from "./test-data/test-cases";
 import {
   EvaluationResultV3,
   evaluateWithMetadata,
@@ -42,7 +41,6 @@ interface BenchmarkReportV3 {
   testCaseCount: number;
   concurrency: number;
   durationSeconds: number;
-  mode?: "quick" | "detailed";
   category?: string;
   engine: "gemini" | "codex";
   model: string;
@@ -87,7 +85,6 @@ interface CLIArgs {
   engine: "gemini" | "codex";
   model?: string;
   reasoning: "high" | "medium" | "low";
-  mode?: "quick" | "detailed";
   category?: string;
   judge: JudgeId;
   compareJudges: boolean;
@@ -102,12 +99,11 @@ function parseArgs(): CLIArgs {
     candidate: "",
     dryRun: false,
     concurrency: 5,
-    engine: "gemini",
+    engine: "codex",
     model: undefined,
-    reasoning: "high",
-    mode: undefined,
+    reasoning: "medium",
     category: undefined,
-    judge: "codex-high",
+    judge: "codex-medium",
     compareJudges: false,
   };
 
@@ -143,13 +139,6 @@ function parseArgs(): CLIArgs {
         }
         break;
       }
-      case "--mode": {
-        const modeArg = args[++i];
-        if (modeArg === "quick" || modeArg === "detailed") {
-          result.mode = modeArg;
-        }
-        break;
-      }
       case "--category":
         result.category = args[++i];
         break;
@@ -179,14 +168,13 @@ function parseArgs(): CLIArgs {
     console.error("Options:");
     console.error("  --dry-run            Print prompts and cost estimate without API calls");
     console.error("  --concurrency <n>    Parallel API calls (default: 5, max: 8)");
-    console.error("  --engine <name>      LLM engine: gemini or codex (default: gemini)");
+    console.error("  --engine <name>      LLM engine: gemini or codex (default: codex)");
     console.error("  --model <name>       Model override (default: engine-specific)");
-    console.error("  --reasoning <level>  Codex reasoning effort: high, medium, low (default: high)");
-    console.error("  --mode <mode>        Filter test cases: quick or detailed");
+    console.error("  --reasoning <level>  Codex reasoning effort: high, medium, low (default: medium)");
     console.error(
       "  --category <name>    Filter by category: code, writing, system-design, data-analysis, complex, edge",
     );
-    console.error(`  --judge <name>       Judge to use: ${Object.keys(JUDGES).join(", ")} (default: codex-high)`);
+    console.error(`  --judge <name>       Judge to use: ${Object.keys(JUDGES).join(", ")} (default: codex-medium)`);
     console.error("  --compare-judges     Run with all judges and compare results");
     process.exit(1);
   }
@@ -208,11 +196,7 @@ async function loadStrategy(strategyPath: string): Promise<PromptStrategy> {
   const strategy: PromptStrategy =
     module.default || module.v1Baseline || module.v2Candidate || module.strategy || module;
 
-  if (
-    typeof strategy.id !== "string" ||
-    typeof strategy.buildQuickPrompt !== "function" ||
-    typeof strategy.buildDetailedPrompt !== "function"
-  ) {
+  if (typeof strategy.id !== "string" || typeof strategy.buildPrompt !== "function") {
     throw new Error(`Invalid strategy file: ${strategyPath}. Must export a PromptStrategy object.`);
   }
 
@@ -222,11 +206,7 @@ async function loadStrategy(strategyPath: string): Promise<PromptStrategy> {
 // --- Prompt Generation ---
 
 function generatePrompt(strategy: PromptStrategy, testCase: TestCase): string {
-  if (testCase.mode === "quick") {
-    return strategy.buildQuickPrompt(testCase.userRequest, testCase.additionalContext, testCase.persona);
-  } else {
-    return strategy.buildDetailedPrompt(testCase.userRequest, testCase.additionalContext, testCase.persona);
-  }
+  return strategy.buildPrompt(testCase.userRequest, testCase.additionalContext, testCase.persona);
 }
 
 // --- Optimization Caching ---
@@ -240,7 +220,7 @@ async function optimizeAllTestCases(
   candidate: PromptStrategy,
   engine: "gemini" | "codex",
   model: string | undefined,
-  reasoning: "high" | "medium" | "low" = "high",
+  reasoning: "high" | "medium" | "low" = "medium",
 ): Promise<Map<string, CachedOptimization>> {
   const cache = new Map<string, CachedOptimization>();
 
@@ -715,8 +695,7 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  // Filter test cases
-  let testCases = args.mode ? getTestCasesByMode(args.mode) : TEST_CASES;
+  let testCases: TestCase[] = AB_TEST_CASES;
   if (args.category) {
     testCases = testCases.filter((tc) => tc.category === args.category);
   }
@@ -724,7 +703,7 @@ async function main(): Promise<void> {
   const total = testCases.length;
 
   if (total === 0) {
-    console.error(`\n❌ No test cases found for mode=${args.mode || "all"}, category=${args.category || "all"}`);
+    console.error(`\n❌ No test cases found for category=${args.category || "all"}`);
     process.exit(1);
   }
 
@@ -826,7 +805,6 @@ async function main(): Promise<void> {
     testCaseCount: testCases.length,
     concurrency: args.concurrency,
     durationSeconds,
-    mode: args.mode,
     category: args.category,
     engine: args.engine,
     model: args.model || (args.engine === "gemini" ? "gemini-3-flash-preview" : "gpt-5.2-codex"),
@@ -862,7 +840,6 @@ async function main(): Promise<void> {
   console.log(
     `Judge: ${args.judge} (${report.judge.engine}/${report.judge.model}${report.judge.reasoningEffort ? `/${report.judge.reasoningEffort}` : ""})`,
   );
-  if (args.mode) console.log(`Mode filter: ${args.mode}`);
   if (args.category) console.log(`Category filter: ${args.category}`);
   console.log("");
   console.log(`Baseline (${baseline.id}):  avg score = ${report.summary.baselineAvgScore.toFixed(2)}`);
@@ -929,9 +906,7 @@ async function main(): Promise<void> {
 
   if (decision === "ship_candidate") {
     console.log(`\nTo promote candidate, update engines.ts import:`);
-    console.log(
-      `  import { buildQuickPrompt, buildDetailedPrompt } from '../prompts/${path.basename(args.candidate, ".ts")}';`,
-    );
+    console.log(`  import { buildPrompt } from '../prompts/${path.basename(args.candidate, ".ts")}';`);
   }
 
   console.log("");

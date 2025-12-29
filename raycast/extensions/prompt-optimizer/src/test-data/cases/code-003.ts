@@ -15,5 +15,4 @@ export const testCase: TestCase = {
     res.send('Invalid credentials');
   }
 });`,
-  mode: "quick",
 };

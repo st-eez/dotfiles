@@ -30,7 +30,7 @@ export const JUDGES = {
   "codex-high": { engine: "codex" as const, model: "gpt-5.2-codex", reasoningEffort: "high" as const },
   "codex-medium": { engine: "codex" as const, model: "gpt-5.2-codex", reasoningEffort: "medium" as const },
   "gemini-flash": { engine: "gemini" as const, model: "gemini-3-flash-preview" },
-  "gemini-2.5-flash": { engine: "gemini" as const, model: "gemini-2.5-flash" },
+  "gemini-pro": { engine: "gemini" as const, model: "gemini-3-pro-preview" },
   "grok-code": { engine: "opencode" as const, model: "opencode/grok-code" },
 } as const;
 

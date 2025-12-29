@@ -205,19 +205,6 @@ export async function interactiveMode(): Promise<void> {
       process.exit(0);
     }
 
-    const modeFilter = await p.select({
-      message: "Filter by mode:",
-      options: [
-        { value: "all", label: "All modes" },
-        { value: "quick", label: "Quick only" },
-        { value: "detailed", label: "Detailed only" },
-      ],
-    });
-    if (p.isCancel(modeFilter)) {
-      p.cancel("Cancelled");
-      process.exit(0);
-    }
-
     const categoryFilter = await p.select({
       message: "Filter by category:",
       options: [{ value: "all", label: "All categories" }, ...CATEGORIES.map((c) => ({ value: c, label: c }))],
@@ -227,9 +214,8 @@ export async function interactiveMode(): Promise<void> {
       process.exit(0);
     }
 
-    const mode = modeFilter === "all" ? undefined : (modeFilter as "quick" | "detailed");
     const category = categoryFilter === "all" ? undefined : (categoryFilter as string);
-    const availableTestCases = filterTestCases(undefined, mode, category);
+    const availableTestCases = filterTestCases(undefined, category);
 
     const testCaseSelection = await p.select({
       message: `Test cases (${availableTestCases.length} available):`,
@@ -330,7 +316,6 @@ export async function interactiveMode(): Promise<void> {
         command: "optimize",
         strategy: strategy as string,
         cases,
-        mode,
         category,
         engine: engine as EngineType,
         model,
@@ -538,19 +523,6 @@ export async function interactiveMode(): Promise<void> {
     process.exit(0);
   }
 
-  const modeFilter = await p.select({
-    message: "Filter by mode:",
-    options: [
-      { value: "all", label: "All modes" },
-      { value: "quick", label: "Quick only" },
-      { value: "detailed", label: "Detailed only" },
-    ],
-  });
-  if (p.isCancel(modeFilter)) {
-    p.cancel("Cancelled");
-    process.exit(0);
-  }
-
   const categoryFilter = await p.select({
     message: "Filter by category:",
     options: [{ value: "all", label: "All categories" }, ...CATEGORIES.map((c) => ({ value: c, label: c }))],
@@ -560,9 +532,8 @@ export async function interactiveMode(): Promise<void> {
     process.exit(0);
   }
 
-  const mode = modeFilter === "all" ? undefined : (modeFilter as "quick" | "detailed");
   const category = categoryFilter === "all" ? undefined : (categoryFilter as string);
-  const availableTestCases = filterTestCases(undefined, mode, category);
+  const availableTestCases = filterTestCases(undefined, category);
 
   const testCaseSelection = await p.select({
     message: `Test cases to run (${availableTestCases.length} available):`,
@@ -600,7 +571,6 @@ export async function interactiveMode(): Promise<void> {
     command: action as Command,
     strategy: strategy as string,
     cases,
-    mode,
     category,
   };
 

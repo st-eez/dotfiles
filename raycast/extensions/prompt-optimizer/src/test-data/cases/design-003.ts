@@ -6,5 +6,4 @@ export const testCase: TestCase = {
   description: "Integration design for third-party API",
   userRequest:
     "Design an integration architecture for consuming the Stripe API with retry logic, idempotency, and webhook handling.",
-  mode: "detailed",
 };

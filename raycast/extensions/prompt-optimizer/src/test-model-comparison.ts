@@ -28,7 +28,6 @@ interface ComparisonReport {
   timestamp: string;
   strategyId: string;
   testCaseCount: number;
-  mode?: "quick" | "detailed";
   models: ModelConfig[];
   results: ComparisonResult[];
   summary: {
@@ -53,7 +52,6 @@ const MODEL_CONFIGS: ModelConfig[] = [
 interface CLIArgs {
   strategy: string;
   testCases: number;
-  mode?: "quick" | "detailed";
 }
 
 function parseArgs(): CLIArgs {
@@ -61,7 +59,6 @@ function parseArgs(): CLIArgs {
   const result: CLIArgs = {
     strategy: "",
     testCases: 5,
-    mode: undefined,
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -73,13 +70,6 @@ function parseArgs(): CLIArgs {
       case "--test-cases":
         result.testCases = parseInt(args[++i] || "5", 10);
         break;
-      case "--mode": {
-        const modeArg = args[++i];
-        if (modeArg === "quick" || modeArg === "detailed") {
-          result.mode = modeArg;
-        }
-        break;
-      }
       default:
         if (arg.startsWith("--")) {
           console.error(`Unknown option: ${arg}`);
@@ -89,9 +79,7 @@ function parseArgs(): CLIArgs {
   }
 
   if (!result.strategy) {
-    console.error(
-      "Usage: npx ts-node src/test-model-comparison.ts --strategy <path> [--test-cases <n>] [--mode quick|detailed]",
-    );
+    console.error("Usage: npx ts-node src/test-model-comparison.ts --strategy <path> [--test-cases <n>]");
     process.exit(1);
   }
 
@@ -111,11 +99,7 @@ async function loadStrategy(strategyPath: string): Promise<PromptStrategy> {
   const strategy: PromptStrategy =
     module.default || module.v1Baseline || module.v2Candidate || module.strategy || module;
 
-  if (
-    typeof strategy.id !== "string" ||
-    typeof strategy.buildQuickPrompt !== "function" ||
-    typeof strategy.buildDetailedPrompt !== "function"
-  ) {
+  if (typeof strategy.id !== "string" || typeof strategy.buildPrompt !== "function") {
     throw new Error(`Invalid strategy file: ${strategyPath}. Must export a PromptStrategy object.`);
   }
 
@@ -125,11 +109,7 @@ async function loadStrategy(strategyPath: string): Promise<PromptStrategy> {
 // --- Prompt Generation ---
 
 function generatePrompt(strategy: PromptStrategy, testCase: TestCase): string {
-  if (testCase.mode === "quick") {
-    return strategy.buildQuickPrompt(testCase.userRequest, testCase.additionalContext, testCase.persona);
-  } else {
-    return strategy.buildDetailedPrompt(testCase.userRequest, testCase.additionalContext, testCase.persona);
-  }
+  return strategy.buildPrompt(testCase.userRequest, testCase.additionalContext, testCase.persona);
 }
 
 // --- Main ---
@@ -153,11 +133,9 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  let testCases = args.mode ? TEST_CASES.filter((tc) => tc.mode === args.mode) : TEST_CASES;
-  testCases = testCases.slice(0, args.testCases);
+  const testCases = TEST_CASES.slice(0, args.testCases);
 
   console.log(`\n📋 Running ${testCases.length} test cases across ${MODEL_CONFIGS.length} models...`);
-  if (args.mode) console.log(`   Mode filter: ${args.mode}`);
 
   const results: ComparisonResult[] = [];
 
@@ -224,7 +202,6 @@ async function main(): Promise<void> {
     timestamp: new Date().toISOString(),
     strategyId: strategy.id,
     testCaseCount: testCases.length,
-    mode: args.mode,
     models: MODEL_CONFIGS,
     results,
     summary,

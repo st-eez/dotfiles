@@ -115,7 +115,7 @@ async function loadStrategyBuildPrompt(strategyPath: string | undefined): Promis
   if (!strategyPath) {
     // Use production strategy (from engines.ts)
     return (userRequest: string, context?: string, personaId?: string) =>
-      buildOptimizationPrompt(userRequest, "quick", context, personaId || "prompt_engineer");
+      buildOptimizationPrompt(userRequest, context, personaId || "prompt_engineer");
   }
 
   // Load custom strategy
@@ -125,11 +125,11 @@ async function loadStrategyBuildPrompt(strategyPath: string | undefined): Promis
   const strategy: PromptStrategy =
     module.default || module.v1Baseline || module.v2Candidate || module.strategy || module;
 
-  if (typeof strategy.buildQuickPrompt !== "function") {
-    throw new Error(`Invalid strategy file: ${strategyPath}. Must export buildQuickPrompt function.`);
+  if (typeof strategy.buildPrompt !== "function") {
+    throw new Error(`Invalid strategy file: ${strategyPath}. Must export buildPrompt function.`);
   }
 
-  return strategy.buildQuickPrompt;
+  return strategy.buildPrompt;
 }
 
 // --- Test Runner ---

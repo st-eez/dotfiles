@@ -1,13 +1,12 @@
 import { Action, ActionPanel, Color, Detail, Icon, List, showToast, Toast, confirmAlert, Alert } from "@raycast/api";
 import { useEffect, useState } from "react";
 import { getHistory, clearHistory, removeFromHistory, HistoryItem } from "./utils/history";
-import { OPTIMIZATION_MODES, PERSONAS } from "./utils/engines";
+import { PERSONAS } from "./utils/engines";
 import { formatPromptForDisplay } from "./utils/format";
 import { homedir } from "os";
 import { writeFile } from "fs/promises";
 import { join } from "path";
 
-// Group history items by date
 type DateGroup = "Today" | "Yesterday" | "This Week" | "Older";
 
 function getDateGroup(timestamp: number): DateGroup {
@@ -40,7 +39,6 @@ function groupHistoryByDate(items: HistoryItem[]): Record<DateGroup, HistoryItem
   return groups;
 }
 
-// Get icon for engine
 function getEngineIcon(engine: string): Icon {
   switch (engine.toLowerCase()) {
     case "codex":
@@ -56,12 +54,6 @@ function getEngineIcon(engine: string): Icon {
   }
 }
 
-// Get mode tag color
-function getModeColor(mode: string | undefined): Color {
-  return mode === "detailed" ? Color.Blue : Color.Green;
-}
-
-// Extract meaningful title from prompt
 function extractTitle(text: string, maxLength: number = 80): string {
   const cleaned = text.replace(/\n/g, " ").trim();
   return cleaned.length > maxLength ? cleaned.slice(0, maxLength) + "…" : cleaned;
@@ -123,14 +115,12 @@ export default function HistoryCommand() {
     markdown += `Exported on: ${new Date().toLocaleString()}\n\n`;
 
     history.forEach((item) => {
-      const modeLabel = item.mode ? (OPTIMIZATION_MODES.find((m) => m.id === item.mode)?.label ?? item.mode) : "Quick";
       markdown += `## ${new Date(item.timestamp).toLocaleString()}\n\n`;
       markdown += `**Engine:** ${item.engine} ${item.model ? `(${item.model})` : ""}\n`;
       if (item.persona) {
         const personaTitle = PERSONAS.find((p) => p.id === item.persona)?.title ?? item.persona;
         markdown += `**Persona:** ${personaTitle}\n`;
       }
-      markdown += `**Mode:** ${modeLabel}\n`;
       markdown += `**Duration:** ${item.durationSec}s\n\n`;
       markdown += `### Original Prompt\n\n${item.originalPrompt}\n\n`;
       if (item.additionalContext) {
@@ -160,7 +150,6 @@ export default function HistoryCommand() {
   const dateGroups: DateGroup[] = ["Today", "Yesterday", "This Week", "Older"];
 
   function renderHistoryItem(item: HistoryItem) {
-    const modeLabel = item.mode ? (OPTIMIZATION_MODES.find((m) => m.id === item.mode)?.label ?? item.mode) : "Quick";
     const wordCount = countWords(item.optimizedPrompt);
     const charCount = item.optimizedPrompt.length;
 
@@ -184,9 +173,6 @@ export default function HistoryCommand() {
                     icon={PERSONAS.find((p) => p.id === item.persona)?.icon}
                   />
                 )}
-                <List.Item.Detail.Metadata.TagList title="Mode">
-                  <List.Item.Detail.Metadata.TagList.Item text={modeLabel} color={getModeColor(item.mode)} />
-                </List.Item.Detail.Metadata.TagList>
                 <List.Item.Detail.Metadata.Separator />
                 <List.Item.Detail.Metadata.Label title="Characters" text={charCount.toString()} />
                 <List.Item.Detail.Metadata.Label title="Words" text={wordCount.toString()} />
@@ -210,10 +196,6 @@ export default function HistoryCommand() {
                   markdown={`# Optimized Prompt\n\n${formatPromptForDisplay(item.optimizedPrompt)}\n\n---\n\n## Original Prompt\n\n${item.originalPrompt}${item.additionalContext ? `\n\n---\n\n## Additional Context\n\n${item.additionalContext}` : ""}${item.specialistOutputs ? `\n\n---\n\n## Specialist Perspectives\n\n${item.specialistOutputs.map((s) => `### ${PERSONAS.find((p) => p.id === s.persona)?.title || s.persona}\n\n${s.output}`).join("\n\n---\n\n")}` : ""}`}
                   metadata={
                     <Detail.Metadata>
-                      <Detail.Metadata.TagList title="Mode">
-                        <Detail.Metadata.TagList.Item text={modeLabel} color={getModeColor(item.mode)} />
-                      </Detail.Metadata.TagList>
-                      <Detail.Metadata.Separator />
                       <Detail.Metadata.Label title="Engine" text={item.engine} icon={getEngineIcon(item.engine)} />
                       {item.model && <Detail.Metadata.Label title="Model" text={item.model} />}
                       {item.persona && (

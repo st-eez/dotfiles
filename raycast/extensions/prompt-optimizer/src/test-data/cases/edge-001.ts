@@ -6,5 +6,4 @@ export const testCase: TestCase = {
   description: "Empty context handling",
   userRequest: "Optimize my code.",
   additionalContext: "",
-  mode: "quick",
 };

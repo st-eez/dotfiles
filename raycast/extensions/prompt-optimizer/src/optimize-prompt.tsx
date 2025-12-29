@@ -11,7 +11,7 @@ import {
   getSelectedText,
 } from "@raycast/api";
 import { useEffect, useState } from "react";
-import { engines, OPTIMIZATION_MODES, PERSONAS, type OptimizationMode, type SmartModeResult } from "./utils/engines";
+import { engines, PERSONAS, type SmartModeResult } from "./utils/engines";
 import { formatPromptForDisplay } from "./utils/format";
 import { addToHistory } from "./utils/history";
 import HistoryCommand from "./history";
@@ -24,7 +24,6 @@ export default function Command() {
   const [prompt, setPrompt] = useState("");
   const [selectedEngine, setSelectedEngine] = useState(engines[0].name);
   const [selectedModel, setSelectedModel] = useState(() => getDefaultModel(engines[0]));
-  const [selectedMode, setSelectedMode] = useState<OptimizationMode>("quick");
   const [additionalContext, setAdditionalContext] = useState("");
   const [selectedPersona, setSelectedPersona] = useState("prompt_engineer");
   const [smartMode, setSmartMode] = useState(true);
@@ -152,7 +151,6 @@ export default function Command() {
       let personasToRun: string[] = [];
 
       if (smartMode) {
-        // SMART MODE: Solo Performance Prompting (single call)
         if (!engine.runOrchestrated) {
           throw new Error("Smart mode requires an engine with runOrchestrated support");
         }
@@ -162,36 +160,29 @@ export default function Command() {
         const smartResult: SmartModeResult = await engine.runOrchestrated(
           finalPrompt,
           modelToUse,
-          selectedMode,
           additionalContext || "",
         );
         optimizedPrompt = smartResult.synthesis;
         results = smartResult.perspectives;
         personasToRun = smartResult.personasUsed;
       } else {
-        // STANDARD FLOW
-        optimizedPrompt = await engine.run(finalPrompt, modelToUse, selectedMode, additionalContext, selectedPersona);
+        optimizedPrompt = await engine.run(finalPrompt, modelToUse, additionalContext, selectedPersona);
       }
 
       const totalSec = ((Date.now() - start) / 1000).toFixed(1);
       toast.style = Toast.Style.Success;
       toast.title = `Prompt optimized in ${totalSec}s`;
 
-      // Save to history
       await addToHistory({
         originalPrompt: prompt,
         optimizedPrompt,
         additionalContext: additionalContext || undefined,
         engine: engine.displayName,
         model: modelToUse,
-        mode: selectedMode,
         persona: smartMode ? "Orchestrator" : selectedPersona,
         durationSec: totalSec,
         specialistOutputs: smartMode && results.length > 0 ? results : undefined,
       });
-
-      const modeLabel = OPTIMIZATION_MODES.find((m) => m.id === selectedMode)?.label ?? selectedMode;
-      const modeColor = selectedMode === "detailed" ? Color.Blue : Color.Green;
 
       const contextSection = additionalContext ? `\n\n---\n\n## Additional Context\n\n${additionalContext}` : "";
 
@@ -200,10 +191,6 @@ export default function Command() {
           markdown={`# Optimized Prompt\n\n${formatPromptForDisplay(optimizedPrompt)}\n\n---\n\n## Original Prompt\n\n${prompt}${contextSection}${smartMode && results.length > 0 ? `\n\n---\n\n## Specialist Perspectives\n\n${results.map((s) => `### ${PERSONAS.find((p) => p.id === s.persona)?.title || s.persona}\n\n${s.output}`).join("\n\n---\n\n")}` : ""}`}
           metadata={
             <Detail.Metadata>
-              <Detail.Metadata.TagList title="Mode">
-                <Detail.Metadata.TagList.Item text={modeLabel} color={modeColor} />
-              </Detail.Metadata.TagList>
-              <Detail.Metadata.Separator />
               <Detail.Metadata.Label title="Engine" text={engine.displayName} icon={engine.icon} />
               {modelToUse && <Detail.Metadata.Label title="Model" text={modelToUse} />}
               <Detail.Metadata.Label
@@ -318,7 +305,6 @@ export default function Command() {
           persona={selectedPersona}
           engineName={engine.name}
           model={modelToUse || engine.defaultModel || ""}
-          mode={selectedMode}
           smartMode={smartMode}
           auditPersonas={auditPersonas}
         />,
@@ -434,16 +420,6 @@ export default function Command() {
       />
 
       <Form.Separator />
-      <Form.Dropdown
-        id="mode"
-        title="Mode"
-        value={selectedMode}
-        onChange={(value) => setSelectedMode(value as OptimizationMode)}
-        info="Quick: Comprehensive single-shot. Detailed: Phased with approval checkpoints."
-      >
-        <Form.Dropdown.Item value="quick" title="Quick" icon={{ source: Icon.Bolt, tintColor: Color.Green }} />
-        <Form.Dropdown.Item value="detailed" title="Detailed" icon={{ source: Icon.List, tintColor: Color.Blue }} />
-      </Form.Dropdown>
       <Form.Dropdown
         id="engine"
         title="Engine"

@@ -12,5 +12,4 @@ export const testCase: TestCase = {
   }
   return Order.findOne({ userId, status: 'pending' });
 }`,
-  mode: "detailed",
 };

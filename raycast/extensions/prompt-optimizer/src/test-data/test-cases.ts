@@ -23,6 +23,9 @@ import { testCase as complex003 } from "./cases/complex-003";
 import { testCase as complex004 } from "./cases/complex-004";
 import { testCase as edge001 } from "./cases/edge-001";
 import { testCase as edge002 } from "./cases/edge-002";
+import { testCase as ops001 } from "./cases/ops-001";
+import { testCase as ops002 } from "./cases/ops-002";
+import { testCase as ops003 } from "./cases/ops-003";
 import { testCase as calibrationPerfect } from "./cases/calibration-perfect";
 import { testCase as calibrationMinimal } from "./cases/calibration-minimal";
 import { testCase as calibrationBroken } from "./cases/calibration-broken";
@@ -49,20 +52,16 @@ export const TEST_CASES: TestCase[] = [
   complex004,
   edge001,
   edge002,
+  ops001,
+  ops002,
+  ops003,
   calibrationPerfect,
   calibrationMinimal,
   calibrationBroken,
 ];
 
-export const QUICK_TEST_CASES = TEST_CASES.filter((tc) => tc.mode === "quick");
-export const DETAILED_TEST_CASES = TEST_CASES.filter((tc) => tc.mode === "detailed");
-
 export function getTestCasesByCategory(category: string): TestCase[] {
   return TEST_CASES.filter((tc) => tc.category === category);
-}
-
-export function getTestCasesByMode(mode: "quick" | "detailed"): TestCase[] {
-  return TEST_CASES.filter((tc) => tc.mode === mode);
 }
 
 export function getTestCaseById(id: string): TestCase | undefined {
@@ -70,3 +69,5 @@ export function getTestCaseById(id: string): TestCase | undefined {
 }
 
 export const CALIBRATION_TEST_CASES = TEST_CASES.filter((tc) => tc.category === "calibration");
+
+export const AB_TEST_CASES = TEST_CASES.filter((tc) => !tc.excludeFromAB);

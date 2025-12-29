@@ -5,6 +5,6 @@ export const testCase: TestCase = {
   category: "calibration",
   description: "Synthetic case for structure validation testing",
   userRequest: "Test structure validation",
-  mode: "quick",
   expectedStructurePass: false,
+  excludeFromAB: true,
 };

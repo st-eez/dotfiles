@@ -58,7 +58,7 @@ Analyze the user's request and determine which expert perspectives would produce
 
   const results = await Promise.all(
     personasToRun.map(async (p: string) => {
-      const output = await runGemini(buildOptimizationPrompt(prompt, "quick", context, p), { model });
+      const output = await runGemini(buildOptimizationPrompt(prompt, context, p), { model });
       return { persona: p, output };
     }),
   );
@@ -97,7 +97,7 @@ async function runNewSPP(prompt: string, context: string): Promise<{ result: Sma
   if (!gemini?.runOrchestrated) throw new Error("Gemini engine not found");
 
   const start = Date.now();
-  const result = await gemini.runOrchestrated(prompt, undefined, "quick", context);
+  const result = await gemini.runOrchestrated(prompt, undefined, context);
   return { result, duration: (Date.now() - start) / 1000 };
 }
 

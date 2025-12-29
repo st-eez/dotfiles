@@ -29,7 +29,7 @@ async function testEngines() {
 
     const start = Date.now();
     try {
-      const result: SmartModeResult = await gemini.runOrchestrated(smartPrompt, undefined, "quick", "");
+      const result: SmartModeResult = await gemini.runOrchestrated(smartPrompt, undefined, "");
       const duration = ((Date.now() - start) / 1000).toFixed(1);
 
       console.log(`✅ Smart Mode Success! Duration: ${duration}s`);

@@ -5,5 +5,4 @@ export const testCase: TestCase = {
   category: "writing",
   description: "User-facing error message",
   userRequest: "Write a friendly, helpful error message for when a payment fails due to insufficient funds.",
-  mode: "quick",
 };

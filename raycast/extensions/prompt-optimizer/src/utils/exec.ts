@@ -64,9 +64,8 @@ export async function safeExec(
   }
 }
 
-export function getTimeout(mode: string, isOrchestrated: boolean): number {
-  const base = mode === "detailed" ? 300_000 : 180_000;
-  // 1.5x multiplier for orchestrated runs to account for multiple parallel calls + synthesis
+export function getTimeout(isOrchestrated: boolean): number {
+  const base = 180_000;
   return isOrchestrated ? base * 1.5 : base;
 }
 

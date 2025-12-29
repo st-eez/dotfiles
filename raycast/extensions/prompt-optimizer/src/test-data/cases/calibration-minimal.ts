@@ -5,6 +5,5 @@ export const testCase: TestCase = {
   category: "calibration",
   description: "Vague request for baseline scoring - should score adequate (3.0-3.5)",
   userRequest: "Make a todo app",
-  mode: "quick",
   expectedScore: { min: 2.5, max: 4.0 },
 };

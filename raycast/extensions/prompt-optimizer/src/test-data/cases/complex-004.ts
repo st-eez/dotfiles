@@ -18,5 +18,4 @@ Things we've tried:
 - Restarted API pods - no change
 - Checked Redis memory - 40% used
 - No recent DNS changes`,
-  mode: "quick",
 };

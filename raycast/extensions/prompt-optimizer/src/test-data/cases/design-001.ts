@@ -16,5 +16,4 @@ jobs:
       run: npm install
     - name: run tests
       run: npm test`,
-  mode: "quick",
 };

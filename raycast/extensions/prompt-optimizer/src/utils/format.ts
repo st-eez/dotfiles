@@ -1,8 +1,5 @@
-// Format XML-style prompt output to readable markdown
 export function formatPromptForDisplay(prompt: string): string {
-  // Map XML tags to markdown headers (comprehensive list for both modes)
   const tagMappings: Record<string, string> = {
-    // Common tags
     role: "Role",
     objective: "Objective",
     context: "Context",
@@ -13,11 +10,9 @@ export function formatPromptForDisplay(prompt: string): string {
     edge_cases: "Edge Cases",
     success_criteria: "Success Criteria",
     best_practices: "Best Practices",
-    // Quick mode specific
     instructions: "Instructions",
     task: "Task",
     output: "Output Format",
-    // Detailed mode specific
     execution_protocol: "Execution Protocol",
   };
 

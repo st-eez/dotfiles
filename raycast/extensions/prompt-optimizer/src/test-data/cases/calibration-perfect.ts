@@ -12,6 +12,5 @@ export const testCase: TestCase = {
 - Return 1 for factorial(0)
 - Include type hints
 - Add unit test examples in docstring`,
-  mode: "quick",
   expectedScore: { min: 4.0, max: 5.0 },
 };

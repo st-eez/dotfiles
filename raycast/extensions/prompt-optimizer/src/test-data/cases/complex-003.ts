@@ -18,5 +18,4 @@ Tech constraints:
 - PostgreSQL 15
 - Must work with Stripe as payment processor
 - Eventually consistent is OK for usage counters`,
-  mode: "quick",
 };

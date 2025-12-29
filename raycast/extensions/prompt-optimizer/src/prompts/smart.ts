@@ -1,23 +1,6 @@
-/**
- * Smart Mode Prompt Strategy (Solo Performance Prompting)
- *
- * Single-call approach where the LLM:
- * 1. Identifies relevant personas from the request
- * 2. Generates each perspective internally
- * 3. Outputs structured XML with perspectives + synthesis
- */
-
 import { PERSONA_INSTRUCTIONS } from "./personas";
-import type { OptimizationMode } from "../utils/engines";
 
-/**
- * Build a Smart Mode prompt that instructs the LLM to:
- * - Analyze the request and select 2-3 relevant personas
- * - Generate a complete optimized prompt from each persona's perspective
- * - Synthesize all perspectives into a unified final prompt
- * - Output in structured XML format for parsing
- */
-export function buildSmartPrompt(userPrompt: string, context?: string, mode: OptimizationMode = "quick"): string {
+export function buildSmartPrompt(userPrompt: string, context?: string): string {
   const personaList = Object.entries(PERSONA_INSTRUCTIONS)
     .map(([id, instruction]) => `- ${id}: ${instruction}`)
     .join("\n");
@@ -27,29 +10,7 @@ export function buildSmartPrompt(userPrompt: string, context?: string, mode: Opt
 - Preserve exact terminology: tool names, paths, CLI flags, quoted phrases`
     : "";
 
-  // Build mode-specific synthesis template (visual XML, no inline annotations)
-  const synthesisTemplate =
-    mode === "detailed"
-      ? `<synthesis>
-      <role>You are an expert [domain]...</role>
-      <objective>[Merged goal]</objective>
-      <execution_protocol>Complete sequentially. Wait for approval at checkpoints.</execution_protocol>
-
-      <phase id="1">
-        <goal>[Phase Goal]</goal>
-        <steps>[Actions]</steps>
-        <deliverable>[Output]</deliverable>
-        <checkpoint>Present deliverable and await approval.</checkpoint>
-      </phase>
-
-      <phase id="2">
-        <goal>[Phase Goal]</goal>
-        <steps>[Actions]</steps>
-        <deliverable>[Output]</deliverable>
-        <checkpoint>Present deliverable and await approval.</checkpoint>
-      </phase>
-    </synthesis>`
-      : `<synthesis>
+  const synthesisTemplate = `<synthesis>
       <role>You are an expert [domain]...</role>
       <objective>[Merged goal]</objective>
       <context>[Audience/background]</context>
@@ -103,10 +64,6 @@ ${contextRules}
 `;
 }
 
-/**
- * Build a Smart Audit prompt for multi-persona ambiguity detection.
- * Each persona identifies ambiguities from their expert lens.
- */
 export function buildSmartAuditPrompt(userPrompt: string, context?: string): string {
   const personaList = Object.entries(PERSONA_INSTRUCTIONS)
     .map(([id, instruction]) => `- ${id}: ${instruction}`)
@@ -145,17 +102,12 @@ ${personaList}
 `;
 }
 
-/**
- * Build a Smart Clarification prompt that injects clarifications into SPP.
- * Uses the base SPP prompt with clarifications inserted before personas.
- */
 export function buildSmartClarificationPrompt(
   userPrompt: string,
   context: string | undefined,
   clarifications: { question: string; answer: string }[],
-  mode: OptimizationMode,
 ): string {
-  const basePrompt = buildSmartPrompt(userPrompt, context, mode);
+  const basePrompt = buildSmartPrompt(userPrompt, context);
 
   const clarificationBlock = `
 <clarifications>

@@ -17,5 +17,4 @@ Constraints:
 - Zero downtime during migration
 - Must pass SOC2 audit in 45 days
 - Team: 2 backend devs, 1 mobile dev`,
-  mode: "quick",
 };

@@ -17,7 +17,7 @@ Prompt optimization strategies for A/B testing framework.
 ```
 1. Create new file (e.g., v3-structured.ts)
 2. Implement PromptStrategy interface
-3. Export buildQuickPrompt + buildDetailedPrompt
+3. Export buildPrompt
 4. A/B test: npx ts-node src/test-ab-runner.ts \
      --baseline src/prompts/v1-baseline.ts \
      --candidate src/prompts/v3-structured.ts
@@ -32,8 +32,7 @@ interface PromptStrategy {
   id: string; // "v1-baseline"
   name: string; // "V1 Baseline"
   description: string; // What this version tests
-  buildQuickPrompt: (userRequest, context?, personaId?) => string;
-  buildDetailedPrompt: (userRequest, context?, personaId?) => string;
+  buildPrompt: (userRequest, context?, personaId?) => string;
 }
 ```
 
@@ -49,7 +48,7 @@ interface PromptStrategy {
 
 ## Prompt XML Structure
 
-Quick mode output format:
+Output format:
 
 ```xml
 <role>...</role>

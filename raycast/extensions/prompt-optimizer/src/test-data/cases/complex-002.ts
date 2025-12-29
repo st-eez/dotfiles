@@ -13,5 +13,4 @@ Blocked: INFRA-45 (Redis cluster) - waiting on AWS quota increase
 Velocity: 21 points completed, 8 carried over
 
 Team: Alice (backend), Bob (frontend), Carol (QA - out sick Thu-Fri)`,
-  mode: "quick",
 };

@@ -1,26 +1,10 @@
 import { Icon } from "@raycast/api";
 import { safeExec, getTimeout, parseGeminiJson, withIsolatedGemini, withIsolatedCodex } from "./exec";
-// Current production strategy - update this import when promoting a new A/B test winner
-import { buildQuickPrompt, buildDetailedPrompt } from "../prompts/v1-baseline";
+import { buildPrompt } from "../prompts/v1-baseline";
 import { PERSONA_INSTRUCTIONS } from "../prompts/personas";
 import { buildSmartPrompt, buildSmartAuditPrompt, buildSmartClarificationPrompt } from "../prompts/smart";
 
-// Re-export for external consumers
 export { PERSONA_INSTRUCTIONS };
-
-// Optimization mode types and configuration
-export type OptimizationMode = "quick" | "detailed";
-
-export interface OptimizationModeConfig {
-  id: OptimizationMode;
-  label: string;
-  description: string;
-}
-
-export const OPTIMIZATION_MODES: OptimizationModeConfig[] = [
-  { id: "quick", label: "Quick", description: "Comprehensive single-shot prompt" },
-  { id: "detailed", label: "Detailed", description: "Phased execution with checkpoints" },
-];
 
 export interface Persona {
   id: string;
@@ -40,21 +24,12 @@ export const PERSONAS: Persona[] = [
   { id: "researcher", title: "Researcher", icon: Icon.MagnifyingGlass },
 ];
 
-// Dispatcher function
 export function buildOptimizationPrompt(
   userPrompt: string,
-  mode: OptimizationMode = "quick",
   context?: string,
   personaId: string = "prompt_engineer",
 ): string {
-  switch (mode) {
-    case "quick":
-      return buildQuickPrompt(userPrompt, context, personaId);
-    case "detailed":
-      return buildDetailedPrompt(userPrompt, context, personaId);
-    default:
-      return buildQuickPrompt(userPrompt, context, personaId);
-  }
+  return buildPrompt(userPrompt, context, personaId);
 }
 
 // THE CRITIC: Pass 1 (Audit)
@@ -88,17 +63,14 @@ ${context}
 `;
 }
 
-// THE CRITIC: Pass 2 (Synthesis)
 function buildClarificationPrompt(
   userPrompt: string,
-  mode: OptimizationMode,
   context: string | undefined,
   personaId: string,
   clarifications: { question: string; answer: string }[],
 ): string {
-  const basePrompt = buildOptimizationPrompt(userPrompt, mode, context, personaId);
+  const basePrompt = buildOptimizationPrompt(userPrompt, context, personaId);
 
-  // We inject the clarifications into the task description or a special section
   const clarificationBlock = `
 <clarifications>
 ${clarifications.map((c) => `<item q="${c.question}" a="${c.answer}" />`).join("\n")}
@@ -109,7 +81,6 @@ Incorporate the answers provided in <clarifications> to resolve the ambiguities 
 </instruction_update>
 `;
 
-  // Insert before <user_request>
   return basePrompt.replace("<user_request>", `${clarificationBlock}\n<user_request>`);
 }
 
@@ -187,33 +158,18 @@ export interface Engine {
   defaultModel?: string;
   models?: { id: string; label: string }[];
 
-  // Standard run
-  run: (
-    prompt: string,
-    model?: string,
-    mode?: OptimizationMode,
-    context?: string,
-    personaId?: string,
-  ) => Promise<string>;
+  run: (prompt: string, model?: string, context?: string, personaId?: string) => Promise<string>;
 
-  // Critic Actions
   audit: (prompt: string, model?: string, context?: string, personaId?: string) => Promise<ClarificationQuestion[]>;
-  runOrchestrated?: (
-    prompt: string,
-    model?: string,
-    mode?: OptimizationMode,
-    context?: string,
-  ) => Promise<SmartModeResult>;
+  runOrchestrated?: (prompt: string, model?: string, context?: string) => Promise<SmartModeResult>;
   runWithClarifications: (
     prompt: string,
     clarifications: { question: string; answer: string }[],
     model?: string,
-    mode?: OptimizationMode,
     context?: string,
     personaId?: string,
   ) => Promise<string>;
 
-  // Smart Mode Critic Actions
   auditOrchestrated?: (
     prompt: string,
     model?: string,
@@ -224,7 +180,6 @@ export interface Engine {
     prompt: string,
     clarifications: { question: string; answer: string }[],
     model?: string,
-    mode?: OptimizationMode,
     context?: string,
   ) => Promise<SmartModeResult>;
 }
@@ -239,19 +194,13 @@ export const engines: Engine[] = [
       { id: "gemini-3-flash-preview", label: "Gemini 3 Flash" },
       { id: "gemini-3-pro-preview", label: "Gemini 3 Pro" },
     ],
-    run: async (
-      prompt,
-      model = "gemini-3-flash-preview",
-      mode = "quick",
-      context = "",
-      persona = "prompt_engineer",
-    ) => {
-      const timeout = getTimeout(mode, false);
+    run: async (prompt, model = "gemini-3-flash-preview", context = "", persona = "prompt_engineer") => {
+      const timeout = getTimeout(false);
       return withIsolatedGemini(async (homeDir) => {
         const output = await safeExec(
           "gemini",
           ["--model", model, "--output-format", "json"],
-          buildOptimizationPrompt(prompt, mode, context, persona),
+          buildOptimizationPrompt(prompt, context, persona),
           timeout,
           { HOME: homeDir },
         );
@@ -281,7 +230,6 @@ export const engines: Engine[] = [
       prompt,
       clarifications,
       model = "gemini-3-flash-preview",
-      mode = "quick",
       context = "",
       persona = "prompt_engineer",
     ) => {
@@ -289,21 +237,20 @@ export const engines: Engine[] = [
         const output = await safeExec(
           "gemini",
           ["--model", model, "--output-format", "json"],
-          buildClarificationPrompt(prompt, mode, context, persona, clarifications),
+          buildClarificationPrompt(prompt, context, persona, clarifications),
           undefined,
           { HOME: homeDir },
         );
         return parseGeminiJson(output);
       });
     },
-    runOrchestrated: async (prompt, model = "gemini-3-flash-preview", mode = "quick", context = "") => {
-      // Solo Performance Prompting: single call handles persona selection, perspectives, and synthesis
-      const timeout = getTimeout(mode, true);
+    runOrchestrated: async (prompt, model = "gemini-3-flash-preview", context = "") => {
+      const timeout = getTimeout(true);
       return withIsolatedGemini(async (homeDir) => {
         const output = await safeExec(
           "gemini",
           ["--model", model, "--output-format", "json"],
-          buildSmartPrompt(prompt, context, mode),
+          buildSmartPrompt(prompt, context),
           timeout,
           { HOME: homeDir },
         );
@@ -326,15 +273,14 @@ export const engines: Engine[] = [
       prompt,
       clarifications,
       model = "gemini-3-flash-preview",
-      mode = "quick",
       context = "",
     ) => {
-      const timeout = getTimeout(mode, true);
+      const timeout = getTimeout(true);
       return withIsolatedGemini(async (homeDir) => {
         const output = await safeExec(
           "gemini",
           ["--model", model, "--output-format", "json"],
-          buildSmartClarificationPrompt(prompt, context, clarifications, mode),
+          buildSmartClarificationPrompt(prompt, context, clarifications),
           timeout,
           { HOME: homeDir },
         );
@@ -348,13 +294,13 @@ export const engines: Engine[] = [
     icon: Icon.Code,
     defaultModel: "gpt-5.2-codex",
     models: [{ id: "gpt-5.2-codex", label: "gpt-5.2-codex" }],
-    run: async (prompt, model = "gpt-5.2-codex", mode = "quick", context = "", persona = "prompt_engineer") => {
-      const timeout = getTimeout(mode, false);
+    run: async (prompt, model = "gpt-5.2-codex", context = "", persona = "prompt_engineer") => {
+      const timeout = getTimeout(false);
       return withIsolatedCodex(async (homeDir) => {
         return safeExec(
           "codex",
           ["exec", "-m", model, "--config", `model_reasoning_effort="high"`, "--skip-git-repo-check"],
-          buildOptimizationPrompt(prompt, mode, context, persona),
+          buildOptimizationPrompt(prompt, context, persona),
           timeout,
           { CODEX_HOME: homeDir },
         );
@@ -366,11 +312,10 @@ export const engines: Engine[] = [
           "codex",
           ["exec", "-m", model, "--config", `model_reasoning_effort="high"`, "--skip-git-repo-check"],
           buildAuditPrompt(prompt, context, persona),
-          undefined, // Use default timeout
+          undefined,
           { CODEX_HOME: homeDir },
         );
         try {
-          // Clean up markdown fences if present
           const jsonStr = result.replace(/```json\n?|\n?```/g, "").trim();
           return JSON.parse(jsonStr);
         } catch (e) {
@@ -383,7 +328,6 @@ export const engines: Engine[] = [
       prompt,
       clarifications,
       model = "gpt-5.2-codex",
-      mode = "quick",
       context = "",
       persona = "prompt_engineer",
     ) => {
@@ -391,20 +335,19 @@ export const engines: Engine[] = [
         return safeExec(
           "codex",
           ["exec", "-m", model, "--config", `model_reasoning_effort="high"`, "--skip-git-repo-check"],
-          buildClarificationPrompt(prompt, mode, context, persona, clarifications),
+          buildClarificationPrompt(prompt, context, persona, clarifications),
           undefined,
           { CODEX_HOME: homeDir },
         );
       });
     },
-    runOrchestrated: async (prompt, model = "gpt-5.2-codex", mode = "quick", context = "") => {
-      // Solo Performance Prompting for Codex
-      const timeout = getTimeout(mode, true);
+    runOrchestrated: async (prompt, model = "gpt-5.2-codex", context = "") => {
+      const timeout = getTimeout(true);
       return withIsolatedCodex(async (homeDir) => {
         const output = await safeExec(
           "codex",
           ["exec", "-m", model, "--config", `model_reasoning_effort="high"`, "--skip-git-repo-check"],
-          buildSmartPrompt(prompt, context, mode),
+          buildSmartPrompt(prompt, context),
           timeout,
           { CODEX_HOME: homeDir },
         );
@@ -423,19 +366,13 @@ export const engines: Engine[] = [
         return parseSmartAuditOutput(output);
       });
     },
-    runOrchestratedWithClarifications: async (
-      prompt,
-      clarifications,
-      model = "gpt-5.2-codex",
-      mode = "quick",
-      context = "",
-    ) => {
-      const timeout = getTimeout(mode, true);
+    runOrchestratedWithClarifications: async (prompt, clarifications, model = "gpt-5.2-codex", context = "") => {
+      const timeout = getTimeout(true);
       return withIsolatedCodex(async (homeDir) => {
         const output = await safeExec(
           "codex",
           ["exec", "-m", model, "--config", `model_reasoning_effort="high"`, "--skip-git-repo-check"],
-          buildSmartClarificationPrompt(prompt, context, clarifications, mode),
+          buildSmartClarificationPrompt(prompt, context, clarifications),
           timeout,
           { CODEX_HOME: homeDir },
         );
@@ -443,24 +380,4 @@ export const engines: Engine[] = [
       });
     },
   },
-  // Claude engine disabled due to known authentication bug in Claude Code CLI
-  // Non-interactive mode (-p) fails with "Invalid API key" even when logged in
-  // See: https://github.com/anthropics/claude-code/issues/5666
-  // Uncomment when fixed
-  /*
-  {
-    name: "claude",
-    displayName: "Claude",
-    defaultModel: "sonnet",
-    models: [
-      { id: "sonnet", label: "Sonnet" },
-      { id: "haiku", label: "Haiku" },
-      { id: "opus", label: "Opus" },
-    ],
-    run: async (prompt, model = "sonnet", mode = "quick") => {
-      // Claude: Run in login shell to access Keychain/Env vars
-      return safeExec("/bin/zsh", ["-l", "-c", `cat | claude -p --model ${model}`], buildOptimizationPrompt(prompt, mode));
-    },
-  },
-  */
 ];

@@ -21,5 +21,4 @@ export const testCase: TestCase = {
   }
   return result;
 }`,
-  mode: "quick",
 };

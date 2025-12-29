@@ -8,15 +8,15 @@ Raycast extension: optimizes prompts via Gemini/Codex CLI. Transforms casual req
 
 ## WHERE TO LOOK
 
-| Task | Location | Notes |
-|------|----------|-------|
-| Add new LLM engine | `src/utils/engines.ts` | Implement `Engine` interface |
-| Change prompt strategy | `src/prompts/` | See FROZEN warning in v1-baseline |
-| Add persona | `src/prompts/personas.ts` + `src/utils/engines.ts` PERSONAS array |
-| Modify isolation | `src/utils/exec.ts` | `withIsolated*` wrappers |
-| Add test case | `src/test-data/cases/` | Follow existing naming pattern |
-| Debug CLI execution | `src/utils/exec.ts` safeExec | Check PATH, timeout, env vars |
-| A/B test new strategy | `src/test-ab-runner.ts` | `--baseline` + `--candidate` flags |
+| Task                   | Location                                                          | Notes                              |
+| ---------------------- | ----------------------------------------------------------------- | ---------------------------------- |
+| Add new LLM engine     | `src/utils/engines.ts`                                            | Implement `Engine` interface       |
+| Change prompt strategy | `src/prompts/`                                                    | See FROZEN warning in v1-baseline  |
+| Add persona            | `src/prompts/personas.ts` + `src/utils/engines.ts` PERSONAS array |
+| Modify isolation       | `src/utils/exec.ts`                                               | `withIsolated*` wrappers           |
+| Add test case          | `src/test-data/cases/`                                            | Follow existing naming pattern     |
+| Debug CLI execution    | `src/utils/exec.ts` safeExec                                      | Check PATH, timeout, env vars      |
+| A/B test new strategy  | `src/test-ab-runner.ts`                                           | `--baseline` + `--candidate` flags |
 
 ## Commands
 
@@ -37,7 +37,6 @@ npx ts-node src/test-ab-runner.ts \
   --baseline src/prompts/v1-baseline.ts \
   --candidate src/prompts/v2-lean.ts \
   [--dry-run] \
-  [--mode quick|detailed] \
   [--category code|writing|system-design|data-analysis|simple|edge] \
   [--judge codex-high|codex-medium|gemini-flash]
 
@@ -54,16 +53,17 @@ npx ts-node src/test-bench.ts ab --baseline <run> --candidate <run> --judge code
 
 All test scripts support these output options:
 
-| Flag | Description |
-|------|-------------|
-| `--json` | Output results as JSON (implies --quiet for logs) |
-| `--quiet`, `-q` | Suppress non-error output |
-| `--verbose`, `-v` | Enable debug logging |
-| `--no-color` | Disable colored output |
-| `--ascii` | Use ASCII characters instead of Unicode |
-| `--simple` | Linear output without animations (accessibility/CI friendly) |
+| Flag              | Description                                                  |
+| ----------------- | ------------------------------------------------------------ |
+| `--json`          | Output results as JSON (implies --quiet for logs)            |
+| `--quiet`, `-q`   | Suppress non-error output                                    |
+| `--verbose`, `-v` | Enable debug logging                                         |
+| `--no-color`      | Disable colored output                                       |
+| `--ascii`         | Use ASCII characters instead of Unicode                      |
+| `--simple`        | Linear output without animations (accessibility/CI friendly) |
 
 Environment variables:
+
 - `NO_COLOR=1` - Disable colors (standard)
 - `FORCE_COLOR=1` - Force colors even in non-TTY
 - `CI=true` - Detected automatically, disables interactive prompts
@@ -136,11 +136,11 @@ interface Engine {
 }
 ```
 
-| Engine | CLI | Default Model | Notes |
-|--------|-----|---------------|-------|
+| Engine | CLI      | Default Model            | Notes                                   |
+| ------ | -------- | ------------------------ | --------------------------------------- |
 | Gemini | `gemini` | `gemini-3-flash-preview` | Isolated via temp `HOME` + symlink auth |
-| Codex | `codex` | `gpt-5.2-codex` | Uses `model_reasoning_effort="high"` |
-| Claude | `claude` | `sonnet` | Disabled (CLI auth bug) |
+| Codex  | `codex`  | `gpt-5.2-codex`          | Uses `model_reasoning_effort="high"`    |
+| Claude | `claude` | `sonnet`                 | Disabled (CLI auth bug)                 |
 
 ### Key Implementation Patterns
 
@@ -152,25 +152,29 @@ interface Engine {
 ## Code Style
 
 ### TypeScript
+
 - Target: ES2023, strict mode enabled
 - Explicit types for function params, return values, and public interfaces
 - Prefer `interface` over `type` for object shapes
 - Use `unknown` over `any`; narrow with `instanceof` checks
 
 ### Formatting (Prettier)
+
 - Print width: 120 characters
 - Double quotes (`"`) for strings
 - 2-space indent
 - Trailing commas in multi-line
 
 ### Naming Conventions
+
 - React components: `PascalCase` (e.g., `ResolveAmbiguity`)
-- Utility functions: `camelCase` (e.g., `buildQuickPrompt`)
+- Utility functions: `camelCase` (e.g., `buildPrompt`)
 - Files: `kebab-case` (e.g., `resolve-ambiguity.tsx`)
 - Interfaces: `PascalCase`, no `I` prefix
 - Type exports: Group at top, re-export from index if public
 
 ### Error Handling
+
 ```typescript
 // Pattern: typed error extraction
 try {
@@ -187,11 +191,13 @@ try {
 - Never silently swallow errors in production paths
 
 ### Imports
+
 - Named imports from `@raycast/api` for Raycast APIs
 - Relative imports for local modules (`./utils/engines`)
 - Group: external deps, @raycast, local utils, local components
 
 ### React/Raycast Patterns
+
 - Functional components with hooks (`useState`, `useEffect`)
 - `useNavigation` for screen transitions (`push`, `pop`)
 - `showToast` for user feedback during async operations
@@ -200,10 +206,11 @@ try {
 ## Testing
 
 ### Test File Structure
+
 Tests are standalone TypeScript files run via `ts-node`:
 
 ```typescript
-import "./setup-test";  // Must be first - mocks @raycast/api
+import "./setup-test"; // Must be first - mocks @raycast/api
 import { engines } from "./utils/engines";
 
 async function testEngines() {
@@ -221,13 +228,16 @@ testEngines();
 ```
 
 ### Running Single Tests
+
 ```bash
 npx ts-node src/test-engines.ts           # Quick engine smoke test
 npx ts-node src/test-smart-quality.ts     # Smart mode quality check
 ```
 
 ### A/B Test Reports
+
 Results saved to `/ab_results/ab_test_results_<timestamp>.json` with:
+
 - Schema version, timing, test case count
 - Per-case evaluation scores and gate pass/fail
 - Statistical summary (p-value, SRM detection)
@@ -242,30 +252,33 @@ Results saved to `/ab_results/ab_test_results_<timestamp>.json` with:
 ## Common Tasks
 
 ### Adding a New Engine
+
 1. Add entry to `engines` array in `src/utils/engines.ts`
 2. Implement `run`, `audit`, and optional orchestrated methods
 3. Create isolation wrapper if CLI needs auth isolation
 4. Test with `npx ts-node src/test-engines.ts`
 
 ### Creating a Prompt Strategy
+
 1. Create file in `src/prompts/` implementing `PromptStrategy`
-2. Export `buildQuickPrompt` and `buildDetailedPrompt`
+2. Export `buildPrompt`
 3. Test with A/B runner against baseline
 4. Update import in `engines.ts` when promoting
 
 ### Modifying Personas
+
 - Edit `src/prompts/personas.ts` for persona instructions
 - Update `PERSONAS` array in `src/utils/engines.ts` for UI display
 
 ## Anti-Patterns (THIS PROJECT)
 
-| Pattern | Why Bad | Alternative |
-|---------|---------|-------------|
-| Modify `v1-baseline.ts` | **FROZEN** for A/B comparison | Create new strategy file |
-| Suppress type errors | Masks real bugs | Fix the type issue |
-| Skip isolation wrappers | Global instructions leak | Always use `withIsolated*` |
-| Hardcode CLI paths | Breaks on different systems | Use `safeExec` PATH handling |
-| Sync LLM calls in tests | Slow, expensive | Use caching in test-bench |
+| Pattern                 | Why Bad                       | Alternative                  |
+| ----------------------- | ----------------------------- | ---------------------------- |
+| Modify `v1-baseline.ts` | **FROZEN** for A/B comparison | Create new strategy file     |
+| Suppress type errors    | Masks real bugs               | Fix the type issue           |
+| Skip isolation wrappers | Global instructions leak      | Always use `withIsolated*`   |
+| Hardcode CLI paths      | Breaks on different systems   | Use `safeExec` PATH handling |
+| Sync LLM calls in tests | Slow, expensive               | Use caching in test-bench    |
 
 ## Notes
 

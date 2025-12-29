@@ -1,6 +1,6 @@
 import { Action, ActionPanel, Detail, Form, Icon, showToast, Toast, useNavigation, Color } from "@raycast/api";
 import { useState, Fragment } from "react";
-import { ClarificationQuestion, engines, OptimizationMode, OPTIMIZATION_MODES, PERSONAS } from "./utils/engines";
+import { ClarificationQuestion, engines, PERSONAS } from "./utils/engines";
 import { formatPromptForDisplay } from "./utils/format";
 import { addToHistory } from "./utils/history";
 
@@ -11,7 +11,6 @@ interface ResolveAmbiguityProps {
   persona: string;
   engineName: string;
   model: string;
-  mode: OptimizationMode;
   smartMode: boolean;
   auditPersonas: string[];
 }
@@ -23,7 +22,6 @@ export default function ResolveAmbiguity({
   persona,
   engineName,
   model,
-  mode,
   smartMode,
   auditPersonas,
 }: ResolveAmbiguityProps) {
@@ -58,28 +56,13 @@ export default function ResolveAmbiguity({
       let results: { persona: string; output: string }[] = [];
       let personasUsed: string[] = auditPersonas;
 
-      // Route based on smartMode
       if (smartMode && engine.runOrchestratedWithClarifications) {
-        const smartResult = await engine.runOrchestratedWithClarifications(
-          draftPrompt,
-          clarifications,
-          model,
-          mode,
-          context,
-        );
+        const smartResult = await engine.runOrchestratedWithClarifications(draftPrompt, clarifications, model, context);
         optimizedPrompt = smartResult.synthesis;
         results = smartResult.perspectives;
         personasUsed = smartResult.personasUsed;
       } else {
-        // Single-persona synthesis
-        optimizedPrompt = await engine.runWithClarifications(
-          draftPrompt,
-          clarifications,
-          model,
-          mode,
-          context,
-          persona,
-        );
+        optimizedPrompt = await engine.runWithClarifications(draftPrompt, clarifications, model, context, persona);
       }
 
       const totalSec = ((Date.now() - start) / 1000).toFixed(1);
@@ -93,24 +76,16 @@ export default function ResolveAmbiguity({
         additionalContext: context || undefined,
         engine: engine.displayName,
         model,
-        mode,
         persona: smartMode ? "Orchestrator" : persona,
         durationSec: totalSec,
         specialistOutputs: smartMode && results.length > 0 ? results : undefined,
       });
-
-      const modeLabel = OPTIMIZATION_MODES.find((m) => m.id === mode)?.label ?? mode;
-      const modeColor = mode === "detailed" ? Color.Blue : Color.Green;
 
       push(
         <Detail
           markdown={`# Optimized Prompt\n\n${formatPromptForDisplay(optimizedPrompt)}\n\n---\n\n## Original Prompt\n\n${draftPrompt}${context ? `\n\n---\n\n## Additional Context\n\n${context}` : ""}\n\n---\n\n## Clarifications\n${clarifications.map((c) => `- **Q:** ${c.question}\n  **A:** ${c.answer}`).join("\n")}${smartMode && results.length > 0 ? `\n\n---\n\n## Specialist Perspectives\n\n${results.map((s) => `### ${PERSONAS.find((p) => p.id === s.persona)?.title || s.persona}\n\n${s.output}`).join("\n\n---\n\n")}` : ""}`}
           metadata={
             <Detail.Metadata>
-              <Detail.Metadata.TagList title="Mode">
-                <Detail.Metadata.TagList.Item text={modeLabel} color={modeColor} />
-              </Detail.Metadata.TagList>
-              <Detail.Metadata.Separator />
               <Detail.Metadata.Label title="Engine" text={engine.displayName} icon={engine.icon} />
               <Detail.Metadata.Label title="Model" text={model} />
               <Detail.Metadata.Label

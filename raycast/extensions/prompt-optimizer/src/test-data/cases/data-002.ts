@@ -9,5 +9,4 @@ export const testCase: TestCase = {
 Variant (n=10000): Conversion 2.4%, Avg Revenue $43.80
 p-value for conversion: 0.048
 p-value for revenue: 0.12`,
-  mode: "quick",
 };

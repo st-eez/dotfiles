@@ -13,5 +13,4 @@ export const testCase: TestCase = {
 15:00 | 180 | 2500 | 3.2%
 18:00 | 60 | 200 | 0.3%
 21:00 | 47 | 122 | 0.1%`,
-  mode: "detailed",
 };

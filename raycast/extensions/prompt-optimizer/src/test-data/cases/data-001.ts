@@ -12,5 +12,4 @@ export const testCase: TestCase = {
 2025-12-26 10:15:26 INFO [kubernetes] Restarting pod auth-service-7b4d9c
 2025-12-26 10:15:45 INFO [auth-service] Service started
 2025-12-26 10:16:22 ERROR [auth-service] OOMKilled by kubernetes`,
-  mode: "quick",
 };

@@ -32,7 +32,7 @@ export async function runGemini(prompt: string, options: LLMRunOptions = {}): Pr
 export async function runCodex(prompt: string, options: LLMRunOptions = {}): Promise<string> {
   const model = options.model || DEFAULT_CODEX_MODEL;
   const timeout = options.timeout || DEFAULT_TIMEOUT;
-  const reasoning = options.reasoningEffort || "high";
+  const reasoning = options.reasoningEffort || "medium";
 
   return withIsolatedCodex(async (homeDir) => {
     return safeExec(

@@ -5,5 +5,4 @@ export const testCase: TestCase = {
   category: "code",
   description: "API design for REST endpoint",
   userRequest: "Design a RESTful API for a todo application with CRUD operations, filtering, and pagination.",
-  mode: "detailed",
 };

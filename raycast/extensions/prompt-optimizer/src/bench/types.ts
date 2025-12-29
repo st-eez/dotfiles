@@ -13,7 +13,6 @@ export interface TestBenchArgs {
   cacheSubcommand?: CacheSubcommand;
   strategy?: string;
   cases?: string[];
-  mode?: "quick" | "detailed";
   category?: string;
   engine?: EngineType;
   model?: string;
@@ -79,19 +78,11 @@ export const SMOKE_TEST_CASES = ["code-001", "write-001", "edge-001"];
 export const CATEGORIES = [...new Set(TEST_CASES.map((tc) => tc.category))];
 
 export function generatePrompt(strategy: PromptStrategy, testCase: TestCase): string {
-  if (testCase.mode === "quick") {
-    return strategy.buildQuickPrompt(testCase.userRequest, testCase.additionalContext, testCase.persona);
-  } else {
-    return strategy.buildDetailedPrompt(testCase.userRequest, testCase.additionalContext, testCase.persona);
-  }
+  return strategy.buildPrompt(testCase.userRequest, testCase.additionalContext, testCase.persona);
 }
 
-export function filterTestCases(caseIds?: string[], mode?: "quick" | "detailed", category?: string): TestCase[] {
+export function filterTestCases(caseIds?: string[], category?: string): TestCase[] {
   let filtered = TEST_CASES;
-
-  if (mode) {
-    filtered = filtered.filter((tc) => tc.mode === mode);
-  }
 
   if (category) {
     filtered = filtered.filter((tc) => tc.category === category);
@@ -188,11 +179,7 @@ export async function loadStrategy(strategyPath: string): Promise<PromptStrategy
   const strategy: PromptStrategy =
     module.default || module.v1Baseline || module.v2Candidate || module.strategy || module;
 
-  if (
-    typeof strategy.id !== "string" ||
-    typeof strategy.buildQuickPrompt !== "function" ||
-    typeof strategy.buildDetailedPrompt !== "function"
-  ) {
+  if (typeof strategy.id !== "string" || typeof strategy.buildPrompt !== "function") {
     throw new Error(`Invalid strategy file: ${strategyPath}. Must export a PromptStrategy object.`);
   }
 

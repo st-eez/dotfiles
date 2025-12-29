@@ -11,7 +11,7 @@ export async function runValidate(args: TestBenchArgs): Promise<void> {
   subheader(`Validating ${args.strategy}`);
 
   const strategy = await loadStrategy(args.strategy);
-  const testCases = filterTestCases(args.cases, args.mode, args.category);
+  const testCases = filterTestCases(args.cases, args.category);
   let passed = 0;
   let failed = 0;
 

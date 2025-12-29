@@ -1,6 +1,5 @@
 import { LocalStorage } from "@raycast/api";
 import { randomUUID } from "crypto";
-import type { OptimizationMode } from "./engines";
 
 export interface HistoryItem {
   id: string;
@@ -9,7 +8,6 @@ export interface HistoryItem {
   additionalContext?: string;
   engine: string;
   model?: string;
-  mode?: OptimizationMode;
   persona?: string;
   durationSec: string;
   timestamp: number;

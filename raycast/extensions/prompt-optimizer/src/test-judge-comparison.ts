@@ -1,7 +1,7 @@
 #!/usr/bin/env npx ts-node
 import "./setup-test";
 import { safeExec, withIsolatedGemini, withIsolatedCodex, parseGeminiJson } from "./utils/exec";
-import { QUICK_TEST_CASES } from "./test-data/test-cases";
+import { AB_TEST_CASES } from "./test-data/test-cases";
 import { v1Baseline } from "./prompts/v1-baseline";
 
 interface JudgeResult {
@@ -133,7 +133,7 @@ async function runCodexJudge(prompt: string, testCaseId: string, effort: "high" 
 }
 
 async function main() {
-  const testCases = QUICK_TEST_CASES.slice(0, 3);
+  const testCases = AB_TEST_CASES.slice(0, 3);
   console.log(`🧪 Judge Comparison Test (${testCases.length} test cases)\n`);
 
   const allResults: JudgeResult[] = [];
@@ -141,7 +141,7 @@ async function main() {
   for (const tc of testCases) {
     console.log(`\n📝 Test Case: ${tc.id} - ${tc.description}`);
 
-    const optimizedPrompt = v1Baseline.buildQuickPrompt(tc.userRequest, tc.additionalContext, tc.persona);
+    const optimizedPrompt = v1Baseline.buildPrompt(tc.userRequest, tc.additionalContext, tc.persona);
 
     console.log("  Running Gemini optimization...");
     const optimizedOutput = await withIsolatedGemini(async (homeDir) => {
