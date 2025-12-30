@@ -10,7 +10,7 @@
 
 Reproducible macOS workstation: shell, editor, terminal, window management.
 
-**Theme:** Tokyo Night | **Font:** JetBrainsMono Nerd Font
+**Theme:** Tokyo Night (switchable) | **Font:** JetBrainsMono Nerd Font
 
 ---
 
@@ -89,17 +89,39 @@ Edit `~/.gitconfig` with your name and email.
 
 ## What's Included
 
-| Directory | Description |
-|-----------|-------------|
-| `aerospace/` | Tiling window manager with home/office/laptop profiles |
-| `sketchybar/` | Custom menu bar with workspace indicators |
-| `nvim/` | LazyVim-based Neovim config |
-| `ghostty/` | Terminal emulator settings |
-| `zsh/` | Oh-My-Zsh + Powerlevel10k prompt |
-| `karabiner/` | Caps Lock → Escape (tap) / Alt (hold) |
-| `raycast/` | Keybind search extension |
-| `borders/` | Window border styling |
-| `Brewfile` | All packages and apps |
+| Directory     | Description                                            |
+| ------------- | ------------------------------------------------------ |
+| `aerospace/`  | Tiling window manager with home/office/laptop profiles |
+| `sketchybar/` | Custom menu bar with workspace indicators              |
+| `nvim/`       | LazyVim-based Neovim config                            |
+| `ghostty/`    | Terminal emulator settings                             |
+| `zsh/`        | Oh-My-Zsh + Powerlevel10k prompt                       |
+| `karabiner/`  | Caps Lock → Escape (tap) / Alt (hold)                  |
+| `raycast/`    | Keybind search extension                               |
+| `borders/`    | Window border styling                                  |
+| `Brewfile`    | All packages and apps                                  |
+
+---
+
+## Theming
+
+Switch themes across all apps with one command:
+
+```bash
+theme-set tokyo-night    # Default
+theme-set gruvbox
+theme-set everforest
+```
+
+Applies to: SketchyBar, Ghostty, Borders, Neovim, P10k prompt, Obsidian, wallpaper.
+
+| Theme       | Background | Accent |
+| ----------- | ---------- | ------ |
+| Tokyo Night | `#1a1b26`  | Blue   |
+| Gruvbox     | `#1d2021`  | Orange |
+| Everforest  | `#2d353b`  | Green  |
+
+See [themes/README.md](themes/README.md) for adding custom themes.
 
 ---
 
@@ -107,11 +129,11 @@ Edit `~/.gitconfig` with your name and email.
 
 Three monitor configurations for Aerospace. Local edits use `skip-worktree` (won't show in git status).
 
-| Profile | Keybind | Setup |
-|---------|---------|-------|
-| Home | `ctrl-alt-h` | BenQ + Pixio + MacBook |
-| Office | `ctrl-alt-w` | LG Ultrawide + MacBook + ASUS |
-| Laptop | `ctrl-alt-l` | Single display |
+| Profile | Keybind      | Setup                         |
+| ------- | ------------ | ----------------------------- |
+| Home    | `ctrl-alt-h` | BenQ + Pixio + MacBook        |
+| Office  | `ctrl-alt-w` | LG Ultrawide + MacBook + ASUS |
+| Laptop  | `ctrl-alt-l` | Single display                |
 
 ---
 

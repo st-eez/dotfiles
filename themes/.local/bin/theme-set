@@ -1,0 +1,307 @@
+#!/usr/bin/env bash
+# theme-set - Switch macOS theme across all configured apps
+# Usage: theme-set <theme> | --next | --prev
+# Available themes: tokyo-night, gruvbox, everforest
+
+set -euo pipefail
+
+resolve_symlink() {
+    local path="$1"
+    while [[ -h "$path" ]]; do
+        local dir="$(cd -P "$(dirname "$path")" && pwd)"
+        path="$(readlink "$path")"
+        [[ "$path" != /* ]] && path="$dir/$path"
+    done
+    cd -P "$(dirname "$path")" && pwd
+}
+
+SCRIPT_DIR="$(resolve_symlink "${BASH_SOURCE[0]}")"
+DOTFILES="${DOTFILES:-$(cd "$SCRIPT_DIR/../../.." && pwd)}"
+THEMES_DIR="$DOTFILES/themes"
+STATE_FILE="$HOME/.config/current-theme"
+
+# Theme cycle order
+THEMES=(everforest gruvbox tokyo-night)
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+usage() {
+    echo "Usage: theme-set <theme> | --next | --prev"
+    echo ""
+    echo "Options:"
+    echo "  --next, -n    Cycle to next theme"
+    echo "  --prev, -p    Cycle to previous theme"
+    echo ""
+    echo "Available themes:"
+    for d in "$THEMES_DIR/configs"/*/; do
+        echo "  - $(basename "$d")"
+    done
+    exit 1
+}
+
+get_current_theme() {
+    if [[ -f "$STATE_FILE" ]]; then
+        cat "$STATE_FILE"
+    else
+        echo "tokyo-night"
+    fi
+}
+
+cycle_theme() {
+    local direction="$1"
+    local current
+    current=$(get_current_theme)
+    
+    local idx=0
+    for i in "${!THEMES[@]}"; do
+        [[ "${THEMES[$i]}" == "$current" ]] && { idx=$i; break; }
+    done
+    
+    if [[ "$direction" == "next" ]]; then
+        idx=$(( (idx + 1) % ${#THEMES[@]} ))
+    else
+        idx=$(( (idx - 1 + ${#THEMES[@]}) % ${#THEMES[@]} ))
+    fi
+    
+    echo "${THEMES[$idx]}"
+}
+
+# Handle arguments
+THEME="${1:-}"
+case "$THEME" in
+    --help|-h) usage ;;
+    --next|-n) THEME=$(cycle_theme next) ;;
+    --prev|-p) THEME=$(cycle_theme prev) ;;
+esac
+
+log() { echo -e "  ${GREEN}✓${NC} $1"; }
+warn() { echo -e "  ${YELLOW}!${NC} $1"; }
+error() { echo -e "  ${RED}✗${NC} $1"; exit 1; }
+
+BACKUP_DIR=""
+BACKUP_BASE="$HOME/.config/theme-backups"
+
+backup_file() {
+    local file="$1"
+    [[ ! -f "$file" ]] && return 0
+    
+    if [[ -z "$BACKUP_DIR" ]]; then
+        BACKUP_DIR="$BACKUP_BASE/$(date +%Y%m%d_%H%M%S)"
+        mkdir -p "$BACKUP_DIR"
+        
+        # Prune old backups (keep last 5)
+        if [[ -d "$BACKUP_BASE" ]]; then
+            local count
+            count=$(find "$BACKUP_BASE" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
+            if [[ $count -gt 5 ]]; then
+                find "$BACKUP_BASE" -mindepth 1 -maxdepth 1 -type d | sort | head -n $((count - 5)) | xargs rm -rf
+            fi
+        fi
+    fi
+    
+    local basename="${file##*/}"
+    local dirname="${file%/*}"
+    local backup_path="$BACKUP_DIR/${dirname##*/}-$basename"
+    
+    cp "$file" "$backup_path" 2>/dev/null || warn "Failed to backup: $basename"
+}
+
+# Validate arguments
+[[ -z "$THEME" ]] && usage
+[[ ! -d "$THEMES_DIR/configs/$THEME" ]] && error "Unknown theme: $THEME"
+
+# Load theme metadata
+# shellcheck source=/dev/null
+source "$THEMES_DIR/meta/$THEME.env"
+
+echo ""
+echo -e "${BLUE}Setting theme:${NC} $THEME_NAME"
+echo ""
+
+# =============================================================================
+# 1. SketchyBar - symlink colors.lua + reload
+# =============================================================================
+if [[ -f "$THEMES_DIR/configs/$THEME/sketchybar-colors.lua" ]]; then
+    mkdir -p ~/.config/sketchybar
+    ln -sfn "$THEMES_DIR/configs/$THEME/sketchybar-colors.lua" ~/.config/sketchybar/colors.lua
+    if command -v sketchybar &>/dev/null && pgrep -xq sketchybar; then
+        sketchybar --reload 2>/dev/null && log "SketchyBar" || warn "SketchyBar (reload failed)"
+    else
+        log "SketchyBar (symlink created)"
+    fi
+fi
+
+# =============================================================================
+# 2. Ghostty - symlink theme.conf + reload via SIGUSR2
+# =============================================================================
+if [[ -f "$THEMES_DIR/configs/$THEME/ghostty.conf" ]]; then
+    mkdir -p ~/.config/ghostty
+    ln -sfn "$THEMES_DIR/configs/$THEME/ghostty.conf" ~/.config/ghostty/theme.conf
+    killall -SIGUSR2 ghostty 2>/dev/null && log "Ghostty" || log "Ghostty (symlink created)"
+fi
+
+# =============================================================================
+# 3. Borders - symlink bordersrc + hot-update via running the script
+# =============================================================================
+if [[ -f "$THEMES_DIR/configs/$THEME/bordersrc" ]]; then
+    mkdir -p ~/.config/borders
+    ln -sfn "$THEMES_DIR/configs/$THEME/bordersrc" ~/.config/borders/bordersrc
+    # Hot-update: running bordersrc sends new config to running borders instance
+    if ~/.config/borders/bordersrc >/dev/null 2>&1; then
+        log "Borders"
+    else
+        warn "Borders (update failed)"
+    fi
+fi
+
+# =============================================================================
+# 4. P10k - symlink theme file + modify config to trigger hot reload
+# =============================================================================
+if [[ -f "$THEMES_DIR/configs/$THEME/p10k-theme.zsh" ]]; then
+    ln -sfn "$THEMES_DIR/configs/$THEME/p10k-theme.zsh" ~/.p10k.theme.zsh
+    # Modify .p10k.zsh to trigger hot reload (watches content hash, not mtime)
+    if [[ -f ~/.p10k.zsh ]]; then
+        sed -i '' "s/^# theme-set:.*/# theme-set: $THEME $(date +%s)/" ~/.p10k.zsh 2>/dev/null || true
+    fi
+    log "P10k"
+fi
+
+# =============================================================================
+# 5. Neovim - symlink theme.lua (with Stow folding guard)
+# =============================================================================
+if [[ -f "$THEMES_DIR/configs/$THEME/neovim.lua" ]]; then
+    NVIM_PLUGINS_DIR="$HOME/.config/nvim/lua/plugins"
+    
+    # Guard against Stow directory folding
+    if [[ -L "$NVIM_PLUGINS_DIR" ]]; then
+        warn "Neovim: plugins/ is a symlink (Stow folding)"
+        warn "  Fix: cd $DOTFILES && stow -D nvim && stow --no-folding nvim"
+    else
+        mkdir -p "$NVIM_PLUGINS_DIR"
+        ln -sfn "$THEMES_DIR/configs/$THEME/neovim.lua" "$NVIM_PLUGINS_DIR/theme.lua"
+        log "Neovim"
+    fi
+fi
+
+# =============================================================================
+# 6. Obsidian - update appearance.json + copy snippet
+# =============================================================================
+OBSIDIAN_VAULT="$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents/Steve_Notes"
+OBSIDIAN_APPEARANCE="$OBSIDIAN_VAULT/.obsidian/appearance.json"
+if [[ -f "$OBSIDIAN_APPEARANCE" ]]; then
+    backup_file "$OBSIDIAN_APPEARANCE"
+    python3 << EOF
+import json
+with open('$OBSIDIAN_APPEARANCE', 'r') as f:
+    appearance = json.load(f)
+appearance['cssTheme'] = '$OBSIDIAN_THEME'
+with open('$OBSIDIAN_APPEARANCE', 'w') as f:
+    json.dump(appearance, f, indent=2)
+EOF
+    
+    # Copy theme-specific snippet
+    SNIPPETS_DIR="$OBSIDIAN_VAULT/.obsidian/snippets"
+    mkdir -p "$SNIPPETS_DIR"
+    if [[ -f "$THEMES_DIR/configs/$THEME/obsidian-snippet.css" ]]; then
+        cp "$THEMES_DIR/configs/$THEME/obsidian-snippet.css" "$SNIPPETS_DIR/active-explorer-color.css"
+    fi
+    log "Obsidian"
+fi
+
+# =============================================================================
+# 7. Antigravity (VS Code fork) - text replace in settings.json (JSONC-safe)
+# =============================================================================
+ANTIGRAVITY_SETTINGS="$HOME/Library/Application Support/Antigravity/User/settings.json"
+if [[ -f "$ANTIGRAVITY_SETTINGS" ]]; then
+    backup_file "$ANTIGRAVITY_SETTINGS"
+    python3 << EOF
+import re
+import os
+
+settings_path = os.path.expanduser('$ANTIGRAVITY_SETTINGS')
+theme_name = '$ANTIGRAVITY_THEME'
+
+with open(settings_path, 'r', encoding='utf-8') as f:
+    content = f.read()
+
+# Text-based replace (JSONC-safe - won't break on comments/trailing commas)
+pattern = r'"workbench\.colorTheme"\s*:\s*"[^"]*"'
+replacement = f'"workbench.colorTheme": "{theme_name}"'
+
+if re.search(pattern, content):
+    content = re.sub(pattern, replacement, content)
+else:
+    # Insert after opening brace if not found
+    content = content.replace('{', '{\\n  ' + replacement + ',', 1)
+
+with open(settings_path, 'w', encoding='utf-8') as f:
+    f.write(content)
+EOF
+    log "Antigravity"
+fi
+
+# =============================================================================
+# 8. OpenCode - update theme in opencode.json (strict JSON)
+# =============================================================================
+OPENCODE_CONFIG="$HOME/.config/opencode/opencode.json"
+if [[ -f "$OPENCODE_CONFIG" ]]; then
+    backup_file "$OPENCODE_CONFIG"
+    python3 << EOF
+import json
+import os
+import tempfile
+
+config_path = os.path.expanduser('$OPENCODE_CONFIG')
+theme_name = '$OPENCODE_THEME'
+
+with open(config_path, 'r', encoding='utf-8') as f:
+    data = json.load(f)
+
+data['theme'] = theme_name
+
+# Atomic write to avoid corruption
+d = os.path.dirname(config_path)
+fd, tmp = tempfile.mkstemp(dir=d, prefix='.opencode.', suffix='.tmp')
+try:
+    with os.fdopen(fd, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2)
+        f.write('\\n')
+    os.replace(tmp, config_path)
+except:
+    os.unlink(tmp)
+    raise
+EOF
+    log "OpenCode"
+fi
+
+# =============================================================================
+# 9. Wallpaper - set via osascript
+# =============================================================================
+WALLPAPER="$THEMES_DIR/wallpapers/$THEME.png"
+if [[ -f "$WALLPAPER" ]]; then
+    osascript -e "tell application \"System Events\" to tell every desktop to set picture to POSIX file \"$WALLPAPER\"" 2>/dev/null
+    log "Wallpaper"
+fi
+
+# =============================================================================
+# Save current theme state
+# =============================================================================
+mkdir -p "$(dirname "$STATE_FILE")"
+echo "$THEME" > "$STATE_FILE"
+
+if [[ -n "$BACKUP_DIR" && -d "$BACKUP_DIR" ]]; then
+    echo ""
+    echo -e "${YELLOW}Backups:${NC} ${BACKUP_DIR/$HOME/~}"
+fi
+
+echo ""
+echo -e "${GREEN}Done!${NC} Theme set to: $THEME_NAME"
+echo ""
+echo "Manual steps:"
+echo "  - Neovim: quit and reopen"
+echo "  - OpenCode: restart (no hot reload support)"

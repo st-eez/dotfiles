@@ -1,7 +1,9 @@
 # Use zsh regardless of system default shell
 command = zsh
 
-theme = TokyoNight
+# Theme colors - managed by theme-set (symlink)
+config-file = ?"~/.config/ghostty/theme.conf"
+
 background-opacity = 1
 font-family = JetBrainsMono Nerd Font
 font-size = 16

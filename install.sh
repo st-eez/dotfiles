@@ -191,6 +191,33 @@ run_installation() {
         fi
     fi
 
+    # 5. Theme Setup (macOS only)
+    if [[ "$OS" == "macos" ]]; then
+        # Stow themes package to create ~/.local/bin/theme-set symlink
+        stow -d "$DOTFILES_DIR" -t "$HOME" themes 2>/dev/null || true
+        
+        local theme_script="$DOTFILES_DIR/themes/.local/bin/theme-set"
+        if [[ -x "$theme_script" ]]; then
+            gum style --foreground "$THEME_PRIMARY" "  ◆ Setting up theme..."
+            
+            local selected_theme
+            if [[ -f "$HOME/.config/current-theme" ]]; then
+                selected_theme=$(<"$HOME/.config/current-theme")
+                gum style --foreground "$THEME_SUBTEXT" "  Current theme: $selected_theme"
+            fi
+            
+            selected_theme=$(gum choose --header "Select theme:" \
+                --selected="${selected_theme:-tokyo-night}" \
+                "tokyo-night" "gruvbox" "everforest")
+            
+            if DOTFILES="$DOTFILES_DIR" "$theme_script" "$selected_theme" >/dev/null 2>&1; then
+                log_success "Theme" "$selected_theme"
+            else
+                log_failure "Theme" "Setup failed (run 'theme-set $selected_theme' manually)"
+            fi
+        fi
+    fi
+
     # Summary with detailed stats
     ui_summary "$bin_new" "$bin_exists" "$cfg_new" "$cfg_exists" "$fail_count" "$csv_file"
 }
