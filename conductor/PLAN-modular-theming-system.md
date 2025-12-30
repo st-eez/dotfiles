@@ -493,12 +493,22 @@ EOF
     log "Antigravity"
 fi
 
-# 7. Obsidian (copy to Steez folder)
+# 7. Obsidian (update theme + copy snippet)
 OBSIDIAN_VAULT="$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents/Steve_Notes"
-if [[ -d "$OBSIDIAN_VAULT/.obsidian" ]]; then
-    mkdir -p "$OBSIDIAN_VAULT/.obsidian/themes/Steez"
-    cp "$THEMES_DIR/obsidian/$THEME/"* "$OBSIDIAN_VAULT/.obsidian/themes/Steez/" 2>/dev/null || true
-    log "Obsidian vault: Steve_Notes"
+OBSIDIAN_APPEARANCE="$OBSIDIAN_VAULT/.obsidian/appearance.json"
+if [[ -f "$OBSIDIAN_APPEARANCE" ]]; then
+    # Update cssTheme in appearance.json
+    python3 << EOF
+import json
+with open('$OBSIDIAN_APPEARANCE', 'r') as f:
+    appearance = json.load(f)
+appearance['cssTheme'] = '$OBSIDIAN_THEME'
+with open('$OBSIDIAN_APPEARANCE', 'w') as f:
+    json.dump(appearance, f, indent=2)
+EOF
+    # Copy theme-specific snippet
+    cp "$THEMES_DIR/configs/$THEME/obsidian-snippet.css" "$OBSIDIAN_VAULT/.obsidian/snippets/active-explorer-color.css"
+    log "Obsidian"
 fi
 
 # 8. Wallpaper
@@ -517,7 +527,6 @@ echo ""
 echo "Manual steps (if needed):"
 echo "  - Neovim: restart or run :colorscheme $NVIM_COLORSCHEME"
 echo "  - Zsh: run 'p10k reload' or restart terminal"
-echo "  - Obsidian: reload vault if theme doesn't update"
 ```
 
 ---
@@ -616,21 +625,29 @@ ln -sfn "$THEMES_DIR/configs/$THEME/neovim.lua" "$HOME/.config/nvim/lua/plugins/
 
 ### Phase 6: Obsidian Themes
 
-**Pre-phase**: Ask about custom CSS modifications in Obsidian vaults
+**Approach**: Use community themes + per-theme CSS snippets (copy, not symlink due to iCloud).
 
-1. Fork Tokyo Night theme CSS from GitHub
-2. Fork Gruvbox theme CSS from GitHub
-3. Fork Everforest theme CSS from GitHub
-4. Create manifest.json files with proper attribution
-5. Create `themes/obsidian/SOURCES.md` with repo URLs and commits used
-6. Document how to set Obsidian to use "Steez" theme
+**Key discoveries**:
 
-**Obsidian Theme Sources**:
-| Theme | Repository |
-| ----------- | ------------------------------------------------------------------------------------ |
-| Tokyo Night | [tcmmichaelb139/obsidian-tokyonight](https://github.com/tcmmichaelb139/obsidian-tokyonight) |
-| Gruvbox | [insanum/obsidian_gruvbox](https://github.com/insanum/obsidian_gruvbox) |
-| Everforest | [0xGlitchbyte/obsidian_everforest](https://github.com/0xGlitchbyte/obsidian_everforest) |
+- Obsidian hot-reloads `appearance.json` automatically (no reload command needed)
+- CSS variables don't work reliably across themes (different scoping)
+- Snippets use copy instead of symlink for iCloud compatibility
+
+**Implementation**:
+
+1. Install community themes directly in Obsidian (Tokyo Night, Gruvbox, Everforest)
+2. Create per-theme `obsidian-snippet.css` in `themes/configs/<theme>/`
+3. Add `OBSIDIAN_THEME` to meta/\*.env files
+4. `theme-set` edits `cssTheme` in appearance.json + copies matching snippet
+
+**Obsidian Vault**: `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/Steve_Notes`
+
+**Snippet features**:
+
+- Bold folder names with theme foreground color
+- Nerd font folder icons (closed/open)
+- ✦ prefix on active files
+- No strikethrough on completed tasks (muted color instead)
 
 ### Phase 7: Wallpapers & Script
 
@@ -672,9 +689,9 @@ ln -sfn "$THEMES_DIR/configs/$THEME/neovim.lua" "$HOME/.config/nvim/lua/plugins/
 | `themes/configs/everforest/bordersrc`                | Generated                         |
 | `themes/configs/everforest/p10k-theme.zsh`           | Truecolor P10k overrides          |
 | `themes/configs/everforest/antigravity-colors.json`  | Extracted from VS Code theme repo |
-| `themes/obsidian/SOURCES.md`                         | Attribution and source URLs       |
-| `themes/obsidian/*/theme.css`                        | Forked from GitHub                |
-| `themes/obsidian/*/manifest.json`                    | Created with attribution          |
+| `themes/configs/tokyo-night/obsidian-snippet.css`    | Obsidian sidebar styling          |
+| `themes/configs/gruvbox/obsidian-snippet.css`        | Obsidian sidebar styling          |
+| `themes/configs/everforest/obsidian-snippet.css`     | Obsidian sidebar styling          |
 | `themes/wallpapers/*.png`                            | Generated solid colors            |
 | `themes/bin/theme-set`                               | Main CLI script                   |
 | `themes/README.md`                                   | Usage documentation               |

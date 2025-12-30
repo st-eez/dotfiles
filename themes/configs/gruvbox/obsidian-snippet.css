@@ -1,0 +1,68 @@
+:root {
+  --nav-item-color-active: #ebdbb2;
+  --nav-item-weight-active: 600;
+}
+
+body:not(.is-grabbing) .nav-file-title.is-active,
+body:not(.is-grabbing) .nav-folder-title.is-active,
+.nav-file-title.is-active,
+.nav-folder-title.is-active {
+  color: #ebdbb2 !important;
+  background-color: rgba(131, 165, 152, 0.15) !important;
+  font-weight: 600 !important;
+}
+
+.nav-file-title.is-active .nav-file-title-content::before,
+.nav-folder-title.is-active .nav-folder-title-content::before {
+  content: "\2726 ";
+  color: #ebdbb2;
+  font-weight: 700;
+}
+
+.nav-folder-title .nav-folder-title-content {
+  color: #ebdbb2;
+  font-weight: 800;
+}
+.nav-folder-title.is-active .nav-folder-title-content {
+  color: #ebdbb2 !important;
+  font-weight: 800;
+}
+
+.nav-file-title.is-active .nav-file-title-content,
+.nav-folder-title.is-active .nav-folder-title-content {
+  color: #ebdbb2 !important;
+  caret-color: #ebdbb2;
+}
+
+.nav-folder.is-collapsed > .nav-folder-title .nav-folder-title-content::before {
+  content: "\f07b ";
+  font-family: "JetBrainsMono Nerd Font";
+  color: #928374;
+  padding-right: 8px;
+}
+.nav-folder:not(.is-collapsed)
+  > .nav-folder-title
+  .nav-folder-title-content::before {
+  content: "\f07c ";
+  font-family: "JetBrainsMono Nerd Font";
+  color: #928374;
+  padding-right: 8px;
+}
+
+.markdown-source-view.mod-cm6,
+.markdown-preview-view {
+  --checklist-done-decoration: none !important;
+  --checklist-done-color: #928374 !important;
+}
+
+.markdown-source-view.mod-cm6 .HyperMD-task-line[data-task="x"],
+.markdown-source-view.mod-cm6 .HyperMD-task-line[data-task="X"],
+.markdown-source-view.mod-cm6 .task-list-item.is-checked,
+.markdown-source-view.mod-cm6 .task-list-item.is-checked .task-list-label,
+.markdown-preview-view .task-list-item.is-checked,
+.markdown-preview-view .task-list-item.is-checked .task-list-label {
+  text-decoration: none !important;
+  text-decoration-line: none !important;
+  color: #928374 !important;
+  opacity: 1 !important;
+}
