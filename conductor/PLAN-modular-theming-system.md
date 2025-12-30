@@ -25,16 +25,42 @@ A zero-dependency theming system that enables one-command theme switching across
 
 ## Key Decisions (from validation)
 
-| Decision               | Approach                                                                                                                                                           |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Stow compatibility** | Theme-variable files (colors.lua, bordersrc) are NOT Stow'd. They live in `themes/configs/` and are copied to destinations by `install.sh` and `theme-set`.        |
-| **P10k theming**       | External source file using **truecolor** (`#RRGGBB`). One-time setup adds `source ~/.p10k.theme.zsh` to `.p10k.zsh`. `theme-set` only rewrites that external file. |
-| **Neovim multi-theme** | Create `colorschemes.lua` with ALL theme plugins (tokyonight, gruvbox, everforest). Add theme loader that reads `current-theme.lua` with fallback to Tokyo Night.  |
-| **Antigravity**        | Local colorCustomizations via Python. Extract colors from official VS Code theme repos, store as JSON, merge into settings.json.                                   |
-| **Obsidian**           | Constant folder name `Steez`. Single vault: `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/Steve_Notes`. No jq needed - just copy CSS.                   |
-| **Safety**             | Backups to `~/.config/theme-backups/<timestamp>/` before changes, state persistence in `~/.config/current-theme`                                                   |
-| **Install flow**       | **MANDATORY**: Run `theme-set tokyo-night` after Stow completes to ensure configs exist                                                                            |
-| **Out of scope**       | Aerospace (window manager, no themes), Raycast (paid feature), Helium (future)                                                                                     |
+| Decision               | Approach                                                                                                                                                       |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Stow compatibility** | Theme-variable files (colors.lua, bordersrc, neovim.lua) are NOT Stow'd. They live in `themes/configs/` and are SYMLINKED to destinations by `theme-set`.      |
+| **Symlink approach**   | Omarchy-style: `theme-set` creates symlinks from destination → `themes/configs/<theme>/`. Atomic switching, no file copying. See "Symlink Architecture" below. |
+| **P10k theming**       | External source file using **truecolor** (`#RRGGBB`). One-time setup adds `source ~/.p10k.theme.zsh` to `.p10k.zsh`. `theme-set` symlinks that external file.  |
+| **Neovim multi-theme** | Per-theme `neovim.lua` files. `theme-set` symlinks `~/.config/nvim/lua/plugins/theme.lua` → active theme. Base nvim config stays Stow-managed.                 |
+| **Antigravity**        | Edit `workbench.colorTheme` in settings.json (no symlink option). Extensions installed via CLI.                                                                |
+| **Obsidian**           | Constant folder name `Steez`. Single vault: `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/Steve_Notes`. Symlink theme CSS.                          |
+| **Safety**             | Backups to `~/.config/theme-backups/<timestamp>/` before changes, state persistence in `~/.config/current-theme`                                               |
+| **Install flow**       | **MANDATORY**: Run `theme-set tokyo-night` after Stow completes to ensure configs exist                                                                        |
+| **Out of scope**       | Aerospace (window manager, no themes), Raycast (paid feature), Helium (future)                                                                                 |
+
+---
+
+## Symlink Architecture (Omarchy-style)
+
+All theme files use symlinks for atomic switching:
+
+```
+~/.config/sketchybar/colors.lua      → $DOTFILES/themes/configs/<theme>/sketchybar-colors.lua
+~/.config/borders/bordersrc          → $DOTFILES/themes/configs/<theme>/bordersrc
+~/.p10k.theme.zsh                    → $DOTFILES/themes/configs/<theme>/p10k-theme.zsh
+~/.config/nvim/lua/plugins/theme.lua → $DOTFILES/themes/configs/<theme>/neovim.lua
+```
+
+**Benefits:**
+
+- Atomic theme switching (single symlink update per file)
+- No file duplication
+- Easy to verify active theme (`ls -la` shows symlink target)
+
+**Stow compatibility:**
+
+- Use `stow --no-folding` to prevent directory symlinks
+- Theme files NOT in Stow packages (managed by `theme-set`)
+- Base configs remain Stow-managed
 
 ---
 
@@ -541,39 +567,51 @@ echo "  - Obsidian: reload vault if theme doesn't update"
 2. Extract and format colors into `antigravity-colors.json` for each theme
 3. Test color application in Antigravity
 
-### Phase 5: Neovim Multi-Theme
+### Phase 5: Neovim Multi-Theme (Omarchy-style Symlinks)
 
-**Pre-phase**: Review current nvim plugin structure
+**Approach**: Symlink-based theme switching (inspired by Omarchy), compatible with Stow.
 
-1. Rename `tokyonight.lua` → `colorschemes.lua` with ALL theme plugins:
-   - `folke/tokyonight.nvim`
-   - `ellisonleao/gruvbox.nvim`
-   - `sainnhe/everforest`
-2. Create `lua/config/theme.lua` - theme loader that:
-   - Reads `~/.config/nvim/lua/config/current-theme.lua` if exists
-   - Falls back to `tokyonight-night` if missing
-   - Sets colorscheme on startup
-3. Update `init.lua` or `lazy.lua` to require theme loader
+**Key decision**: Don't use loader approach. Use per-theme `neovim.lua` files with symlink switching.
 
-**Neovim colorschemes.lua structure**:
+1. Remove `tokyonight.lua` from nvim Stow package
+2. Delete `example.lua` (unused boilerplate)
+3. Create per-theme neovim.lua files in `themes/configs/<theme>/neovim.lua`
+4. Update `theme-set` to create symlink: `~/.config/nvim/lua/plugins/theme.lua` → active theme
+5. Add Stow folding guard to `theme-set`
+6. Update `install.sh` to use `stow --no-folding nvim`
+
+**Per-theme neovim.lua structure** (e.g., `themes/configs/tokyo-night/neovim.lua`):
 
 ```lua
 return {
   { "folke/tokyonight.nvim", lazy = false, priority = 1000 },
-  { "ellisonleao/gruvbox.nvim", lazy = false, priority = 1000 },
-  { "sainnhe/everforest", lazy = false, priority = 1000 },
+  {
+    "LazyVim/LazyVim",
+    opts = {
+      colorscheme = "tokyonight-night",
+    },
+  },
 }
 ```
 
-**Neovim theme.lua loader**:
+**Stow compatibility**:
 
-```lua
-local theme_file = vim.fn.stdpath("config") .. "/lua/config/current-theme.lua"
-local ok, theme = pcall(dofile, theme_file)
-if not ok or not theme then
-  theme = "tokyonight-night"
-end
-vim.cmd.colorscheme(theme)
+- Base nvim config remains Stow-managed
+- `theme.lua` is NOT in Stow package (created by theme-set)
+- Use `stow --no-folding nvim` to prevent directory symlinks
+- If user runs `stow nvim` without theme-set, nvim boots with LazyVim defaults
+
+**theme-set symlink logic**:
+
+```bash
+# Guard against Stow folding
+if [[ -L "$HOME/.config/nvim/lua/plugins" ]]; then
+  error "plugins/ is a symlink. Run: stow --no-folding --restow nvim"
+  exit 1
+fi
+
+# Create/update theme symlink
+ln -sfn "$THEMES_DIR/configs/$THEME/neovim.lua" "$HOME/.config/nvim/lua/plugins/theme.lua"
 ```
 
 ### Phase 6: Obsidian Themes
