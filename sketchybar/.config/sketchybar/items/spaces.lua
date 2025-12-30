@@ -17,8 +17,7 @@ local window_cache = {} -- Cache icon strings to skip redundant item:set() calls
 
 -- Styling Constants
 local active_color = colors.white
--- Tokyo Night comment-ish tone for inactive state
-local inactive_color = 0xff565f89
+local inactive_color = colors.grey
 local highlight_tint = colors.highlight or 0x337aa2f7 -- 20% Blue tint
 local transparent = colors.transparent
 
