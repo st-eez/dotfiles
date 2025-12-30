@@ -1,0 +1,120 @@
+#!/bin/bash
+
+# opencode-auth-switch
+# Switch between Antigravity (Google) and Claude (Anthropic) authentication modes for OpenCode.
+# Usage: opencode-auth-switch [antigravity|claude]
+
+# Configuration paths
+OPENCODE_CONFIG="$HOME/.config/opencode/opencode.json"
+OH_MY_OPENCODE_CONFIG="$HOME/.config/opencode/oh-my-opencode.json"
+GOOGLE_PROVIDER_BACKUP="$HOME/.config/opencode/google-provider-backup.json"
+ANTIGRAVITY_PLUGIN="opencode-antigravity-auth@1.2.6"
+
+# Colors
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Check dependencies
+if ! command -v jq &> /dev/null; then
+    echo -e "${YELLOW}Error: jq is required but not installed.${NC}"
+    echo "Install with: brew install jq"
+    exit 1
+fi
+
+# Usage
+usage() {
+    echo "Usage: $(basename "$0") [antigravity|claude]"
+    echo "  antigravity : Switch to Antigravity (Claude Opus + Gemini via Google subscription)"
+    echo "  claude      : Switch to Anthropic direct (Claude Max subscription)"
+    exit 1
+}
+
+MODE=$1
+
+if [[ -z "$MODE" ]]; then
+    usage
+fi
+
+update_opencode_json() {
+    local action=$1
+    if [[ ! -f "$OPENCODE_CONFIG" ]]; then
+        echo -e "${YELLOW}Warning: $OPENCODE_CONFIG not found, skipping.${NC}"
+        return
+    fi
+
+    local tmp=$(mktemp)
+    if [[ "$action" == "add" ]]; then
+        # Add plugin if not present
+        jq --arg plugin "$ANTIGRAVITY_PLUGIN" '
+            if .plugin | index($plugin) then
+                .
+            else
+                .plugin += [$plugin]
+            end
+        ' "$OPENCODE_CONFIG" > "$tmp" && mv "$tmp" "$OPENCODE_CONFIG"
+        echo -e "${GREEN}✓ Added $ANTIGRAVITY_PLUGIN to opencode.json${NC}"
+
+        # Restore Google provider from backup if it exists
+        if [[ -f "$GOOGLE_PROVIDER_BACKUP" ]]; then
+            local provider_backup=$(cat "$GOOGLE_PROVIDER_BACKUP")
+            tmp=$(mktemp)
+            jq --argjson google "$provider_backup" '.provider.google = $google' "$OPENCODE_CONFIG" > "$tmp" && mv "$tmp" "$OPENCODE_CONFIG"
+            echo -e "${GREEN}✓ Restored Google provider config${NC}"
+        fi
+
+    elif [[ "$action" == "remove" ]]; then
+        # Backup Google provider before removing
+        if jq -e '.provider.google' "$OPENCODE_CONFIG" > /dev/null 2>&1; then
+            jq '.provider.google' "$OPENCODE_CONFIG" > "$GOOGLE_PROVIDER_BACKUP"
+            echo -e "${GREEN}✓ Backed up Google provider config${NC}"
+        fi
+
+        # Remove plugin and Google provider
+        jq '
+            .plugin |= map(select(. | startswith("opencode-antigravity-auth") | not)) |
+            del(.provider.google)
+        ' "$OPENCODE_CONFIG" > "$tmp" && mv "$tmp" "$OPENCODE_CONFIG"
+        echo -e "${GREEN}✓ Removed opencode-antigravity-auth and Google provider from opencode.json${NC}"
+    fi
+}
+
+update_oh_my_opencode_json() {
+    local action=$1
+    if [[ ! -f "$OH_MY_OPENCODE_CONFIG" ]]; then
+        echo -e "${YELLOW}Warning: $OH_MY_OPENCODE_CONFIG not found, skipping.${NC}"
+        return
+    fi
+
+    if [[ "$action" == "inject" ]]; then
+        # Set google_auth to false and only override Sisyphus model
+        # Other agents use defaults (configured by oh-my-opencode)
+        local tmp=$(mktemp)
+        jq '.google_auth = false | .agents.Sisyphus.model = "google/claude-opus-4-5-thinking-high"' \
+            "$OH_MY_OPENCODE_CONFIG" > "$tmp" && mv "$tmp" "$OH_MY_OPENCODE_CONFIG"
+        echo -e "${GREEN}✓ Set google_auth=false and Sisyphus model to Claude Opus 4.5${NC}"
+    elif [[ "$action" == "clean" ]]; then
+        # Remove google_auth and Sisyphus model override
+        local tmp=$(mktemp)
+        jq 'del(.google_auth) | del(.agents.Sisyphus)' \
+            "$OH_MY_OPENCODE_CONFIG" > "$tmp" && mv "$tmp" "$OH_MY_OPENCODE_CONFIG"
+        echo -e "${GREEN}✓ Restored defaults in oh-my-opencode.json${NC}"
+    fi
+}
+
+if [[ "$MODE" == "antigravity" ]]; then
+    echo -e "${BLUE}Switching to Antigravity (Google) mode...${NC}"
+    update_opencode_json "add"
+    update_oh_my_opencode_json "inject"
+    echo -e "${BLUE}🚀 Switched to Antigravity mode. Run 'opencode auth login' if needed.${NC}"
+
+elif [[ "$MODE" == "claude" ]]; then
+    echo -e "${BLUE}Switching to Claude (Anthropic) mode...${NC}"
+    update_opencode_json "remove"
+    update_oh_my_opencode_json "clean"
+    echo -e "${BLUE}🚀 Switched to Claude mode. Run 'opencode auth login' if needed.${NC}"
+
+else
+    usage
+fi

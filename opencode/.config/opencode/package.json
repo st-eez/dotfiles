@@ -4,5 +4,11 @@
     "oh-my-opencode": "^2.7.3",
     "opencode-antigravity-auth": "1.2.6",
     "opencode-openai-codex-auth": "code-yeongyu/opencode-openai-codex-auth#fix/orphaned-function-call-output-with-tools"
+  },
+  "devDependencies": {
+    "patch-package": "^8.0.1"
+  },
+  "patchedDependencies": {
+    "opencode-antigravity-auth@1.2.6": "patches/opencode-antigravity-auth@1.2.6.patch"
   }
 }
