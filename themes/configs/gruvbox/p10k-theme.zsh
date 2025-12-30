@@ -4,24 +4,24 @@
 #
 # Design: Clean, using proper Gruvbox UI colors (darker shades)
 
-# OS icon - Gruvbox fg on dark background
-typeset -g POWERLEVEL9K_OS_ICON_FOREGROUND='#ebdbb2'
-typeset -g POWERLEVEL9K_OS_ICON_BACKGROUND='#1d2021'
+# OS icon - Gruvbox signature orange with bg2 for softer contrast
+typeset -g POWERLEVEL9K_OS_ICON_FOREGROUND='#504945'
+typeset -g POWERLEVEL9K_OS_ICON_BACKGROUND='#fe8019'
 
-# Directory - all text uses Gruvbox fg (#ebdbb2)
+# Directory - Gruvbox bg2 (neutral, lets accents pop)
 typeset -g POWERLEVEL9K_DIR_FOREGROUND='#ebdbb2'
-typeset -g POWERLEVEL9K_DIR_BACKGROUND='#504945'          # dark2 - muted UI color
+typeset -g POWERLEVEL9K_DIR_BACKGROUND='#504945'
 typeset -g POWERLEVEL9K_DIR_SHORTENED_FOREGROUND='#ebdbb2'
 typeset -g POWERLEVEL9K_DIR_ANCHOR_FOREGROUND='#ebdbb2'
 
-# VCS - semantic colors with dark text
-typeset -g POWERLEVEL9K_VCS_CLEAN_FOREGROUND='#1d2021'
+# VCS - semantic colors with black text for maximum contrast
+typeset -g POWERLEVEL9K_VCS_CLEAN_FOREGROUND='#000000'
 typeset -g POWERLEVEL9K_VCS_CLEAN_BACKGROUND='#b8bb26'
-typeset -g POWERLEVEL9K_VCS_MODIFIED_FOREGROUND='#1d2021'
+typeset -g POWERLEVEL9K_VCS_MODIFIED_FOREGROUND='#000000'
 typeset -g POWERLEVEL9K_VCS_MODIFIED_BACKGROUND='#fabd2f'
-typeset -g POWERLEVEL9K_VCS_UNTRACKED_FOREGROUND='#1d2021'
+typeset -g POWERLEVEL9K_VCS_UNTRACKED_FOREGROUND='#000000'
 typeset -g POWERLEVEL9K_VCS_UNTRACKED_BACKGROUND='#fabd2f'
-typeset -g POWERLEVEL9K_VCS_CONFLICTED_FOREGROUND='#1d2021'
+typeset -g POWERLEVEL9K_VCS_CONFLICTED_FOREGROUND='#000000'
 typeset -g POWERLEVEL9K_VCS_CONFLICTED_BACKGROUND='#fb4934'
 typeset -g POWERLEVEL9K_VCS_LOADING_FOREGROUND='#928374'
 typeset -g POWERLEVEL9K_VCS_LOADING_BACKGROUND='#1d2021'

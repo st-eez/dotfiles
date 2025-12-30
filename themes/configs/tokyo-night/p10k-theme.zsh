@@ -4,24 +4,24 @@
 #
 # Design: Clean, using proper Tokyo Night UI colors (darker shades)
 
-# OS icon - Tokyo Night fg on subtle highlight background
-typeset -g POWERLEVEL9K_OS_ICON_FOREGROUND='#c0caf5'
-typeset -g POWERLEVEL9K_OS_ICON_BACKGROUND='#292e42'      # bg_highlight - visible but subtle
+# OS icon - Tokyo Night signature blue with bg2 for contrast
+typeset -g POWERLEVEL9K_OS_ICON_FOREGROUND='#292e42'
+typeset -g POWERLEVEL9K_OS_ICON_BACKGROUND='#7aa2f7'
 
-# Directory - all text uses Tokyo Night fg (#c0caf5)
+# Directory - neutral bg2, not blue (avoids too much blue)
 typeset -g POWERLEVEL9K_DIR_FOREGROUND='#c0caf5'
-typeset -g POWERLEVEL9K_DIR_BACKGROUND='#3d59a1'          # blue0 - darker blue
+typeset -g POWERLEVEL9K_DIR_BACKGROUND='#292e42'          # bg_highlight (bg2 equivalent)
 typeset -g POWERLEVEL9K_DIR_SHORTENED_FOREGROUND='#c0caf5'
 typeset -g POWERLEVEL9K_DIR_ANCHOR_FOREGROUND='#c0caf5'
 
-# VCS - semantic colors with consistent dark text
-typeset -g POWERLEVEL9K_VCS_CLEAN_FOREGROUND='#1a1b26'
+# VCS - semantic colors with black text for maximum contrast
+typeset -g POWERLEVEL9K_VCS_CLEAN_FOREGROUND='#000000'
 typeset -g POWERLEVEL9K_VCS_CLEAN_BACKGROUND='#9ece6a'
-typeset -g POWERLEVEL9K_VCS_MODIFIED_FOREGROUND='#1a1b26'
+typeset -g POWERLEVEL9K_VCS_MODIFIED_FOREGROUND='#000000'
 typeset -g POWERLEVEL9K_VCS_MODIFIED_BACKGROUND='#e0af68'
-typeset -g POWERLEVEL9K_VCS_UNTRACKED_FOREGROUND='#1a1b26'
+typeset -g POWERLEVEL9K_VCS_UNTRACKED_FOREGROUND='#000000'
 typeset -g POWERLEVEL9K_VCS_UNTRACKED_BACKGROUND='#e0af68'
-typeset -g POWERLEVEL9K_VCS_CONFLICTED_FOREGROUND='#1a1b26'
+typeset -g POWERLEVEL9K_VCS_CONFLICTED_FOREGROUND='#000000'
 typeset -g POWERLEVEL9K_VCS_CONFLICTED_BACKGROUND='#f7768e'
 typeset -g POWERLEVEL9K_VCS_LOADING_FOREGROUND='#565f89'
 typeset -g POWERLEVEL9K_VCS_LOADING_BACKGROUND='#1a1b26'
