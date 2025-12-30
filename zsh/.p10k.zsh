@@ -1825,6 +1825,9 @@
   # really need it.
   typeset -g POWERLEVEL9K_DISABLE_HOT_RELOAD=true
 
+  # Theme colors - managed by theme-set
+  [[ -r ~/.p10k.theme.zsh ]] && source ~/.p10k.theme.zsh
+
   # If p10k is already loaded, reload configuration.
   # This works even with POWERLEVEL9K_DISABLE_HOT_RELOAD=true.
   (( ! $+functions[p10k] )) || p10k reload
