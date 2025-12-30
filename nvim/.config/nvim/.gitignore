@@ -6,5 +6,4 @@ debug
 foo.*
 *.log
 data
-# Theme symlink managed by theme-set script
-lua/plugins/theme.lua
+
