@@ -25,16 +25,46 @@ fi
 
 # Usage
 usage() {
-    echo "Usage: $(basename "$0") [antigravity|claude]"
+    echo "Usage: $(basename "$0") [antigravity|claude|status]"
     echo "  antigravity : Switch to Antigravity (Claude Opus + Gemini via Google subscription)"
     echo "  claude      : Switch to Anthropic direct (Claude Max subscription)"
+    echo "  status      : Show current auth mode"
     exit 1
+}
+
+# Show current status
+show_status() {
+    local mode="unknown"
+    local accounts=0
+    
+    # Check if antigravity plugin is enabled
+    if [[ -f "$OPENCODE_CONFIG" ]] && jq -e '.plugin[] | select(startswith("opencode-antigravity-auth"))' "$OPENCODE_CONFIG" &>/dev/null; then
+        mode="antigravity"
+    elif [[ -f "$OPENCODE_CONFIG" ]]; then
+        mode="claude"
+    fi
+    
+    # Count antigravity accounts
+    if [[ -f "$HOME/.config/opencode/antigravity-accounts.json" ]]; then
+        accounts=$(jq '.accounts | length' "$HOME/.config/opencode/antigravity-accounts.json" 2>/dev/null || echo 0)
+    fi
+    
+    echo -e "${BLUE}Current mode:${NC} $mode"
+    if [[ "$mode" == "antigravity" ]]; then
+        echo -e "${BLUE}Antigravity accounts:${NC} $accounts"
+        if [[ $accounts -gt 0 ]]; then
+            jq -r '.accounts[].email' "$HOME/.config/opencode/antigravity-accounts.json" 2>/dev/null | while read email; do
+                echo "  - $email"
+            done
+        fi
+    fi
 }
 
 MODE=$1
 
 if [[ -z "$MODE" ]]; then
-    usage
+    show_status
+    exit 0
 fi
 
 update_opencode_json() {
@@ -103,7 +133,11 @@ update_oh_my_opencode_json() {
     fi
 }
 
-if [[ "$MODE" == "antigravity" ]]; then
+if [[ "$MODE" == "status" ]]; then
+    show_status
+    exit 0
+
+elif [[ "$MODE" == "antigravity" ]]; then
     echo -e "${BLUE}Switching to Antigravity (Google) mode...${NC}"
     update_opencode_json "add"
     update_oh_my_opencode_json "inject"
