@@ -172,6 +172,39 @@ install_ghostty_appimage() {
 
 # Post-install setup for Ghostty on Debian/Ubuntu/Mint
 # Creates .desktop entry and ensures PATH is set
+setup_opencode_plugins() {
+    local opencode_dir="$HOME/.config/opencode"
+    
+    if [[ ! -f "$opencode_dir/package.json" ]]; then
+        return 0
+    fi
+
+    gum style --foreground "$THEME_PRIMARY" "  ◆ Installing OpenCode plugins (oh-my-opencode)..."
+
+    if command -v bun >/dev/null 2>&1; then
+        if gum spin --spinner dot --title "Running bun install..." -- \
+            bash -c "cd '$opencode_dir' && bun install"; then
+            gum style --foreground "$THEME_SUCCESS" "  Plugins installed"
+            return 0
+        else
+            gum style --foreground "$THEME_ERROR" "  Failed to install plugins"
+            return 1
+        fi
+    elif command -v npm >/dev/null 2>&1; then
+        if gum spin --spinner dot --title "Running npm install..." -- \
+            bash -c "cd '$opencode_dir' && npm install"; then
+            gum style --foreground "$THEME_SUCCESS" "  Plugins installed"
+            return 0
+        else
+            gum style --foreground "$THEME_ERROR" "  Failed to install plugins"
+            return 1
+        fi
+    else
+        gum style --foreground "$THEME_WARNING" "  Neither bun nor npm found - run 'bun i' in ~/.config/opencode/ manually"
+        return 0
+    fi
+}
+
 setup_ghostty_desktop() {
     gum style --foreground "$THEME_PRIMARY" "  ◆ Setting up Ghostty desktop integration..."
 
@@ -848,8 +881,17 @@ stow_package() {
         fi
     fi
 
-    # 2. Stow
-    if stow --dir="$DOTFILES_DIR" --target="$HOME" --restow "$pkg" 2>/dev/null; then
+    # 2. Stow (--no-folding for nvim prevents plugins/ dir becoming a symlink)
+    local stow_opts="--dir=$DOTFILES_DIR --target=$HOME --restow"
+    [[ "$pkg" == "nvim" ]] && stow_opts="$stow_opts --no-folding"
+    
+    if stow $stow_opts "$pkg" 2>/dev/null; then
+        # 3. Post-stow hooks for packages that need additional setup
+        case "$pkg" in
+            opencode)
+                setup_opencode_plugins || return 1
+                ;;
+        esac
         return 0
     else
         gum style --foreground "$THEME_ERROR" "Stow failed for $pkg"

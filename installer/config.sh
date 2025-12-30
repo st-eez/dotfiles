@@ -32,6 +32,7 @@ export TERMINAL_PKGS=(
     lua
     nmap
     nvim
+    opencode
     pnpm
     prettier
     ripgrep
@@ -77,6 +78,7 @@ get_pacman_pkg() {
         claude)    echo "aur:claude-code-bin" ;;
         codex)     echo "" ;;                     # Use npm: @openai/codex
         gemini)    echo "" ;;                     # Use npm: @google/gemini-cli
+        opencode)  echo "" ;;                     # Use npm: opencode
         prettier)  echo "" ;;                     # Use npm
         pnpm)      echo "" ;;                     # Use corepack
         *)         echo "$1" ;; # Default: same name
@@ -97,6 +99,7 @@ get_apt_pkg() {
         claude)    echo "" ;;   # Use native installer
         codex)     echo "" ;;   # Use npm
         gemini)    echo "" ;;   # Use npm
+        opencode)  echo "" ;;   # Use npm
         prettier)  echo "" ;;   # Use npm
         pnpm)      echo "" ;;   # Use corepack
         *)         echo "$1" ;; # Default: same name
@@ -141,8 +144,10 @@ get_alt_install_method() {
         pnpm)      echo "corepack:pnpm" ;;
         codex)     echo "npm:@openai/codex" ;;
         gemini)    echo "npm:@google/gemini-cli" ;;
-        # Example of pip package if needed in future
-        # somepkg) echo "pip:somepkg" ;;
+        opencode)
+            # Linux: use npm (brew handles macOS)
+            [[ "$OS" != "macos" ]] && echo "npm:opencode"
+            ;;
         claude)
             # Only use native installer on non-macOS (brew handles macOS)
             [[ "$OS" != "macos" ]] && echo "native:curl -fsSL https://claude.ai/install.sh | bash"
