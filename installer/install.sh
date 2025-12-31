@@ -185,6 +185,32 @@ install_starship_script() {
     return 0
 }
 
+# Install LocalSend via Flatpak (Debian/Ubuntu/Mint)
+# Flatpak provides auto-updates; .deb requires manual updates
+install_localsend_flatpak() {
+    if ! command -v flatpak >/dev/null 2>&1; then
+        gum style --foreground "$THEME_SECONDARY" "  Installing Flatpak..."
+        sudo -v
+        if ! gum spin --spinner dot --title "Apt: installing flatpak..." -- \
+            sudo apt install -y flatpak; then
+            gum style --foreground "$THEME_ERROR" "  Failed to install Flatpak"
+            return 1
+        fi
+        gum spin --spinner dot --title "Adding Flathub repository..." -- \
+            flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+    fi
+
+    gum style --foreground "$THEME_SECONDARY" "  Installing LocalSend via Flatpak..."
+    if ! gum spin --spinner dot --title "Flatpak: installing LocalSend..." -- \
+        flatpak install -y flathub org.localsend.localsend_app; then
+        gum style --foreground "$THEME_ERROR" "  Failed to install LocalSend"
+        return 1
+    fi
+
+    gum style --foreground "$THEME_SUCCESS" "  Installed LocalSend"
+    return 0
+}
+
 # Post-install setup for Ghostty on Debian/Ubuntu/Mint
 # Creates .desktop entry and ensures PATH is set
 setup_opencode_plugins() {
@@ -948,6 +974,13 @@ is_installed() {
             karabiner) [[ -d "/Applications/Karabiner-Elements.app" || -d "$HOME/Applications/Karabiner-Elements.app" ]] && return 0 ;;
             localsend) [[ -d "/Applications/LocalSend.app" || -d "$HOME/Applications/LocalSend.app" ]] && return 0 ;;
             raycast)   [[ -d "/Applications/Raycast.app" || -d "$HOME/Applications/Raycast.app" ]] && return 0 ;;
+        esac
+    fi
+
+    # 3. Check Linux Flatpak apps
+    if [[ "$OS" == "linux" ]] && command -v flatpak >/dev/null 2>&1; then
+        case "$pkg" in
+            localsend) flatpak list --app 2>/dev/null | grep -q "org.localsend.localsend_app" && return 0 ;;
         esac
     fi
 

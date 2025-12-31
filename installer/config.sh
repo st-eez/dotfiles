@@ -10,7 +10,6 @@ export MACOS_PKGS=(
     bitwarden
     borders
     karabiner
-    localsend
     raycast
     sketchybar
     themes
@@ -30,6 +29,7 @@ export TERMINAL_PKGS=(
     ghostty
     git
     lazygit
+    localsend
     lua
     nmap
     nvim
@@ -79,6 +79,7 @@ get_pacman_pkg() {
         telnet)    echo "inetutils" ;;
         ghostty)   echo "ghostty" ;;              # Now in official repo (was AUR)
         claude)    echo "aur:claude-code-bin" ;;
+        localsend) echo "aur:localsend-bin" ;;
         codex)     echo "" ;;                     # Use npm: @openai/codex
         gemini)    echo "" ;;                     # Use npm: @google/gemini-cli
         opencode)  echo "" ;;                     # Use npm: opencode
@@ -99,8 +100,9 @@ get_apt_pkg() {
         node)      echo "nodejs" ;;
         python)    echo "python3" ;;
         lua)       echo "lua5.4" ;;
-        ghostty)   echo "" ;;   # No apt package - build from source
+        ghostty)   echo "" ;;   # No apt package - use AppImage
         claude)    echo "" ;;   # Use native installer
+        localsend) echo "" ;;   # Use Flatpak
         codex)     echo "" ;;   # Use npm
         gemini)    echo "" ;;   # Use npm
         opencode)  echo "" ;;   # Use npm
@@ -173,6 +175,9 @@ get_alt_install_method() {
         starship)
             # Debian/Ubuntu/Mint: apt version often outdated, use official script
             [[ "$DISTRO" == "debian" ]] && echo "native:install_starship_script"
+            ;;
+        localsend)
+            [[ "$DISTRO" == "debian" ]] && echo "native:install_localsend_flatpak"
             ;;
         *)         echo "" ;;
     esac
