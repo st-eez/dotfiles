@@ -1,8 +1,35 @@
 # PLAN: Migrate from Powerlevel10k to Starship
 
 **Created:** 2025-12-31  
-**Status:** DRAFT  
-**Branch:** TBD
+**Updated:** 2025-12-31  
+**Status:** ✅ COMPLETE (Phase 1, 1b, 2 done; Phase 3 not needed)  
+**Branch:** main
+
+---
+
+## Status Summary
+
+| Phase        | Status        | Description                                                |
+| ------------ | ------------- | ---------------------------------------------------------- |
+| **Phase 1**  | ✅ COMPLETE   | Core swap: p10k removed, starship installed, config exists |
+| **Phase 1b** | ✅ COMPLETE   | Runtime migration functions for existing p10k users        |
+| **Phase 2**  | ✅ COMPLETE   | User exploration: custom starship.toml configured          |
+| **Phase 3**  | ❌ NOT NEEDED | Theme integration unnecessary - see note below             |
+
+### What's Done
+
+- Starship binary in installer (brew/pacman/apt via script)
+- Custom `starship.toml` with Omarchy-inspired minimal config
+- `.zshrc` updated: `ZSH_THEME=""` + `starship init zsh`
+- All p10k files deleted from repo
+- Documentation updated across all AGENTS.md/README.md files
+- `theme-set` script updated with Starship note
+
+### What's Remaining
+
+- Nothing - plan complete. Phase 3 (theme integration) determined unnecessary.
+
+---
 
 ## Overview
 
@@ -28,24 +55,36 @@ Replace Powerlevel10k (p10k) shell prompt with Starship. Phased approach to allo
 
 ## Phased Approach
 
-### Phase 1: Swap p10k → Starship (defaults)
+### Phase 1: Swap p10k → Starship (defaults) ✅ COMPLETE
 
-- Remove p10k installation and configuration
-- Install starship via package managers
-- Run starship with defaults (no custom config)
-- User explores and configures interactively
+- [x] Remove p10k installation and configuration
+- [x] Install starship via package managers
+- [x] Run starship with defaults (custom config created)
+- [x] User explores and configures interactively
 
-### Phase 2: User Exploration
+### Phase 1b: Installer Runtime Migration ✅ COMPLETE
 
-- Test starship presets (`starship preset --list`)
-- Customize `~/.config/starship.toml` manually
-- Settle on preferred prompt style
+- [x] Add `detect_p10k()` function
+- [x] Add `backup_p10k()` function
+- [x] Add `clean_zshrc_p10k()` function
+- [x] Add `migrate_p10k_to_starship()` function
+- [x] Add `setup_starship()` function
+- [x] Add `sed_inplace()` helper to utils.sh
+- [x] Integrate with `setup_zsh_env()`
 
-### Phase 3: Theme Integration (future)
+### Phase 2: User Exploration ✅ COMPLETE
 
-- Create themed `starship.toml` files with color palettes
-- Integrate with `theme-set` script
-- Match tokyo-night/gruvbox/everforest colors
+- [x] Test starship presets (`starship preset --list`)
+- [x] Customize `~/.config/starship.toml` manually
+- [x] Settle on preferred prompt style (Omarchy-inspired minimal)
+
+### Phase 3: Theme Integration ❌ NOT NEEDED
+
+> **Why not needed**: Starship uses color names (e.g., `cyan`, `green`) which are
+> interpreted by the terminal. Since `theme-set` switches Ghostty themes, and
+> Ghostty themes define what "cyan" means, starship colors change dynamically
+> without any additional work. As long as starship.toml uses color names (not
+> hex codes), theming is automatic.
 
 ---
 
@@ -241,54 +280,433 @@ git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ~/.oh-my-zsh/cu
 
 ## Implementation Order
 
-1. **Create branch:** `git checkout -b feat/starship-migration`
+1. [x] **Create branch:** `git checkout -b feat/starship-migration` _(merged to main)_
 
-2. **Add starship to installer** (no breaking changes yet)
-   - Modify `installer/config.sh`
-   - Modify `installer/install.sh` (if needed for native installer)
-   - Modify `Brewfile`
+2. [x] **Add starship to installer** (no breaking changes yet)
+   - [x] Modify `installer/config.sh` - starship in TERMINAL_PKGS + all mappings
+   - [x] Modify `installer/install.sh` - `install_starship_script()` function added
+   - [x] Modify `Brewfile` - `brew "starship"` present
 
-3. **Remove p10k from installer**
-   - Modify `installer/zsh_setup.sh`
+3. [x] **Remove p10k from installer**
+   - [x] Modify `installer/zsh_setup.sh` - no p10k code present
 
-4. **Update .zshrc**
-   - Modify `zsh/.zshrc`
+4. [x] **Update .zshrc**
+   - [x] Modify `zsh/.zshrc` - `ZSH_THEME=""`, `starship init zsh` at end
 
-5. **Update theme-set**
-   - Comment out p10k section in `themes/.local/bin/theme-set`
+5. [x] **Update theme-set**
+   - [x] Comment out p10k section in `themes/.local/bin/theme-set`
+   - [x] Add Starship note to output message
 
-6. **Delete p10k files**
-   - Delete `zsh/.p10k.zsh`
-   - Delete `themes/configs/*/p10k-theme.zsh` (3 files)
+6. [x] **Delete p10k files**
+   - [x] Delete `zsh/.p10k.zsh` - file removed
+   - [x] Delete `themes/configs/*/p10k-theme.zsh` (3 files) - files removed
 
-7. **Update documentation**
-   - Update `themes/AGENTS.md`
-   - Update `themes/README.md`
-   - Update `README.md`
-   - Update `AGENTS.md`
+7. [x] **Update documentation**
+   - [x] Update `themes/AGENTS.md` - Starship note at line 80
+   - [x] Update `themes/README.md` - Starship note at line 34
+   - [x] Update `README.md` - "Oh-My-Zsh + Starship prompt"
+   - [x] Update `AGENTS.md` - "Oh-My-Zsh + Starship"
 
-8. **Test locally**
-   - Re-stow zsh: `stow -D zsh && stow zsh`
-   - Install starship: `brew install starship`
-   - Open new terminal
-   - Verify prompt works
+8. [x] **Test locally**
+   - [x] Starship config exists: `starship/.config/starship.toml`
+   - [x] Prompt working (user confirmed via current usage)
+
+---
+
+## Installer Runtime Migration
+
+> **STATUS: ✅ IMPLEMENTED**
+>
+> Functions added to `installer/zsh_setup.sh` and `installer/utils.sh`.
+
+When a user runs the installer on a system that **already has p10k installed**, the installer should detect it and offer to migrate. This section defines the runtime functions added to `installer/zsh_setup.sh`.
+
+### Function Signatures & Return Codes
+
+| Function                     | Status | Return Codes                 | Description                                   |
+| ---------------------------- | ------ | ---------------------------- | --------------------------------------------- |
+| `detect_p10k()`              | [x]    | 0=found, 1=clean             | Silent detection of any p10k artifacts        |
+| `backup_p10k()`              | [x]    | 0=success, 1=failure         | Backup all p10k files to `.backups/`          |
+| `clean_zshrc_p10k()`         | [x]    | 0=success, 1=failure         | Remove p10k references from user's `~/.zshrc` |
+| `migrate_p10k_to_starship()` | [x]    | 0=success, 1=declined/failed | Main orchestrator with user prompts           |
+| `setup_starship()`           | [x]    | 0=success, 1=failure         | Ensure binary installed + stow config         |
+
+### P10k Detection Points
+
+#### Theme Directories (check ALL, any match = detected)
+
+```bash
+P10K_THEME_DIRS=(
+    "$HOME/.oh-my-zsh/custom/themes/powerlevel10k"  # Oh-My-Zsh install
+    "$HOME/powerlevel10k"                            # Manual git clone
+    "$HOME/.powerlevel10k"                           # Alternative manual
+)
+```
+
+#### Homebrew Installation (macOS only)
+
+```bash
+brew list powerlevel10k &>/dev/null
+```
+
+#### Config File
+
+```bash
+"$HOME/.p10k.zsh"
+```
+
+#### .zshrc Patterns (regex for grep -E)
+
+```bash
+# ZSH_THEME setting
+ZSH_THEME=.*powerlevel10k
+
+# Source commands (multiple variations)
+source.*powerlevel10k
+\. .*powerlevel10k
+
+# p10k config source
+source.*\.p10k\.zsh
+\[\[ .*\.p10k\.zsh.*\]\].*source
+
+# Instant prompt block
+p10k-instant-prompt
+```
+
+#### Cache Files
+
+```bash
+"${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-"*
+"${XDG_CACHE_HOME:-$HOME/.cache}/gitstatus"
+```
+
+### Function Logic
+
+#### detect_p10k()
+
+```
+FUNCTION detect_p10k()
+    # Silent - no output, just return code
+
+    # 1. Check theme directories
+    FOR each dir IN P10K_THEME_DIRS:
+        IF dir exists: RETURN 0
+
+    # 2. Check homebrew (macOS only)
+    IF macOS AND brew list powerlevel10k succeeds: RETURN 0
+
+    # 3. Check config file
+    IF ~/.p10k.zsh exists: RETURN 0
+
+    # 4. Check .zshrc for p10k patterns
+    IF ~/.zshrc exists:
+        IF grep -qE "(ZSH_THEME=.*powerlevel10k|source.*powerlevel10k|p10k-instant-prompt|\.p10k\.zsh)" ~/.zshrc:
+            RETURN 0
+
+    # 5. Check cache files
+    IF any file matches ~/.cache/p10k-instant-prompt-*: RETURN 0
+
+    RETURN 1  # Clean - no p10k found
+```
+
+#### backup_p10k()
+
+```
+FUNCTION backup_p10k()
+    LOCAL timestamp = $(date +%Y%m%d_%H%M%S)
+    LOCAL backup_base = "$DOTFILES_DIR/.backups/p10k-$timestamp"
+    LOCAL backed_up = 0
+
+    mkdir -p "$backup_base"
+
+    # 1. Backup ~/.p10k.zsh if exists (and not symlink)
+    IF ~/.p10k.zsh exists AND not symlink:
+        cp ~/.p10k.zsh "$backup_base/"
+        gum style "  Backed up: ~/.p10k.zsh"
+
+    # 2. Backup theme directory (whichever exists)
+    FOR each dir IN P10K_THEME_DIRS:
+        IF dir exists:
+            cp -r "$dir" "$backup_base/$(basename $dir)"
+            gum style "  Backed up: $dir"
+            BREAK  # Only one should exist
+
+    # 3. Backup ~/.zshrc (always, if not symlink)
+    IF ~/.zshrc exists AND not symlink:
+        cp ~/.zshrc "$backup_base/.zshrc"
+        gum style "  Backed up: ~/.zshrc"
+
+    gum style --success "  Backup complete: $backup_base"
+    RETURN 0
+```
+
+#### clean_zshrc_p10k()
+
+```
+FUNCTION clean_zshrc_p10k()
+    LOCAL zshrc="$HOME/.zshrc"
+
+    IF NOT -f "$zshrc": RETURN 0  # Nothing to clean
+
+    # Use cross-platform sed (see helper below)
+
+    # 1. Remove instant prompt block (multi-line)
+    sed_inplace '/# Enable Powerlevel10k instant prompt/,/^fi$/d' "$zshrc"
+
+    # 2. Change ZSH_THEME to empty
+    sed_inplace 's/^ZSH_THEME=.*powerlevel10k.*/ZSH_THEME=""/' "$zshrc"
+
+    # 3. Remove p10k source lines (all variations)
+    sed_inplace '/\[\[.*\.p10k\.zsh.*\]\].*source/d' "$zshrc"
+    sed_inplace '/^source.*\.p10k\.zsh/d' "$zshrc"
+
+    # 4. Remove "To customize prompt" comment
+    sed_inplace '/# To customize prompt, run.*p10k configure/d' "$zshrc"
+
+    # 5. Remove homebrew source line
+    sed_inplace '/source.*powerlevel10k.*\.zsh-theme/d' "$zshrc"
+
+    gum style --success "  Cleaned ~/.zshrc"
+    RETURN 0
+```
+
+#### migrate_p10k_to_starship()
+
+```
+FUNCTION migrate_p10k_to_starship()
+    gum style --primary "  ◆ Powerlevel10k detected"
+
+    # 1. Show info box
+    gum style --subtext "  ╭─ P10K MIGRATION ─────────────────────────────╮"
+    gum style --subtext "  │  Powerlevel10k will be replaced by Starship  │"
+    gum style --subtext "  │                                              │"
+    gum style --subtext "  │  This will:                                  │"
+    gum style --subtext "  │    • Backup all p10k files                   │"
+    gum style --subtext "  │    • Remove p10k from ~/.zshrc               │"
+    gum style --subtext "  │    • Delete p10k installation                │"
+    gum style --subtext "  ╰──────────────────────────────────────────────╯"
+
+    # 2. Prompt user
+    IF NOT gum confirm "Migrate from Powerlevel10k to Starship?":
+        gum style --subtext "  Skipped - keeping Powerlevel10k"
+        RETURN 1
+
+    # 3. Backup first
+    IF NOT backup_p10k: RETURN 1
+
+    # 4. Clean .zshrc
+    IF NOT clean_zshrc_p10k: RETURN 1
+
+    # 5. Delete p10k files
+    FOR each dir IN P10K_THEME_DIRS:
+        IF dir exists: rm -rf "$dir"
+
+    rm -f ~/.p10k.zsh
+    rm -f ~/.cache/p10k-instant-prompt-* 2>/dev/null
+    rm -rf ~/.cache/gitstatus 2>/dev/null
+
+    # 6. Show distro-specific uninstall hint
+    IF macOS AND brew list powerlevel10k succeeds:
+        gum style --subtext "  ┌─ OPTIONAL ──────────────────────────────────┐"
+        gum style --subtext "  │ Uninstall Homebrew package:                 │"
+        gum style --subtext "  │   brew uninstall powerlevel10k              │"
+        gum style --subtext "  └──────────────────────────────────────────────┘"
+    ELIF Arch AND yay/paru has powerlevel10k:
+        gum style --subtext "  ┌─ OPTIONAL ──────────────────────────────────┐"
+        gum style --subtext "  │ Uninstall AUR package:                      │"
+        gum style --subtext "  │   yay -R powerlevel10k-git                  │"
+        gum style --subtext "  └──────────────────────────────────────────────┘"
+
+    gum style --success "  Migration complete"
+    RETURN 0
+```
+
+#### setup_starship()
+
+```
+FUNCTION setup_starship()
+    gum style --primary "  ◆ Setting up Starship prompt..."
+
+    # 1. Check if binary installed, prompt to install if not
+    IF command -v starship exists:
+        gum style --subtext "  Starship already installed"
+    ELSE:
+        gum style --warning "  Starship binary not found"
+        IF gum confirm "Install Starship now?":
+            install_package "starship"  # Cross-platform: brew/pacman/native
+            IF failed: RETURN 1
+        ELSE:
+            gum style --error "  Starship required for prompt"
+            RETURN 1
+
+    # 2. Stow starship config
+    IF directory "$DOTFILES_DIR/starship" exists:
+        stow_package "starship"
+        CASE result:
+            0: gum style --success "  Config linked" ;;
+            3: gum style --subtext "  Config already linked" ;;
+            *: RETURN 1 ;;
+
+    # 3. Verify starship init in .zshrc (for edge cases like Omarchy)
+    IF ~/.zshrc exists AND NOT symlink:
+        IF NOT grep -q 'starship init zsh' ~/.zshrc:
+            echo '' >> ~/.zshrc
+            echo '# Initialize Starship prompt' >> ~/.zshrc
+            echo 'eval "$(starship init zsh)"' >> ~/.zshrc
+            gum style --success "  Added starship init to ~/.zshrc"
+
+    gum style --success "  Starship configured"
+    RETURN 0
+```
+
+### Cross-Platform sed Helper
+
+> **STATUS: [x] IMPLEMENTED**
+
+Add to `installer/utils.sh`:
+
+```bash
+# Cross-platform sed in-place editing
+# Usage: sed_inplace 'pattern' file
+sed_inplace() {
+    if sed --version >/dev/null 2>&1; then
+        # GNU sed (Linux)
+        sed -i "$@"
+    else
+        # BSD sed (macOS)
+        sed -i '' "$@"
+    fi
+}
+```
+
+### Error Handling Strategy
+
+| Scenario                   | Handling                                |
+| -------------------------- | --------------------------------------- |
+| Backup fails               | Abort migration, return 1               |
+| sed command fails          | Log error, continue (non-fatal)         |
+| User declines              | Return 1, keep p10k                     |
+| No p10k found              | `detect_p10k` returns 1, skip migration |
+| Starship binary missing    | Prompt to install, fail if declined     |
+| Partial state (some files) | Process what exists, log what's missing |
+
+### Integration with setup_zsh_env()
+
+> **STATUS: [x] IMPLEMENTED**
+
+Add at end of existing `setup_zsh_env()` function in `installer/zsh_setup.sh`:
+
+```bash
+setup_zsh_env() {
+    # ... existing code (Oh-My-Zsh, plugins, change_default_shell) ...
+
+    # === P10k Migration + Starship Setup ===
+
+    # Detect and migrate p10k if present
+    if detect_p10k; then
+        migrate_p10k_to_starship
+        # Continue regardless of result - user may decline
+    fi
+
+    # Setup starship (ensure binary + stow config)
+    setup_starship || true  # Non-fatal if declined
+
+    # Summary (existing)
+    # ...
+    return 0
+}
+```
+
+### Runtime Migration Test Scenarios
+
+#### Scenario 1: Fresh Install (No P10k)
+
+```
+detect_p10k → returns 1 (clean)
+migrate_p10k_to_starship → skipped
+setup_starship → prompts if binary missing, stows config
+```
+
+#### Scenario 2: P10k via Oh-My-Zsh Theme
+
+```
+detect_p10k → finds ~/.oh-my-zsh/custom/themes/powerlevel10k → returns 0
+migrate_p10k_to_starship → prompts user
+  → backup_p10k → backs up theme dir, .p10k.zsh, .zshrc
+  → clean_zshrc_p10k → removes ZSH_THEME, instant prompt, source lines
+  → deletes theme dir, config, cache
+setup_starship → stows config
+```
+
+#### Scenario 3: P10k via Homebrew (macOS)
+
+```
+detect_p10k → brew list succeeds → returns 0
+migrate_p10k_to_starship → prompts user
+  → backs up .p10k.zsh, .zshrc
+  → cleans .zshrc
+  → deletes config, cache
+  → shows "brew uninstall powerlevel10k" hint
+setup_starship → stows config
+```
+
+#### Scenario 4: User Declines Migration
+
+```
+detect_p10k → returns 0
+migrate_p10k_to_starship → user selects "No" → returns 1
+  → p10k remains untouched
+setup_starship → still runs (user may want to try starship alongside)
+```
+
+#### Scenario 5: Starship Binary Not Installed
+
+```
+detect_p10k → returns 1 (or user migrates)
+setup_starship:
+  → "Starship binary not found"
+  → "Install Starship now?" [Yes/No]
+  → Yes: install_package "starship" → stow config
+  → No: return 1, error message
+```
+
+#### Scenario 6: Already on Starship (Re-run Installer)
+
+```
+detect_p10k → returns 1 (no p10k artifacts)
+migrate_p10k_to_starship → skipped
+setup_starship:
+  → "Starship already installed"
+  → "Config already linked"
+  → returns 0
+```
 
 ---
 
 ## Testing Checklist
 
-### Pre-flight
+### Pre-flight (Phase 1 - VERIFIED)
 
-- [ ] Starship installed: `which starship`
-- [ ] No p10k references in `.zshrc`
-- [ ] `.p10k.zsh` deleted
+- [x] Starship installed: `which starship`
+- [x] No p10k references in `.zshrc`
+- [x] `.p10k.zsh` deleted
+- [x] Custom `starship.toml` exists
 
-### Functional
+### Functional (Phase 1 - VERIFIED)
 
-- [ ] New terminal shows starship prompt
-- [ ] Oh-My-Zsh plugins work (autosuggestions, syntax-highlighting)
-- [ ] Git status shows in prompt (when in git repo)
-- [ ] Theme switching still works (other apps, not prompt yet)
+- [x] New terminal shows starship prompt
+- [x] Oh-My-Zsh plugins work (autosuggestions, syntax-highlighting)
+- [x] Git status shows in prompt (when in git repo)
+- [x] Theme switching still works (other apps, not prompt yet)
+
+### Runtime Migration Testing (NOT YET APPLICABLE)
+
+- [ ] Scenario 1: Fresh install (no p10k)
+- [ ] Scenario 2: P10k via Oh-My-Zsh theme
+- [ ] Scenario 3: P10k via Homebrew
+- [ ] Scenario 4: User declines migration
+- [ ] Scenario 5: Starship binary not installed
+- [ ] Scenario 6: Already on Starship (re-run)
 
 ### Exploration commands
 

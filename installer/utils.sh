@@ -3,6 +3,19 @@
 # Utility Functions
 # Depends on: lib/theme.sh
 
+# Cross-platform sed in-place editing
+# Usage: sed_inplace 'pattern' file
+# Handles GNU sed (Linux) vs BSD sed (macOS) differences
+sed_inplace() {
+    if sed --version >/dev/null 2>&1; then
+        # GNU sed (Linux)
+        sed -i "$@"
+    else
+        # BSD sed (macOS)
+        sed -i '' "$@"
+    fi
+}
+
 # Backup conflicting files/folders
 # Usage: backup_conflicts "package_name" "conflict_list_string" ["timestamp"]
 # Returns: 0 if all backups succeeded, 1 if any failed
