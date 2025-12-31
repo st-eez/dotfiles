@@ -6,13 +6,13 @@
 
 # OS icon - Gruvbox signature orange with bg2 for softer contrast
 typeset -g POWERLEVEL9K_OS_ICON_FOREGROUND='#504945'
-typeset -g POWERLEVEL9K_OS_ICON_BACKGROUND='#fe8019'
+typeset -g POWERLEVEL9K_OS_ICON_BACKGROUND='#b8bb26'
 
 # Directory - Gruvbox bg2 (neutral, lets accents pop)
-typeset -g POWERLEVEL9K_DIR_FOREGROUND='#ebdbb2'
+typeset -g POWERLEVEL9K_DIR_FOREGROUND='#fe8019'
 typeset -g POWERLEVEL9K_DIR_BACKGROUND='#504945'
-typeset -g POWERLEVEL9K_DIR_SHORTENED_FOREGROUND='#ebdbb2'
-typeset -g POWERLEVEL9K_DIR_ANCHOR_FOREGROUND='#ebdbb2'
+typeset -g POWERLEVEL9K_DIR_SHORTENED_FOREGROUND='#fe8019'
+typeset -g POWERLEVEL9K_DIR_ANCHOR_FOREGROUND='#fe8019'
 
 # VCS - semantic colors with black text for maximum contrast
 typeset -g POWERLEVEL9K_VCS_CLEAN_FOREGROUND='#000000'

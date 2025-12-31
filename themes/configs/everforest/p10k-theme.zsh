@@ -6,17 +6,17 @@
 
 # OS icon - Everforest signature green with bg2 (same as dir bg) for consistency
 typeset -g POWERLEVEL9K_OS_ICON_FOREGROUND='#3d484d'
-typeset -g POWERLEVEL9K_OS_ICON_BACKGROUND='#a7c080'
+typeset -g POWERLEVEL9K_OS_ICON_BACKGROUND='#e69875'
 
 # Directory - all text uses Everforest fg (#d3c6aa)
-typeset -g POWERLEVEL9K_DIR_FOREGROUND='#d3c6aa'
+typeset -g POWERLEVEL9K_DIR_FOREGROUND='#dbbc7f'
 typeset -g POWERLEVEL9K_DIR_BACKGROUND='#3d484d'          # bg2 - muted UI color
-typeset -g POWERLEVEL9K_DIR_SHORTENED_FOREGROUND='#d3c6aa'
-typeset -g POWERLEVEL9K_DIR_ANCHOR_FOREGROUND='#d3c6aa'
+typeset -g POWERLEVEL9K_DIR_SHORTENED_FOREGROUND='#dbbc7f'
+typeset -g POWERLEVEL9K_DIR_ANCHOR_FOREGROUND='#dbbc7f'
 
 # VCS - semantic colors with black text for maximum contrast
 typeset -g POWERLEVEL9K_VCS_CLEAN_FOREGROUND='#000000'
-typeset -g POWERLEVEL9K_VCS_CLEAN_BACKGROUND='#83c092'
+typeset -g POWERLEVEL9K_VCS_CLEAN_BACKGROUND='#a7c080'
 typeset -g POWERLEVEL9K_VCS_MODIFIED_FOREGROUND='#000000'
 typeset -g POWERLEVEL9K_VCS_MODIFIED_BACKGROUND='#dbbc7f'
 typeset -g POWERLEVEL9K_VCS_UNTRACKED_FOREGROUND='#000000'

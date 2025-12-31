@@ -5,12 +5,12 @@
 # Design: Clean, using proper Tokyo Night UI colors (darker shades)
 
 # OS icon - Tokyo Night signature blue with bg2 for contrast
-typeset -g POWERLEVEL9K_OS_ICON_FOREGROUND='#292e42'
+typeset -g POWERLEVEL9K_OS_ICON_FOREGROUND='#414868'
 typeset -g POWERLEVEL9K_OS_ICON_BACKGROUND='#7aa2f7'
 
 # Directory - neutral bg2, not blue (avoids too much blue)
 typeset -g POWERLEVEL9K_DIR_FOREGROUND='#c0caf5'
-typeset -g POWERLEVEL9K_DIR_BACKGROUND='#292e42'          # bg_highlight (bg2 equivalent)
+typeset -g POWERLEVEL9K_DIR_BACKGROUND='#414868'          # bg2
 typeset -g POWERLEVEL9K_DIR_SHORTENED_FOREGROUND='#c0caf5'
 typeset -g POWERLEVEL9K_DIR_ANCHOR_FOREGROUND='#c0caf5'
 
