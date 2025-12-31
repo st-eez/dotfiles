@@ -181,7 +181,18 @@ run_installation() {
         fi
     fi
 
-    # 4. Ghostty Desktop Integration (Debian/Ubuntu/Mint only)
+    # 4. OpenCode Configuration (link CLAUDE.md → AGENTS.md for native OpenCode)
+    if [[ -f "$HOME/.claude/CLAUDE.md" ]]; then
+        local opencode_agents="$HOME/.config/opencode/AGENTS.md"
+        if [[ ! -e "$opencode_agents" ]] || [[ -L "$opencode_agents" ]]; then
+            ln -sf "$HOME/.claude/CLAUDE.md" "$opencode_agents"
+            log_success "OpenCode" "Linked AGENTS.md"
+        else
+            log_warn "OpenCode" "AGENTS.md exists as file, skipping"
+        fi
+    fi
+
+    # 5. Ghostty Desktop Integration (Debian/Ubuntu/Mint only)
     if [[ " ${pkg_array[*]} " =~ " ghostty " ]] && [[ "$DISTRO" == "debian" ]]; then
         if setup_ghostty_desktop; then
             log_success "Ghostty" "OK"
@@ -191,7 +202,7 @@ run_installation() {
         fi
     fi
 
-    # 5. Theme Setup (macOS only)
+    # 6. Theme Setup (macOS only)
     if [[ "$OS" == "macos" ]]; then
         # Stow themes package to create ~/.local/bin/theme-set symlink
         stow -d "$DOTFILES_DIR" -t "$HOME" themes 2>/dev/null || true

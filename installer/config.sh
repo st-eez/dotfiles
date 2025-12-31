@@ -13,6 +13,7 @@ export MACOS_PKGS=(
     localsend
     raycast
     sketchybar
+    themes
 )
 
 export TERMINAL_PKGS=(
@@ -113,8 +114,8 @@ get_binary_name() {
         nvim)            echo "nvim" ;;
         wireguard-tools) echo "wg" ;;
         claude)          echo "claude" ;;
-        gemini)          echo "gemini" ;;
         codex)           echo "codex" ;;
+        gemini)          echo "gemini" ;;
         pnpm)            echo "pnpm" ;;
         fd)
             if [[ "$DISTRO" == "debian" ]]; then

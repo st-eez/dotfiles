@@ -5,6 +5,12 @@
 
 set -euo pipefail
 
+# Ensure Homebrew binaries are in PATH (needed when called from Raycast/sandboxed environments)
+export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
+
+# Ensure USER is set (required by sketchybar, not always set in sandboxed environments)
+export USER="${USER:-$(whoami)}"
+
 resolve_symlink() {
     local path="$1"
     while [[ -h "$path" ]]; do
@@ -44,6 +50,21 @@ usage() {
     exit 1
 }
 
+show_status() {
+    local current
+    current=$(get_current_theme)
+    echo -e "${BLUE}Current theme:${NC} $current"
+    echo ""
+    echo "Available themes:"
+    for t in "${THEMES[@]}"; do
+        if [[ "$t" == "$current" ]]; then
+            echo -e "  ${GREEN}● $t${NC} (active)"
+        else
+            echo "  ○ $t"
+        fi
+    done
+}
+
 get_current_theme() {
     if [[ -f "$STATE_FILE" ]]; then
         cat "$STATE_FILE"
@@ -74,6 +95,7 @@ cycle_theme() {
 # Handle arguments
 THEME="${1:-}"
 case "$THEME" in
+    "") show_status; exit 0 ;;
     --help|-h) usage ;;
     --next|-n) THEME=$(cycle_theme next) ;;
     --prev|-p) THEME=$(cycle_theme prev) ;;
@@ -160,14 +182,10 @@ if [[ -f "$THEMES_DIR/configs/$THEME/bordersrc" ]]; then
 fi
 
 # =============================================================================
-# 4. P10k - symlink theme file + modify config to trigger hot reload
+# 4. P10k - symlink theme file
 # =============================================================================
 if [[ -f "$THEMES_DIR/configs/$THEME/p10k-theme.zsh" ]]; then
     ln -sfn "$THEMES_DIR/configs/$THEME/p10k-theme.zsh" ~/.p10k.theme.zsh
-    # Modify .p10k.zsh to trigger hot reload (watches content hash, not mtime)
-    if [[ -f ~/.p10k.zsh ]]; then
-        sed -i '' "s/^# theme-set:.*/# theme-set: $THEME $(date +%s)/" ~/.p10k.zsh 2>/dev/null || true
-    fi
     log "P10k"
 fi
 
@@ -303,6 +321,6 @@ echo ""
 echo -e "${GREEN}Done!${NC} Theme set to: $THEME_NAME"
 echo ""
 echo "To apply changes:"
-echo "  - Terminal prompt: run 'exec zsh' in each open terminal"
+echo "  - Terminal prompt: press Enter in open terminals (auto-reload)"
 echo "  - Neovim: quit and reopen"
 echo "  - OpenCode: restart"

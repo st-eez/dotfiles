@@ -35,6 +35,10 @@ sketchybar/.config/sketchybar/AGENTS.md
 # Aerospace (generated from profile configs)
 aerospace/.config/aerospace/aerospace.toml
 
+# Theme-managed files (theme-set creates symlinks to themes/configs/)
+borders/.config/borders/bordersrc
+ghostty/.config/ghostty/theme.conf
+
 # Backups
 *.backup
 *.bak
