@@ -21,7 +21,7 @@ dotfiles/
 ├── nvim/               # LazyVim config (standard)
 ├── aerospace/          # Tiling WM with home/office/laptop profiles
 ├── ghostty/            # Terminal config
-├── zsh/                # Oh-My-Zsh + Powerlevel10k
+├── zsh/                # Oh-My-Zsh + Starship
 ├── karabiner/          # Caps→Escape/Alt
 ├── borders/            # Window border styling
 ├── Brewfile            # macOS package manifest
@@ -48,7 +48,7 @@ dotfiles/
 # Install dotfiles (interactive menu)
 ./install.sh
 
-# Switch theme (applies to 9 apps)
+# Switch theme (applies to 8 apps)
 theme-set tokyo-night    # or gruvbox, everforest
 theme-set --next         # cycle
 

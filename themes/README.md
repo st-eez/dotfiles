@@ -20,17 +20,18 @@ theme-set --prev         # or -p
 
 ## Supported Apps
 
-| App         | Method                 | Auto-reload      |
-| ----------- | ---------------------- | ---------------- |
-| SketchyBar  | Symlink colors.lua     | Yes              |
-| Ghostty     | Symlink theme.conf     | Yes (SIGUSR2)    |
-| Borders     | Symlink bordersrc      | Yes              |
-| P10k        | Symlink p10k.theme.zsh | Yes (hot-reload) |
-| Wallpaper   | osascript              | Yes              |
-| Antigravity | Edit settings.json     | Yes              |
-| Obsidian    | Edit appearance.json   | Yes              |
-| Neovim      | Symlink theme.lua      | No (quit/reopen) |
-| OpenCode    | Edit opencode.json     | No (restart)     |
+| App         | Method               | Auto-reload      |
+| ----------- | -------------------- | ---------------- |
+| SketchyBar  | Symlink colors.lua   | Yes              |
+| Ghostty     | Symlink theme.conf   | Yes (SIGUSR2)    |
+| Borders     | Symlink bordersrc    | Yes              |
+| Wallpaper   | osascript            | Yes              |
+| Antigravity | Edit settings.json   | Yes              |
+| Obsidian    | Edit appearance.json | Yes              |
+| Neovim      | Symlink theme.lua    | No (quit/reopen) |
+| OpenCode    | Edit opencode.json   | No (restart)     |
+
+> **Note**: Starship prompt theming pending. Configure manually with `starship config`.
 
 ## Available Themes
 
@@ -60,7 +61,6 @@ theme-set --prev         # or -p
    - `bordersrc` - JankyBorders config script
    - `ghostty.conf` - Ghostty theme include
    - `neovim.lua` - LazyVim colorscheme spec
-   - `p10k-theme.zsh` - Powerlevel10k overrides
    - `obsidian-snippet.css` - Sidebar styling
 
 3. Create wallpaper `themes/wallpapers/<name>.png` - solid color matching background

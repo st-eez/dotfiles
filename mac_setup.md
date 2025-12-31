@@ -15,7 +15,7 @@
 - JankyBorders – Homebrew borders; config at ~/.config/borders/bordersrc.
 - SketchyBar – custom macOS menu bar; config at ~/.config/sketchybar/.
 - LazyVim/Neovim – ~/.config/nvim/ (lazy.nvim bootstrap, Treesitter setup).
-- Shell – ~/.zshrc, ~/.p10k.zsh, ~/.oh-my-zsh/ (prompt, plugins, aliases; rotate stored secrets).
+- Shell – ~/.zshrc, ~/.config/starship.toml, ~/.oh-my-zsh/ (prompt, plugins, aliases; rotate stored secrets).
 - btop – ~/.config/btop/btop.conf (resource monitor layout/theme).
 - neofetch – ~/.config/neofetch/config.conf (system info display order).
 - htop – ~/.config/htop/ (process monitor overrides).
@@ -23,7 +23,8 @@
 - Homebrew tools – reinstall borders, btop, htop, neofetch, screenresolution, fzf, ripgrep, codex, cava, cmatrix, etc.
 
 ## Other Apps
-- Bitwarden – Password manager 
+
+- Bitwarden – Password manager
 - Brave Browser – daily browser plus apps bundle.
 - ChatGPT, – AI assistant
 - Dark Reader for Safari – Dark mode for safari

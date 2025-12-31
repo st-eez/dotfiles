@@ -170,6 +170,21 @@ install_ghostty_appimage() {
     return 0
 }
 
+# Install Starship via official script (Debian/Ubuntu/Mint)
+# apt version often outdated; official script installs latest binary
+install_starship_script() {
+    gum style --foreground "$THEME_SECONDARY" "  Installing Starship via official script..."
+
+    if ! gum spin --spinner dot --title "Downloading Starship..." -- \
+        bash -c "curl -sS https://starship.rs/install.sh | sh -s -- -y"; then
+        gum style --foreground "$THEME_ERROR" "  Failed to install Starship"
+        return 1
+    fi
+
+    gum style --foreground "$THEME_SUCCESS" "  Installed Starship"
+    return 0
+}
+
 # Post-install setup for Ghostty on Debian/Ubuntu/Mint
 # Creates .desktop entry and ensures PATH is set
 setup_opencode_plugins() {

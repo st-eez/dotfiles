@@ -94,20 +94,7 @@ setup_zsh_env() {
         changes_made=true
     fi
 
-    # 3. Themes
-    local themes_dir="$zsh_custom/themes"
-    mkdir -p "$themes_dir"
-
-    if [[ ! -d "$themes_dir/powerlevel10k" ]]; then
-        gum style --foreground "$THEME_SECONDARY" "  Installing Powerlevel10k..."
-        if ! git clone --quiet --depth=1 https://github.com/romkatv/powerlevel10k.git "$themes_dir/powerlevel10k"; then
-             gum style --foreground "$THEME_ERROR" "  Failed to clone Powerlevel10k"
-             return 1
-        fi
-        changes_made=true
-    fi
-
-    # 4. Aliases file (skip if symlink exists from stow)
+    # 3. Aliases file (skip if symlink exists from stow)
     if [[ ! -e "$zsh_custom/aliases.zsh" && ! -L "$zsh_custom/aliases.zsh" ]]; then
         if ! touch "$zsh_custom/aliases.zsh"; then
              gum style --foreground "$THEME_ERROR" "  Failed to create aliases.zsh"
@@ -116,7 +103,7 @@ setup_zsh_env() {
         changes_made=true
     fi
 
-    # 5. Change default shell (optional, won't fail setup)
+    # 4. Change default shell (optional, won't fail setup)
     change_default_shell
 
     # Summary

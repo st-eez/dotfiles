@@ -11,7 +11,7 @@ Enhance the existing theme-set CLI with a Raycast extension for visual theme swi
 ### What Exists (v1)
 
 - `theme-set` CLI (321 lines bash, `themes/.local/bin/theme-set`)
-- 9 apps: SketchyBar, Ghostty, Borders, P10k, Neovim, Obsidian, Antigravity, OpenCode, Wallpaper
+- 8 apps: SketchyBar, Ghostty, Borders, Neovim, Obsidian, Antigravity, OpenCode, Wallpaper (Starship pending Phase 3)
 - 3 themes: tokyo-night, gruvbox, everforest
 - Theme metadata in `themes/meta/<theme>.env` with color variables
 - Symlink-based switching + JSON mutation for some apps
@@ -600,7 +600,7 @@ Would modify:
   - ~/.config/sketchybar/colors.lua → themes/configs/gruvbox/sketchybar-colors.lua
   - ~/.config/ghostty/theme.conf → themes/configs/gruvbox/ghostty.conf
   - ~/.config/borders/bordersrc → themes/configs/gruvbox/bordersrc
-  - ~/.p10k.theme.zsh → themes/configs/gruvbox/p10k-theme.zsh
+  - ~/.config/starship.toml → themes/configs/gruvbox/starship.toml
   - ~/.config/nvim/lua/plugins/theme.lua → themes/configs/gruvbox/neovim.lua
   - ~/Library/.../appearance.json (cssTheme: "Obsidian gruvbox")
   - ~/Library/.../Antigravity/User/settings.json (colorTheme: "Gruvbox Dark Hard")

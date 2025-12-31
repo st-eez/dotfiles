@@ -37,9 +37,6 @@ cd ~/dotfiles
 # Install Oh-My-Zsh
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
 
-# Install Powerlevel10k theme
-git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ~/.oh-my-zsh/custom/themes/powerlevel10k
-
 # Install plugins
 git clone https://github.com/zsh-users/zsh-autosuggestions ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions
 git clone https://github.com/zsh-users/zsh-syntax-highlighting ~/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
@@ -95,7 +92,7 @@ Edit `~/.gitconfig` with your name and email.
 | `sketchybar/` | Custom menu bar with workspace indicators              |
 | `nvim/`       | LazyVim-based Neovim config                            |
 | `ghostty/`    | Terminal emulator settings                             |
-| `zsh/`        | Oh-My-Zsh + Powerlevel10k prompt                       |
+| `zsh/`        | Oh-My-Zsh + Starship prompt                            |
 | `karabiner/`  | Caps Lock → Escape (tap) / Alt (hold)                  |
 | `raycast/`    | Keybind search extension                               |
 | `borders/`    | Window border styling                                  |
@@ -113,7 +110,7 @@ theme-set gruvbox
 theme-set everforest
 ```
 
-Applies to: SketchyBar, Ghostty, Borders, Neovim, P10k prompt, Obsidian, wallpaper.
+Applies to: SketchyBar, Ghostty, Borders, Neovim, Obsidian, wallpaper.
 
 | Theme       | Background | Accent |
 | ----------- | ---------- | ------ |

@@ -182,12 +182,14 @@ if [[ -f "$THEMES_DIR/configs/$THEME/bordersrc" ]]; then
 fi
 
 # =============================================================================
-# 4. P10k - symlink theme file
+# 4. Starship - REMOVED (migrated from P10k)
 # =============================================================================
-if [[ -f "$THEMES_DIR/configs/$THEME/p10k-theme.zsh" ]]; then
-    ln -sfn "$THEMES_DIR/configs/$THEME/p10k-theme.zsh" ~/.p10k.theme.zsh
-    log "P10k"
-fi
+# Starship theming will be added in Phase 3
+# if [[ -f "$THEMES_DIR/configs/$THEME/starship.toml" ]]; then
+#     mkdir -p ~/.config
+#     ln -sfn "$THEMES_DIR/configs/$THEME/starship.toml" ~/.config/starship.toml
+#     log "Starship"
+# fi
 
 # =============================================================================
 # 5. Neovim - symlink theme.lua (with Stow folding guard)
@@ -324,3 +326,5 @@ echo "To apply changes:"
 echo "  - Terminal prompt: open a new terminal"
 echo "  - Neovim: quit and reopen"
 echo "  - OpenCode: restart"
+echo ""
+echo "Note: Starship prompt not yet themed - configure manually with 'starship config'"

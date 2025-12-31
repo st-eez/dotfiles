@@ -25,6 +25,9 @@ cat ~/.config/current-theme
 # Verify symlinks
 ls -la ~/.config/sketchybar/colors.lua
 ls -la ~/.config/nvim/lua/plugins/theme.lua
+
+# Configure Starship prompt (not yet theme-integrated)
+starship config
 ```
 
 ## RAYCAST INTEGRATION
@@ -61,19 +64,20 @@ The extension uses `loadThemes()` which parses `themes.json` at runtime, so new 
 | State File       | `~/.config/current-theme`               |
 | Backups          | `~/.config/theme-backups/`              |
 
-## SUPPORTED APPS (9 total)
+## SUPPORTED APPS (8 total)
 
-| App         | Config Method            | Reload               | Manual Action |
-| ----------- | ------------------------ | -------------------- | ------------- |
-| SketchyBar  | Symlink `colors.lua`     | Auto (`--reload`)    | None          |
-| Ghostty     | Symlink `theme.conf`     | Auto (SIGUSR2)       | None          |
-| Borders     | Symlink `bordersrc`      | Auto (script exec)   | None          |
-| P10k        | Symlink `p10k.theme.zsh` | Auto (prompt redraw) | Press Enter   |
-| Wallpaper   | osascript                | Auto                 | None          |
-| Antigravity | JSON edit                | Auto (watched)       | None          |
-| Obsidian    | JSON edit + CSS copy     | Auto (watched)       | None          |
-| Neovim      | Symlink `theme.lua`      | **Manual**           | Quit & reopen |
-| OpenCode    | JSON edit                | **Manual**           | Restart       |
+| App         | Config Method        | Reload             | Manual Action |
+| ----------- | -------------------- | ------------------ | ------------- |
+| SketchyBar  | Symlink `colors.lua` | Auto (`--reload`)  | None          |
+| Ghostty     | Symlink `theme.conf` | Auto (SIGUSR2)     | None          |
+| Borders     | Symlink `bordersrc`  | Auto (script exec) | None          |
+| Wallpaper   | osascript            | Auto               | None          |
+| Antigravity | JSON edit            | Auto (watched)     | None          |
+| Obsidian    | JSON edit + CSS copy | Auto (watched)     | None          |
+| Neovim      | Symlink `theme.lua`  | **Manual**         | Quit & reopen |
+| OpenCode    | JSON edit            | **Manual**         | Restart       |
+
+> **Note**: Starship prompt theming pending (Phase 3). Configure manually with `starship config`.
 
 ---
 
@@ -121,7 +125,7 @@ BLACK="#rrggbb"          # Dark accent
 
 ### Step 2: Create Config Files
 
-Create directory `themes/configs/<theme-name>/` with these 6 files:
+Create directory `themes/configs/<theme-name>/` with these 5 files:
 
 #### 2.1 SketchyBar Colors (`sketchybar-colors.lua`)
 
@@ -196,21 +200,7 @@ return {
 }
 ```
 
-#### 2.5 P10k Theme (`p10k-theme.zsh`)
-
-```zsh
-# Powerlevel10k theme overrides for <Theme Name>
-# Sourced by ~/.p10k.zsh
-
-typeset -g POWERLEVEL9K_OS_ICON_FOREGROUND=<color_index>
-typeset -g POWERLEVEL9K_DIR_FOREGROUND=<color_index>
-typeset -g POWERLEVEL9K_VCS_CLEAN_FOREGROUND=<color_index>
-# ... (copy from existing theme and adjust color indices)
-```
-
-> **Tip**: Copy from an existing theme's `p10k-theme.zsh` and adjust P10k color indices (0-255)
-
-#### 2.6 Obsidian Snippet (`obsidian-snippet.css`)
+#### 2.5 Obsidian Snippet (`obsidian-snippet.css`)
 
 ```css
 /* <Theme Name> - Active explorer file styling */
@@ -298,7 +288,7 @@ return {
 }
 ```
 
-### Step 7: Verification Checklist
+### Step 6: Verification Checklist
 
 Run these checks:
 
@@ -310,7 +300,6 @@ theme-set <theme-name>
 ls -la ~/.config/sketchybar/colors.lua
 ls -la ~/.config/ghostty/theme.conf
 ls -la ~/.config/borders/bordersrc
-ls -la ~/.p10k.theme.zsh
 ls -la ~/.config/nvim/lua/plugins/theme.lua
 
 # Check state file
@@ -320,13 +309,12 @@ cat ~/.config/current-theme
 # - SketchyBar: Check bar colors
 # - Ghostty: Open new terminal
 # - Borders: Check window borders
-# - P10k: Press Enter in terminal
 # - Neovim: Quit and reopen
 # - Obsidian: Check sidebar styling
 # - Wallpaper: Check desktop background
 ```
 
-### Step 8: Test Raycast Extension
+### Step 7: Test Raycast Extension
 
 1. Open Raycast → "Switch Theme"
 2. Verify new theme appears in grid
@@ -336,7 +324,7 @@ cat ~/.config/current-theme
 
 ## FILE REFERENCE
 
-### Required Files Per Theme (8 total)
+### Required Files Per Theme (7 total)
 
 | File                    | Location           | Purpose                    |
 | ----------------------- | ------------------ | -------------------------- |
@@ -345,7 +333,6 @@ cat ~/.config/current-theme
 | `ghostty.conf`          | `configs/<theme>/` | Ghostty theme reference    |
 | `bordersrc`             | `configs/<theme>/` | JankyBorders config        |
 | `neovim.lua`            | `configs/<theme>/` | LazyVim colorscheme        |
-| `p10k-theme.zsh`        | `configs/<theme>/` | Powerlevel10k overrides    |
 | `obsidian-snippet.css`  | `configs/<theme>/` | Obsidian sidebar CSS       |
 | `<theme>.png`           | `wallpapers/`      | Desktop wallpaper          |
 
@@ -362,7 +349,6 @@ cat ~/.config/current-theme
 | SketchyBar  | `~/.config/sketchybar/colors.lua`                              |
 | Ghostty     | `~/.config/ghostty/theme.conf`                                 |
 | Borders     | `~/.config/borders/bordersrc`                                  |
-| P10k        | `~/.p10k.theme.zsh`                                            |
 | Neovim      | `~/.config/nvim/lua/plugins/theme.lua`                         |
 | Obsidian    | `<vault>/.obsidian/appearance.json` + `snippets/`              |
 | Antigravity | `~/Library/Application Support/Antigravity/User/settings.json` |
@@ -376,7 +362,7 @@ cat ~/.config/current-theme
 | -------------------------------------------- | ----------------------------- | --------------------------------- |
 | Direct edits to `~/.config/<app>/colors.lua` | Symlink, will be overwritten  | Edit in `themes/configs/<theme>/` |
 | Adding theme colors to Stow packages         | Breaks theme switching        | Use theme system exclusively      |
-| Incomplete themes (missing files)            | theme-set silently skips      | Include all 6 config files        |
+| Incomplete themes (missing files)            | theme-set silently skips      | Include all 5 config files        |
 | Editing palette files expecting changes      | Reference only, not loaded    | Edit config files directly        |
 | `~/.config/nvim/lua/plugins` as symlink      | Stow folding breaks theme.lua | Use `stow --no-folding nvim`      |
 

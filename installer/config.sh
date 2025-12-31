@@ -37,6 +37,7 @@ export TERMINAL_PKGS=(
     pnpm
     prettier
     ripgrep
+    starship
     stow
     wireguard-tools
     zoxide
@@ -61,6 +62,7 @@ get_brew_pkg() {
         gemini)    echo "gemini-cli" ;;
         gh)        echo "gh" ;;
         node)      echo "node" ;;
+        starship)  echo "starship" ;;
         *)         echo "$1" ;; # Default: same name
     esac
 }
@@ -82,6 +84,7 @@ get_pacman_pkg() {
         opencode)  echo "" ;;                     # Use npm: opencode
         prettier)  echo "" ;;                     # Use npm
         pnpm)      echo "" ;;                     # Use corepack
+        starship)  echo "starship" ;;
         *)         echo "$1" ;; # Default: same name
     esac
 }
@@ -103,6 +106,7 @@ get_apt_pkg() {
         opencode)  echo "" ;;   # Use npm
         prettier)  echo "" ;;   # Use npm
         pnpm)      echo "" ;;   # Use corepack
+        starship)  echo "" ;;   # Use native installer
         *)         echo "$1" ;; # Default: same name
     esac
 }
@@ -165,6 +169,10 @@ get_alt_install_method() {
             # Debian/Ubuntu/Mint: use AppImage (no official apt package)
             # Arch has official package, macOS has cask
             [[ "$DISTRO" == "debian" ]] && echo "native:install_ghostty_appimage"
+            ;;
+        starship)
+            # Debian/Ubuntu/Mint: apt version often outdated, use official script
+            [[ "$DISTRO" == "debian" ]] && echo "native:install_starship_script"
             ;;
         *)         echo "" ;;
     esac
