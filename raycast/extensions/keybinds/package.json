@@ -6,8 +6,7 @@
   "icon": "extension-icon.png",
   "author": "steezz",
   "platforms": [
-    "macOS",
-    "Windows"
+    "macOS"
   ],
   "license": "MIT",
   "commands": [

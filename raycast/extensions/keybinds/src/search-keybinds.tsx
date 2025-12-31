@@ -509,6 +509,17 @@ const GHOSTTY_SECTIONS: ShortcutSection[] = [
   },
 ];
 
+const DISCORD_SECTIONS: ShortcutSection[] = [
+  {
+    platform: "Discord",
+    title: "Discord - Voice Controls",
+    entries: [
+      { binding: "cmd-shift-d", description: "Toggle Deafen" },
+      { binding: "cmd-shift-m", description: "Toggle Mute" },
+    ],
+  },
+];
+
 const APPLICATION_SECTIONS: ShortcutSection[] = [
   {
     platform: "Applications",
@@ -533,7 +544,7 @@ const APPLICATION_SECTIONS: ShortcutSection[] = [
       { binding: "alt-shift-t", description: "Microsoft Teams" },
       { binding: "alt-n", description: "Notes Raycast" },
       { binding: "alt-shift-n", description: "Obsidian" },
-      { binding: "alt-p", description: "Perplexity" },
+      { binding: "alt-p", description: "Bitwarden" },
       { binding: "alt-r", description: "Reminders" },
       { binding: "alt-s", description: "Safari" },
       { binding: "alt-shift-s", description: "Spotify" },
@@ -570,6 +581,7 @@ const APPLICATION_SECTIONS: ShortcutSection[] = [
 const SECTIONS: ShortcutSection[] = [
   ...APPLICATION_SECTIONS,
   ...AEROSPACE_SECTIONS,
+  ...DISCORD_SECTIONS,
   ...GHOSTTY_SECTIONS,
   ...KEYBOARD_SECTIONS,
   {
@@ -753,6 +765,7 @@ export default function Command() {
           <List.Dropdown.Item title="All" value="all" />
           <List.Dropdown.Item title="Aerospace" value="Aerospace" />
           <List.Dropdown.Item title="Applications" value="Applications" />
+          <List.Dropdown.Item title="Discord" value="Discord" />
           <List.Dropdown.Item title="Ghostty" value="Ghostty" />
           <List.Dropdown.Item title="macOS" value="macOS" />
           <List.Dropdown.Item title="Microsoft Teams" value="Microsoft Teams" />
