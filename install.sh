@@ -76,8 +76,8 @@ run_installation() {
     local cfg_exists=0   # Already linked configs
     local fail_count=0   # Failed packages
 
-    # Initialize CSV for summary
-    local csv_file="${TMPDIR:-/tmp}/steez_install.csv"
+    local csv_file
+    csv_file=$(mktemp "${TMPDIR:-/tmp}/steez_install.XXXXXX.csv") || return 1
     echo "Package,Binary,Config" > "$csv_file"
 
     echo ""

@@ -177,7 +177,7 @@ get_alt_install_method() {
             [[ "$DISTRO" == "debian" ]] && echo "native:install_starship_script"
             ;;
         localsend)
-            [[ "$DISTRO" == "debian" ]] && echo "native:install_localsend_flatpak"
+            [[ "$DISTRO" == "debian" ]] && echo "native:install_localsend_linux"
             ;;
         *)         echo "" ;;
     esac

@@ -41,7 +41,7 @@ bootstrap_aur_helper() {
         build_success=1
     fi
 
-    # Restore original traps and cleanup
+    # SECURITY: eval is safe here - values come from `trap -p` (shell-controlled output)
     eval "${old_int_trap:-trap - INT}"
     eval "${old_term_trap:-trap - TERM}"
     _aur_cleanup
@@ -52,22 +52,8 @@ bootstrap_aur_helper() {
 # Install Node.js via NodeSource (Debian/Ubuntu/Mint)
 # System repos have Node 18; npm packages like gemini/codex need Node 20+
 install_node_nodesource() {
-    gum style --foreground "$THEME_SECONDARY" "  Adding NodeSource repo for Node 20..."
-
-    # Add NodeSource repo
-    if ! curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - >/dev/null 2>&1; then
-        gum style --foreground "$THEME_ERROR" "  Failed to add NodeSource repo"
-        return 1
-    fi
-
-    # Install Node.js
-    gum style --foreground "$THEME_SECONDARY" "  Installing Node.js 20..."
-    if ! sudo apt install -y nodejs >/dev/null 2>&1; then
-        gum style --foreground "$THEME_ERROR" "  Failed to install Node.js"
-        return 1
-    fi
-
-    gum style --foreground "$THEME_SUCCESS" "  Installed Node.js $(node --version)"
+    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - >/dev/null 2>&1 || return 1
+    sudo apt install -y nodejs >/dev/null 2>&1 || return 1
     return 0
 }
 
@@ -78,136 +64,117 @@ install_nvim_tarball() {
     local arch
     arch=$(uname -m)
 
-    # Map uname arch to release asset name
     case "$arch" in
         x86_64)  arch="x86_64" ;;
         aarch64) arch="arm64" ;;
-        *)
-            gum style --foreground "$THEME_ERROR" "  Unsupported architecture: $arch"
-            return 1
-            ;;
+        *)       return 1 ;;
     esac
 
-    local url="https://github.com/neovim/neovim/releases/download/v${version}/nvim-linux-${arch}.tar.gz"
+    local base_url="https://github.com/neovim/neovim/releases/download/v${version}"
+    local filename="nvim-linux-${arch}.tar.gz"
+    local url="${base_url}/${filename}"
+    local checksum_url="${base_url}/${filename}.sha256sum"
     local install_dir="$HOME/.local"
     local extract_dir="$install_dir/nvim-linux-${arch}"
     local tarball
     tarball=$(mktemp) || return 1
 
-    # Ensure ~/.local/bin exists (for symlink)
     mkdir -p "$install_dir/bin"
 
-    # Download with spinner
-    if ! gum spin --spinner dot --title "Downloading neovim v${version}..." -- \
-        curl -fsSL -o "$tarball" "$url"; then
+    if ! curl -fsSL -o "$tarball" "$url" 2>/dev/null; then
         rm -f "$tarball"
-        gum style --foreground "$THEME_ERROR" "  Failed to download neovim v${version}"
         return 1
     fi
 
-    # Remove old extraction if exists (clean upgrade)
+    local expected_sha
+    expected_sha=$(curl -fsSL "$checksum_url" 2>/dev/null | awk '{print $1}')
+    if [[ -n "$expected_sha" ]]; then
+        local actual_sha
+        actual_sha=$(sha256sum "$tarball" | awk '{print $1}')
+        if [[ "$actual_sha" != "$expected_sha" ]]; then
+            rm -f "$tarball"
+            return 1
+        fi
+    fi
+
     [[ -d "$extract_dir" ]] && rm -rf "$extract_dir"
 
-    # Extract with spinner
-    if ! gum spin --spinner dot --title "Extracting neovim..." -- \
-        tar -C "$install_dir" -xzf "$tarball"; then
+    if ! tar -C "$install_dir" -xzf "$tarball" 2>/dev/null; then
         rm -f "$tarball"
-        gum style --foreground "$THEME_ERROR" "  Failed to extract neovim"
         return 1
     fi
 
     rm -f "$tarball"
-
-    # Symlink to ~/.local/bin/nvim
     ln -sf "$extract_dir/bin/nvim" "$install_dir/bin/nvim"
-
-    gum style --foreground "$THEME_SUCCESS" "  Installed neovim v${version} to ~/.local"
     return 0
 }
 
 # Install Ghostty via AppImage (Debian/Ubuntu/Mint)
-# Source: https://github.com/pkgforge-dev/ghostty-appimage (community-maintained)
-# See: https://ghostty.org/docs/install/binary
+# Source: https://github.com/pkgforge-dev/ghostty-appimage
 install_ghostty_appimage() {
     local install_dir="$HOME/.local/bin"
 
-    # 1. Get latest release version
-    gum style --foreground "$THEME_SECONDARY" "  Fetching latest Ghostty AppImage..."
     local version
     version=$(curl -fsSL "https://api.github.com/repos/pkgforge-dev/ghostty-appimage/releases/latest" | \
         grep -oP '"tag_name":\s*"\K[^"]+' 2>/dev/null)
-    if [[ -z "$version" ]]; then
-        gum style --foreground "$THEME_ERROR" "  Failed to get AppImage version"
-        return 1
-    fi
+    [[ -z "$version" ]] && return 1
     local version_num="${version#v}"
-    gum style --foreground "$THEME_SUBTEXT" "  Latest: $version"
 
-    # 2. Determine CPU architecture
     local arch
     arch=$(uname -m)
     case "$arch" in
         x86_64|aarch64) ;;
-        *)
-            gum style --foreground "$THEME_ERROR" "  Unsupported architecture: $arch"
-            return 1
-            ;;
+        *) return 1 ;;
     esac
 
-    # 3. Download AppImage
     local url="https://github.com/pkgforge-dev/ghostty-appimage/releases/download/${version}/Ghostty-${version_num}-${arch}.AppImage"
-    gum style --foreground "$THEME_SECONDARY" "  Downloading..."
     mkdir -p "$install_dir"
-    if ! curl --connect-timeout 15 --max-time 300 -fSL -o "$install_dir/ghostty" "$url"; then
-        gum style --foreground "$THEME_ERROR" "  Failed to download AppImage"
-        return 1
-    fi
+    curl --connect-timeout 15 --max-time 300 -fsSL -o "$install_dir/ghostty" "$url" 2>/dev/null || return 1
 
-    # 4. Make executable
     chmod +x "$install_dir/ghostty"
-
-    gum style --foreground "$THEME_SUCCESS" "  Installed Ghostty to ~/.local/bin"
     return 0
 }
 
 # Install Starship via official script (Debian/Ubuntu/Mint)
-# apt version often outdated; official script installs latest binary
 install_starship_script() {
-    gum style --foreground "$THEME_SECONDARY" "  Installing Starship via official script..."
-
-    if ! gum spin --spinner dot --title "Downloading Starship..." -- \
-        bash -c "curl -sS https://starship.rs/install.sh | sh -s -- -y"; then
-        gum style --foreground "$THEME_ERROR" "  Failed to install Starship"
-        return 1
-    fi
-
-    gum style --foreground "$THEME_SUCCESS" "  Installed Starship"
+    curl -sS https://starship.rs/install.sh 2>/dev/null | sh -s -- -y >/dev/null 2>&1 || return 1
     return 0
 }
 
-# Install LocalSend via Flatpak (Debian/Ubuntu/Mint)
-# Flatpak provides auto-updates; .deb requires manual updates
-install_localsend_flatpak() {
-    if ! command -v flatpak >/dev/null 2>&1; then
-        gum style --foreground "$THEME_SECONDARY" "  Installing Flatpak..."
-        sudo -v
-        if ! gum spin --spinner dot --title "Apt: installing flatpak..." -- \
-            sudo apt install -y flatpak; then
-            gum style --foreground "$THEME_ERROR" "  Failed to install Flatpak"
-            return 1
+# Install LocalSend on Debian/Ubuntu/Mint
+# Primary: .deb package (native, no sandboxing issues)
+# Fallback: Flatpak (if .deb fails)
+install_localsend_linux() {
+    local version
+    version=$(curl -fsSL "https://api.github.com/repos/localsend/localsend/releases/latest" | \
+        grep -oP '"tag_name":\s*"v?\K[^"]+' 2>/dev/null)
+    [[ -z "$version" ]] && return 1
+    
+    local arch
+    case "$(uname -m)" in
+        x86_64)  arch="x86-64" ;;
+        aarch64) arch="arm64" ;;
+        *)       return 1 ;;
+    esac
+    
+    local deb_url="https://github.com/localsend/localsend/releases/download/v${version}/LocalSend-${version}-linux-${arch}.deb"
+    local tmp_deb
+    tmp_deb=$(mktemp --suffix=.deb) || return 1
+    
+    if curl -fsSL -o "$tmp_deb" "$deb_url" 2>/dev/null; then
+        if sudo apt install -y "$tmp_deb" >/dev/null 2>&1; then
+            rm -f "$tmp_deb"
+            return 0
         fi
-        gum spin --spinner dot --title "Adding Flathub repository..." -- \
-            flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
     fi
-
-    gum style --foreground "$THEME_SECONDARY" "  Installing LocalSend via Flatpak..."
-    if ! gum spin --spinner dot --title "Flatpak: installing LocalSend..." -- \
-        flatpak install -y flathub org.localsend.localsend_app; then
-        gum style --foreground "$THEME_ERROR" "  Failed to install LocalSend"
-        return 1
+    rm -f "$tmp_deb"
+    
+    if ! command -v flatpak >/dev/null 2>&1; then
+        sudo apt install -y flatpak >/dev/null 2>&1 || return 1
+        flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo 2>/dev/null
     fi
-
-    gum style --foreground "$THEME_SUCCESS" "  Installed LocalSend"
+    
+    flatpak install -y flathub org.localsend.localsend_app >/dev/null 2>&1 || return 1
     return 0
 }
 
@@ -671,9 +638,7 @@ install_package() {
                         hash -r
                     fi
                 fi
-                # On Linux, npm global install requires sudo (prefix is /usr)
                 if [[ "$OS" == "linux" ]]; then
-                    sudo -v  # Prompt for password before spinner hides it
                     cmd="sudo npm install -g $target"
                 else
                     cmd="npm install -g $target"
@@ -701,7 +666,6 @@ install_package() {
 
                 if command -v corepack >/dev/null 2>&1; then
                     if [[ "$OS" == "linux" ]]; then
-                        sudo -v
                         cmd="sudo corepack enable $target"
                     else
                         cmd="corepack enable $target"
@@ -709,7 +673,6 @@ install_package() {
                     label="Corepack: enabling $pkg"
                 else
                     if [[ "$OS" == "linux" ]]; then
-                        sudo -v
                         cmd="sudo npm install -g $target"
                     else
                         cmd="npm install -g $target"
@@ -728,11 +691,9 @@ install_package() {
                 label="pip: installing $pkg"
                 ;;
             native)
-                gum style --foreground "$THEME_SECONDARY" "Using native installer for $pkg..."
                 if eval "$target"; then
                     return 0
                 else
-                    gum style --foreground "$THEME_ERROR" "Native installer failed for $pkg"
                     return 1
                 fi
                 ;;
@@ -786,20 +747,18 @@ install_package() {
         fi
     fi
 
-    # 3. Execute with Spinner
-    # NOTE: Command string is split on whitespace. Package names with spaces are
-    # not supported. All current package names are hardcoded and space-free.
     if [[ -n "$cmd" ]]; then
         local -a cmd_parts
         read -ra cmd_parts <<< "$cmd"
+        
+        [[ "$cmd" == sudo* ]] && sudo -v
+        
         if gum spin --spinner dot --title "$label" -- "${cmd_parts[@]}"; then
             return 0
         else
-            gum style --foreground "$THEME_ERROR" "Failed to install $pkg"
             return 1
         fi
     else
-        # No mapping found, assume it's just a config package (no binary to install)
         return 0
     fi
 }
@@ -922,11 +881,10 @@ stow_package() {
         fi
     fi
 
-    # 2. Stow (--no-folding for nvim prevents plugins/ dir becoming a symlink)
-    local stow_opts="--dir=$DOTFILES_DIR --target=$HOME --restow"
-    [[ "$pkg" == "nvim" ]] && stow_opts="$stow_opts --no-folding"
+    local -a stow_args=(--dir="$DOTFILES_DIR" --target="$HOME" --restow)
+    [[ "$pkg" == "nvim" ]] && stow_args+=(--no-folding)
     
-    if stow $stow_opts "$pkg" 2>/dev/null; then
+    if stow "${stow_args[@]}" "$pkg" 2>/dev/null; then
         # 3. Post-stow hooks for packages that need additional setup
         case "$pkg" in
             opencode)
