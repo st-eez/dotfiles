@@ -1,0 +1,41 @@
+# Everforest Dark Medium
+# Custom Ghostty theme matching Neovim/SketchyBar (#2d353b)
+# Canonical Source: https://github.com/sainnhe/everforest
+
+background = 2d353b
+foreground = d3c6aa
+cursor-color = d3c6aa
+selection-background = 543a48
+selection-foreground = d3c6aa
+
+# Black (bg3 for better contrast)
+palette = 0=#475258
+palette = 8=#475258
+
+# Red
+palette = 1=#e67e80
+palette = 9=#e67e80
+
+# Green
+palette = 2=#a7c080
+palette = 10=#a7c080
+
+# Yellow
+palette = 3=#dbbc7f
+palette = 11=#dbbc7f
+
+# Blue
+palette = 4=#7fbbb3
+palette = 12=#7fbbb3
+
+# Purple
+palette = 5=#d699b6
+palette = 13=#d699b6
+
+# Aqua
+palette = 6=#83c092
+palette = 14=#83c092
+
+# White
+palette = 7=#d3c6aa
+palette = 15=#d3c6aa
