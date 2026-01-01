@@ -196,8 +196,8 @@ log_section() {
     local total_width=48
     local line_len=$((total_width - label_len - 2))
     
-    local line
-    line=$(printf '%*s' "$line_len" '' | tr ' ' '─')
+    local line=""
+    for ((i=0; i<line_len; i++)); do line+="─"; done
     
     gum style --foreground "$THEME_PRIMARY" --bold "  ╭─$label$line"
     gum style --foreground "$THEME_PRIMARY" "  │"
