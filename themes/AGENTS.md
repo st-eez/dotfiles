@@ -30,6 +30,19 @@ ls -la ~/.config/nvim/lua/plugins/theme.lua
 starship config
 ```
 
+## WALLPAPER CYCLING
+
+```bash
+# Cycle wallpapers (within current theme)
+wallpaper-set --next    # or -n
+wallpaper-set --prev    # or -p
+wallpaper-set --random  # or -r
+wallpaper-set 3         # set specific (1-indexed)
+
+# Show current wallpaper
+wallpaper-set
+```
+
 ## RAYCAST INTEGRATION
 
 The **Theme Switcher** Raycast extension provides visual theme selection:
@@ -58,8 +71,9 @@ The extension uses `loadThemes()` which parses `themes.json` at runtime, so new 
 | Theme Metadata   | `meta/<theme>.env`                      |
 | App Configs      | `configs/<theme>/`                      |
 | Color Palettes   | `palettes/<theme>.lua` (reference only) |
-| Wallpapers       | `wallpapers/<theme>.png`                |
+| Wallpapers       | `wallpapers/<theme>/`                   |
 | Wallpaper Script | `scripts/generate-wallpaper.py`         |
+| Wallpaper CLI    | `.local/bin/wallpaper-set`              |
 | Raycast Data     | `themes.json`                           |
 | State File       | `~/.config/current-theme`               |
 | Backups          | `~/.config/theme-backups/`              |
@@ -216,24 +230,21 @@ return {
 /* Additional styling as needed */
 ```
 
-### Step 3: Create Wallpaper
+### Step 3: Create Wallpapers
 
-Generate wallpaper using the included script:
+Wallpapers are stored in `themes/wallpapers/<theme-name>/` and must follow the `N-<name>.<ext>` naming convention.
 
-```bash
-cd ~/dotfiles/themes
-python3 scripts/generate-wallpaper.py "#RRGGBB" <theme-name>.png
-```
+1. Create the directory: `mkdir -p themes/wallpapers/<theme-name>`
+2. Generate the solid background (required as #1):
+   ```bash
+   cd ~/dotfiles/themes
+   python3 scripts/generate-wallpaper.py "#RRGGBB" wallpapers/<theme-name>/1-solid.png
+   ```
+3. Add additional wallpapers as `2-name.jpg`, `3-name.png`, etc.
 
-Example:
-
-```bash
-python3 scripts/generate-wallpaper.py "#1a1b26" tokyo-night.png
-```
-
-- Uses `BG_COLOR` from your `.env` file
-- Generates 5120x2880 (5K) PNG for Retina displays
-- Pure Python, no external dependencies required
+- Wallpaper 1 should always be the solid background color matching `BG_COLOR`
+- Supported formats: `.png`, `.jpg`, `.jpeg`
+- The `wallpaper-set` CLI cycles through these files in numerical order
 
 ### Step 4: Update themes.json (for Raycast Extension)
 
@@ -334,7 +345,7 @@ cat ~/.config/current-theme
 | `bordersrc`             | `configs/<theme>/` | JankyBorders config        |
 | `neovim.lua`            | `configs/<theme>/` | LazyVim colorscheme        |
 | `obsidian-snippet.css`  | `configs/<theme>/` | Obsidian sidebar CSS       |
-| `<theme>.png`           | `wallpapers/`      | Desktop wallpaper          |
+| `wallpapers/<theme>/`   | `themes/`          | Desktop wallpapers         |
 
 ### Optional Files
 

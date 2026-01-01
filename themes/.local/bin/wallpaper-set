@@ -1,0 +1,219 @@
+#!/usr/bin/env bash
+# wallpaper-set - Cycle wallpapers within the current theme
+# Usage: wallpaper-set [--next|-n] [--prev|-p] [--random|-r] [<index>]
+
+set -euo pipefail
+
+# Ensure Homebrew binaries are in PATH (needed when called from Raycast/sandboxed environments)
+export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
+
+resolve_symlink() {
+    local path="$1"
+    while [[ -h "$path" ]]; do
+        local dir="$(cd -P "$(dirname "$path")" && pwd)"
+        path="$(readlink "$path")"
+        [[ "$path" != /* ]] && path="$dir/$path"
+    done
+    cd -P "$(dirname "$path")" && pwd
+}
+
+SCRIPT_DIR="$(resolve_symlink "${BASH_SOURCE[0]}")"
+DOTFILES="${DOTFILES:-$(cd "$SCRIPT_DIR/../../.." && pwd)}"
+THEMES_DIR="$DOTFILES/themes"
+THEME_STATE="$HOME/.config/current-theme"
+WALLPAPER_STATE="$HOME/.config/current-wallpaper"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+log() { echo -e "  ${GREEN}✓${NC} $1"; }
+log_plain() { echo "✓ $1"; }  # Plain text for Raycast parsing
+warn() { echo -e "  ${YELLOW}!${NC} $1"; }
+error() { echo -e "  ${RED}✗${NC} $1" >&2; exit 1; }
+
+usage() {
+    echo "Usage: wallpaper-set [OPTIONS] [INDEX]"
+    echo ""
+    echo "Options:"
+    echo "  --next, -n     Cycle to next wallpaper"
+    echo "  --prev, -p     Cycle to previous wallpaper"
+    echo "  --random, -r   Set random wallpaper"
+    echo "  <index>        Set specific wallpaper (1-indexed)"
+    echo ""
+    echo "With no arguments, shows current status."
+    exit 0
+}
+
+get_current_theme() {
+    if [[ -f "$THEME_STATE" ]]; then
+        cat "$THEME_STATE"
+    else
+        echo "tokyo-night"
+    fi
+}
+
+get_wallpapers() {
+    local theme="$1"
+    local dir="$THEMES_DIR/wallpapers/$theme"
+    
+    if [[ -d "$dir" ]]; then
+        find "$dir" -maxdepth 1 -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" \) 2>/dev/null | sort -V
+    fi
+}
+
+get_current_index() {
+    local theme="$1"
+    local wallpapers=()
+    
+    while IFS= read -r wp; do
+        wallpapers+=("$wp")
+    done < <(get_wallpapers "$theme")
+    
+    if [[ ! -L "$WALLPAPER_STATE" ]]; then
+        echo "1"
+        return
+    fi
+    
+    local current
+    current=$(readlink "$WALLPAPER_STATE" 2>/dev/null || echo "")
+    
+    # Check if symlink points to file in current theme
+    if [[ -z "$current" ]] || [[ ! "$current" == *"/$theme/"* ]]; then
+        echo "1"
+        return
+    fi
+    
+    for i in "${!wallpapers[@]}"; do
+        if [[ "${wallpapers[$i]}" == "$current" ]]; then
+            echo "$((i + 1))"
+            return
+        fi
+    done
+    
+    echo "1"
+}
+
+set_wallpaper() {
+    local wallpaper="$1"
+    local theme="$2"
+    local index="$3"
+    local total="$4"
+    local filename
+    filename=$(basename "$wallpaper")
+    
+    # Apply wallpaper via osascript
+    local osascript_output
+    if ! osascript_output=$(osascript -e "tell application \"System Events\" to tell every desktop to set picture to POSIX file \"$wallpaper\"" 2>&1); then
+        if [[ "$osascript_output" == *"not allowed"* ]] || [[ "$osascript_output" == *"permission"* ]]; then
+            error "Permission denied. Enable Automation in System Settings → Privacy & Security → Automation → Enable 'System Events' for your terminal."
+        else
+            error "Failed to set wallpaper: $osascript_output"
+        fi
+    fi
+    
+    # Ensure ~/.config exists and update state symlink
+    mkdir -p "$(dirname "$WALLPAPER_STATE")"
+    ln -sfn "$wallpaper" "$WALLPAPER_STATE"
+    
+    # Output parseable format for Raycast (plain text, no ANSI)
+    log_plain "Wallpaper: $theme/$filename ($index/$total)"
+}
+
+show_status() {
+    local theme
+    theme=$(get_current_theme)
+    local wallpapers=()
+    
+    while IFS= read -r wp; do
+        wallpapers+=("$wp")
+    done < <(get_wallpapers "$theme")
+    
+    local total=${#wallpapers[@]}
+    
+    if [[ $total -eq 0 ]]; then
+        echo -e "${BLUE}Current theme:${NC} $theme"
+        echo -e "${YELLOW}No wallpapers found${NC}"
+        return
+    fi
+    
+    local current_idx
+    current_idx=$(get_current_index "$theme")
+    local current_file
+    current_file=$(basename "${wallpapers[$((current_idx - 1))]}")
+    
+    echo -e "${BLUE}Current theme:${NC} $theme"
+    echo -e "${BLUE}Wallpaper:${NC} $current_idx/$total ($current_file)"
+    echo ""
+    echo "Available wallpapers:"
+    for i in "${!wallpapers[@]}"; do
+        local idx=$((i + 1))
+        local name
+        name=$(basename "${wallpapers[$i]}")
+        if [[ $idx -eq $current_idx ]]; then
+            echo -e "  ${GREEN}● $idx. $name${NC} (active)"
+        else
+            echo "  ○ $idx. $name"
+        fi
+    done
+}
+
+# Main logic
+THEME=$(get_current_theme)
+WALLPAPER_DIR="$THEMES_DIR/wallpapers/$THEME"
+
+# Parse arguments first (allows show_status to handle missing dirs gracefully)
+ARG="${1:-}"
+case "$ARG" in
+    "") show_status; exit 0 ;;
+    --help|-h) usage ;;
+esac
+
+# For wallpaper-changing operations, validate directory exists
+if [[ ! -d "$WALLPAPER_DIR" ]]; then
+    error "No wallpaper directory for theme '$THEME'"
+fi
+
+# Get wallpapers array
+WALLPAPERS=()
+while IFS= read -r wp; do
+    WALLPAPERS+=("$wp")
+done < <(get_wallpapers "$THEME")
+
+TOTAL=${#WALLPAPERS[@]}
+
+if [[ $TOTAL -eq 0 ]]; then
+    error "No wallpapers found in $WALLPAPER_DIR"
+fi
+
+# Handle wallpaper-changing arguments
+case "$ARG" in
+    --next|-n)
+        CURRENT=$(get_current_index "$THEME")
+        NEW_IDX=$(( (CURRENT % TOTAL) + 1 ))
+        ;;
+    --prev|-p)
+        CURRENT=$(get_current_index "$THEME")
+        NEW_IDX=$(( ((CURRENT - 2 + TOTAL) % TOTAL) + 1 ))
+        ;;
+    --random|-r)
+        NEW_IDX=$(( (RANDOM % TOTAL) + 1 ))
+        ;;
+    *)
+        if [[ "$ARG" =~ ^[0-9]+$ ]]; then
+            NEW_IDX=$ARG
+            # Clamp to valid range
+            [[ $NEW_IDX -lt 1 ]] && NEW_IDX=1
+            [[ $NEW_IDX -gt $TOTAL ]] && NEW_IDX=$TOTAL
+        else
+            error "Unknown option: $ARG"
+        fi
+        ;;
+esac
+
+# Set the wallpaper
+NEW_WALLPAPER="${WALLPAPERS[$((NEW_IDX - 1))]}"
+set_wallpaper "$NEW_WALLPAPER" "$THEME" "$NEW_IDX" "$TOTAL"

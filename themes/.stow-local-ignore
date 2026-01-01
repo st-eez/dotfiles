@@ -1,7 +1,10 @@
-# Only stow .local/ directory (for ~/.local/bin/theme-set)
+# Only stow .local/ directory (for ~/.local/bin/theme-set and wallpaper-set)
 # Ignore everything else (configs used by theme-set via absolute paths)
 ^README\.md$
+^AGENTS\.md$
 ^configs$
 ^meta$
 ^palettes$
 ^wallpapers$
+^scripts$
+^themes\.json$

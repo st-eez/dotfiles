@@ -18,6 +18,27 @@ theme-set --next         # or -n
 theme-set --prev         # or -p
 ```
 
+## Wallpaper Cycling
+
+Cycle through wallpapers within the current theme using the `wallpaper-set` CLI:
+
+```bash
+# Show current wallpaper status
+wallpaper-set
+
+# Cycle wallpapers
+wallpaper-set --next    # or -n
+wallpaper-set --prev    # or -p
+wallpaper-set --random  # or -r
+
+# Set specific wallpaper (1-indexed)
+wallpaper-set 2
+```
+
+> **Tip**: Use the Raycast **"Cycle Wallpaper"** command to quickly cycle wallpapers. Assign a hotkey in Raycast preferences (e.g., `Ctrl + Alt + Cmd + Space`).
+
+Wallpapers are stored in per-theme directories: `themes/wallpapers/<theme-name>/`.
+
 ## Supported Apps
 
 | App         | Method               | Auto-reload      |
@@ -63,7 +84,7 @@ theme-set --prev         # or -p
    - `neovim.lua` - LazyVim colorscheme spec
    - `obsidian-snippet.css` - Sidebar styling
 
-3. Create wallpaper `themes/wallpapers/<name>.png` - solid color matching background
+3. Create wallpapers in `themes/wallpapers/<name>/` following `N-<name>.<ext>` naming.
 
 4. Test: `theme-set <name>`
 
@@ -75,7 +96,7 @@ themes/
 ├── meta/*.env             # Theme metadata
 ├── configs/<theme>/       # Per-app configs
 ├── palettes/*.lua         # Color reference (optional)
-└── wallpapers/*.png       # Desktop backgrounds
+└── wallpapers/<theme>/    # Desktop backgrounds
 ```
 
 ## How It Works

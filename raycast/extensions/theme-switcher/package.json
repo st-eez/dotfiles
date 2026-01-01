@@ -18,6 +18,12 @@
       "title": "Switch Theme",
       "description": "Switch macOS theme with visual preview",
       "mode": "view"
+    },
+    {
+      "name": "cycle-wallpaper",
+      "title": "Cycle Wallpaper",
+      "description": "Cycle to next wallpaper for current theme",
+      "mode": "no-view"
     }
   ],
   "dependencies": {

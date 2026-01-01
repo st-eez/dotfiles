@@ -52,6 +52,9 @@ dotfiles/
 theme-set tokyo-night    # or gruvbox, everforest
 theme-set --next         # cycle
 
+# Cycle wallpaper (within current theme)
+wallpaper-set --next
+
 # Stow single package manually
 stow -d ~/dotfiles -t ~ <package>
 

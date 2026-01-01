@@ -300,12 +300,34 @@ EOF
 fi
 
 # =============================================================================
-# 9. Wallpaper - set via osascript
+# 9. Wallpaper - set via osascript (supports directory-based wallpapers)
 # =============================================================================
-WALLPAPER="$THEMES_DIR/wallpapers/$THEME.png"
-if [[ -f "$WALLPAPER" ]]; then
-    osascript -e "tell application \"System Events\" to tell every desktop to set picture to POSIX file \"$WALLPAPER\"" 2>/dev/null
-    log "Wallpaper"
+WALLPAPER_DIR="$THEMES_DIR/wallpapers/$THEME"
+WALLPAPER_STATE="$HOME/.config/current-wallpaper"
+
+if [[ -d "$WALLPAPER_DIR" ]]; then
+    # Directory-based wallpapers: use first wallpaper (1-*.{png,jpg})
+    FIRST_WALLPAPER=$(find "$WALLPAPER_DIR" -maxdepth 1 -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" \) 2>/dev/null | sort -V | head -n 1)
+    if [[ -n "$FIRST_WALLPAPER" ]]; then
+        if osascript -e "tell application \"System Events\" to tell every desktop to set picture to POSIX file \"$FIRST_WALLPAPER\"" 2>&1; then
+            # Update wallpaper state symlink
+            ln -sfn "$FIRST_WALLPAPER" "$WALLPAPER_STATE"
+            log "Wallpaper (1/$(find "$WALLPAPER_DIR" -maxdepth 1 -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" \) | wc -l | tr -d ' '))"
+        else
+            warn "Wallpaper (permission denied - enable Automation in System Settings)"
+        fi
+    else
+        warn "Wallpaper (no files in $THEME directory)"
+    fi
+elif [[ -f "$THEMES_DIR/wallpapers/$THEME.png" ]]; then
+    # Legacy: single file fallback
+    WALLPAPER="$THEMES_DIR/wallpapers/$THEME.png"
+    if osascript -e "tell application \"System Events\" to tell every desktop to set picture to POSIX file \"$WALLPAPER\"" 2>&1; then
+        ln -sfn "$WALLPAPER" "$WALLPAPER_STATE"
+        log "Wallpaper"
+    else
+        warn "Wallpaper (permission denied)"
+    fi
 fi
 
 # =============================================================================
