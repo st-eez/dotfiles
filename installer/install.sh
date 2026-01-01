@@ -3,6 +3,9 @@
 # Installation Logic
 # Depends on: lib/bootstrap.sh, lib/config.sh, lib/ui.sh
 
+# Track built Raycast extensions for post-install instructions
+declare -a RAYCAST_BUILT_EXTENSIONS=()
+
 # Bootstrap an AUR helper (yay) if none exists
 bootstrap_aur_helper() {
     if [[ "$DISTRO" != "arch" ]]; then
@@ -211,6 +214,90 @@ setup_opencode_plugins() {
         gum style --foreground "$THEME_WARNING" "  Neither bun nor npm found - run 'bun i' in ~/.config/opencode/ manually"
         return 0
     fi
+}
+
+build_raycast_extension() {
+    local ext_name="$1"
+    local display_name="$2"
+    local ext_dir="$DOTFILES_DIR/raycast/extensions/$ext_name"
+
+    if [[ ! -d "$ext_dir" ]]; then
+        gum style --foreground "$THEME_WARNING" "  Extension not found: $ext_name"
+        return 1
+    fi
+
+    if [[ ! -f "$ext_dir/package.json" ]]; then
+        gum style --foreground "$THEME_WARNING" "  No package.json in $ext_name"
+        return 1
+    fi
+
+    if ! command -v npm >/dev/null 2>&1; then
+        gum style --foreground "$THEME_WARNING" "  npm not found - skipping $display_name"
+        gum style --foreground "$THEME_SUBTEXT" "  Run manually: cd $ext_dir && npm install && npm run build"
+        return 0
+    fi
+
+    gum style --foreground "$THEME_PRIMARY" "  ◆ Building $display_name..."
+
+    if ! gum spin --spinner dot --title "Installing dependencies..." -- \
+        bash -c "cd '$ext_dir' && npm install 2>/dev/null"; then
+        gum style --foreground "$THEME_ERROR" "  Failed to install dependencies for $display_name"
+        return 1
+    fi
+
+    if ! gum spin --spinner dot --title "Building extension..." -- \
+        bash -c "cd '$ext_dir' && npm run build 2>/dev/null"; then
+        gum style --foreground "$THEME_ERROR" "  Failed to build $display_name"
+        return 1
+    fi
+
+    gum style --foreground "$THEME_SUCCESS" "  ✓ $display_name built"
+    RAYCAST_BUILT_EXTENSIONS+=("$ext_name:$display_name")
+    return 0
+}
+
+setup_raycast_core_extensions() {
+    gum style --foreground "${THEME_ACCENT:-#73daca}" \
+        "  Building Raycast core extensions..."
+
+    build_raycast_extension "keybinds" "Keybinds" || true
+    build_raycast_extension "theme-switcher" "Theme Switcher" || true
+}
+
+show_raycast_import_instructions() {
+    [[ ${#RAYCAST_BUILT_EXTENSIONS[@]} -eq 0 ]] && return 0
+
+    echo ""
+    gum style --foreground "${THEME_SECONDARY}" \
+        "  ┌─ MANUAL STEP: Import Raycast Extensions ──────┐"
+    gum style --foreground "${THEME_SUBTEXT}" \
+        "  │                                               │"
+    gum style --foreground "${THEME_SUBTEXT}" \
+        "  │ Extensions built and ready to import:         │"
+
+    for ext_entry in "${RAYCAST_BUILT_EXTENSIONS[@]}"; do
+        local ext_display="${ext_entry#*:}"
+        gum style --foreground "${THEME_SUBTEXT}" \
+            "  │   • $ext_display"
+    done
+
+    gum style --foreground "${THEME_SUBTEXT}" \
+        "  │                                               │"
+    gum style --foreground "${THEME_SUBTEXT}" \
+        "  │ To import into Raycast (one-time setup):      │"
+    gum style --foreground "${THEME_SUBTEXT}" \
+        "  │   1. Open Raycast (⌘ + Space)                 │"
+    gum style --foreground "${THEME_SUBTEXT}" \
+        "  │   2. Type 'Import Extension' and press Enter  │"
+    gum style --foreground "${THEME_SUBTEXT}" \
+        "  │   3. Select folder from:                      │"
+    gum style --foreground "${THEME_SUBTEXT}" \
+        "  │      ~/dotfiles/raycast/extensions/<name>     │"
+    gum style --foreground "${THEME_SUBTEXT}" \
+        "  │   4. Repeat for each extension                │"
+    gum style --foreground "${THEME_SECONDARY}" \
+        "  └────────────────────────────────────────────────┘"
+    echo ""
 }
 
 setup_ghostty_desktop() {
@@ -809,6 +896,14 @@ stow_package() {
     local pkg="$1"
     local timestamp="${2:-}"
 
+    # Handle virtual packages that trigger builds but have no stow configs
+    if [[ "$pkg" == "prompt-optimizer" ]]; then
+        gum style --foreground "${THEME_ACCENT:-#73daca}" \
+            "  Building Prompt Optimizer extension..."
+        build_raycast_extension "prompt-optimizer" "Prompt Optimizer" || true
+        return 3
+    fi
+
     if [[ ! -d "$DOTFILES_DIR/$pkg" ]]; then
         # Brew-only package, nothing to stow
         return 2
@@ -878,6 +973,9 @@ stow_package() {
         case "$pkg" in
             opencode)
                 setup_opencode_plugins || return 1
+                ;;
+            raycast)
+                setup_raycast_core_extensions || true
                 ;;
         esac
         return 0

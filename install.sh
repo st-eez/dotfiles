@@ -204,6 +204,11 @@ run_installation() {
     # Render post-installation tree
     render_post_install_summary "$zsh_ok" "$git_ok" "$fonts_ok"
 
+    # Show Raycast extension import instructions if any were built
+    if [[ ${#RAYCAST_BUILT_EXTENSIONS[@]} -gt 0 ]]; then
+        show_raycast_import_instructions
+    fi
+
     # Summary with detailed stats
     ui_summary "$bin_new" "$bin_exists" "$cfg_new" "$cfg_exists" "$fail_count" "$csv_file"
 }

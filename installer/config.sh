@@ -11,6 +11,7 @@ export MACOS_PKGS=(
     borders
     karabiner
     raycast
+    prompt-optimizer
     sketchybar
     themes
 )
@@ -154,6 +155,7 @@ get_binary_name() {
         codex)           echo "codex" ;;
         gemini)          echo "gemini" ;;
         pnpm)            echo "pnpm" ;;
+        prompt-optimizer) echo "" ;;
         fd)
             if [[ "$DISTRO" == "debian" ]]; then
                 echo "fdfind"
@@ -182,7 +184,8 @@ get_pkg_description() {
         bitwarden)    echo "Password manager" ;;
         borders)      echo "Window border styling" ;;
         karabiner)    echo "Keyboard customization" ;;
-        raycast)      echo "Launcher replacement" ;;
+        raycast)      echo "Launcher + keybinds/theme extensions" ;;
+        prompt-optimizer) echo "AI prompt optimizer (Raycast)" ;;
         sketchybar)   echo "Custom menu bar" ;;
         themes)       echo "Theme switching system" ;;
         # Terminal Tools

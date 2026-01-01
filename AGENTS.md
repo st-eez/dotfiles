@@ -30,17 +30,16 @@ dotfiles/
 
 ## WHERE TO LOOK
 
-| Task                     | Location                                | Notes                                                 |
-| ------------------------ | --------------------------------------- | ----------------------------------------------------- |
-| Add package to installer | `installer/config.sh`                   | Add to `MACOS_PKGS[]` or `TERMINAL_PKGS[]` + mappings |
-| Change installer UI      | `installer/ui.sh`                       | gum-based components                                  |
-| Add new theme            | `themes/`                               | See `themes/README.md` for structure                  |
-| Modify theme-set script  | `themes/.local/bin/theme-set`           | Symlink-based switching                               |
-| Edit SketchyBar          | `sketchybar/.config/sketchybar/`        | See CLAUDE.md there                                   |
-| Prompt Optimizer work    | `raycast/extensions/prompt-optimizer/`  | See CLAUDE.md there                                   |
-| Browser bookmarks ext    | `raycast/extensions/browser-bookmarks/` | Raycast + React                                       |
-| Add keybind              | `raycast/extensions/keybinds/`          | Update TSX data array                                 |
-| Sync keybinds docs       | `raycast/extensions/keybinds/`          | Also update SketchyBar CLAUDE.md                      |
+| Task                     | Location                               | Notes                                                 |
+| ------------------------ | -------------------------------------- | ----------------------------------------------------- |
+| Add package to installer | `installer/config.sh`                  | Add to `MACOS_PKGS[]` or `TERMINAL_PKGS[]` + mappings |
+| Change installer UI      | `installer/ui.sh`                      | gum-based components                                  |
+| Add new theme            | `themes/`                              | See `themes/README.md` for structure                  |
+| Modify theme-set script  | `themes/.local/bin/theme-set`          | Symlink-based switching                               |
+| Edit SketchyBar          | `sketchybar/.config/sketchybar/`       | See CLAUDE.md there                                   |
+| Prompt Optimizer work    | `raycast/extensions/prompt-optimizer/` | Separate package, see CLAUDE.md there                 |
+| Raycast keybinds ext     | `raycast/extensions/keybinds/`         | Built with raycast package                            |
+| Raycast theme-switcher   | `raycast/extensions/theme-switcher/`   | Built with raycast package                            |
 
 ## COMMANDS
 

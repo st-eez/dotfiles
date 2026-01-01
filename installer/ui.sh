@@ -185,7 +185,7 @@ _select_category() {
     for pkg in "${pkg_array[@]}"; do
         local desc
         desc=$(get_pkg_description "$pkg")
-        items+=("$(printf "%-14s" "$pkg")$(gum style --foreground "$THEME_SUBTEXT" --faint "$desc")")
+        items+=("$(printf "%-18s" "$pkg")$(gum style --foreground "$THEME_SUBTEXT" --faint "$desc")")
     done
 
     echo ""
