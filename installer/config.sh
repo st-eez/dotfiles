@@ -82,7 +82,7 @@ get_pacman_pkg() {
         localsend) echo "aur:localsend-bin" ;;
         codex)     echo "" ;;                     # Use npm: @openai/codex
         gemini)    echo "" ;;                     # Use npm: @google/gemini-cli
-        opencode)  echo "" ;;                     # Use npm: opencode
+        opencode)  echo "" ;;                     # Use native installer
         prettier)  echo "" ;;                     # Use npm
         pnpm)      echo "" ;;                     # Use corepack
         starship)  echo "starship" ;;
@@ -152,8 +152,8 @@ get_alt_install_method() {
         codex)     echo "npm:@openai/codex" ;;
         gemini)    echo "npm:@google/gemini-cli" ;;
         opencode)
-            # Linux: use npm (brew handles macOS)
-            [[ "$OS" != "macos" ]] && echo "npm:opencode"
+            # Linux: use native installer (brew handles macOS)
+            [[ "$OS" != "macos" ]] && echo "native:curl -fsSL https://opencode.ai/install | bash"
             ;;
         claude)
             # Only use native installer on non-macOS (brew handles macOS)
