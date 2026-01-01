@@ -3,7 +3,7 @@
 # Configuration & Package Lists
 # This file defines the packages managed by the installer.
 
-# Package Groups (Stowed: has a folder in repo)
+# macOS-only GUI applications
 export MACOS_PKGS=(
     aerospace
     autoraise
@@ -15,33 +15,64 @@ export MACOS_PKGS=(
     themes
 )
 
-export TERMINAL_PKGS=(
+# Shell & Terminal
+export SHELL_PKGS=(
+    ghostty
+    starship
+    zsh
+    zoxide
+)
+
+# Editor & Dev Tools
+export DEV_PKGS=(
+    nvim
     node
     python
-    btop
+    lua
+    pnpm
+    prettier
+    stow
+)
+
+# AI Assistants
+export AI_PKGS=(
     claude
     codex
+    gemini
+    opencode
+)
+
+# File & Search Tools
+export FILE_PKGS=(
     eza
     fd
     fzf
-    gemini
+    ripgrep
+)
+
+# Git & Version Control
+export GIT_PKGS=(
     gh
-    ghostty
     git
     lazygit
+)
+
+# System & Network
+export SYSTEM_PKGS=(
+    btop
     localsend
-    lua
     nmap
-    nvim
-    opencode
-    pnpm
-    prettier
-    ripgrep
-    starship
-    stow
     wireguard-tools
-    zoxide
-    zsh
+)
+
+# Combined terminal packages (for backwards compatibility)
+export TERMINAL_PKGS=(
+    "${SHELL_PKGS[@]}"
+    "${DEV_PKGS[@]}"
+    "${AI_PKGS[@]}"
+    "${FILE_PKGS[@]}"
+    "${GIT_PKGS[@]}"
+    "${SYSTEM_PKGS[@]}"
 )
 
 # Helper: Get Brew package name/args
@@ -139,6 +170,49 @@ get_binary_name() {
             fi
             ;;
         *)               echo "$1" ;;
+    esac
+}
+
+# Helper: Get package description for UI display
+get_pkg_description() {
+    case "$1" in
+        # macOS Apps
+        aerospace)    echo "Tiling window manager" ;;
+        autoraise)    echo "Auto-focus windows on hover" ;;
+        bitwarden)    echo "Password manager" ;;
+        borders)      echo "Window border styling" ;;
+        karabiner)    echo "Keyboard customization" ;;
+        raycast)      echo "Launcher replacement" ;;
+        sketchybar)   echo "Custom menu bar" ;;
+        themes)       echo "Theme switching system" ;;
+        # Terminal Tools
+        node)         echo "JavaScript runtime" ;;
+        python)       echo "Python interpreter" ;;
+        btop)         echo "System monitor" ;;
+        claude)       echo "Claude AI CLI" ;;
+        codex)        echo "OpenAI Codex CLI" ;;
+        eza)          echo "Modern ls replacement" ;;
+        fd)           echo "Fast file finder" ;;
+        fzf)          echo "Fuzzy finder" ;;
+        gemini)       echo "Google Gemini CLI" ;;
+        gh)           echo "GitHub CLI" ;;
+        ghostty)      echo "GPU-accelerated terminal" ;;
+        git)          echo "Version control" ;;
+        lazygit)      echo "Git TUI" ;;
+        localsend)    echo "Local file sharing" ;;
+        lua)          echo "Lua interpreter" ;;
+        nmap)         echo "Network scanner" ;;
+        nvim)         echo "Neovim + LazyVim" ;;
+        opencode)     echo "OpenCode AI assistant" ;;
+        pnpm)         echo "Fast package manager" ;;
+        prettier)     echo "Code formatter" ;;
+        ripgrep)      echo "Fast grep replacement" ;;
+        starship)     echo "Cross-shell prompt" ;;
+        stow)         echo "Symlink farm manager" ;;
+        wireguard-tools) echo "VPN tools" ;;
+        zoxide)       echo "Smart cd command" ;;
+        zsh)          echo "Z shell" ;;
+        *)            echo "" ;;
     esac
 }
 
