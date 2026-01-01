@@ -39,19 +39,18 @@ outer.top = [
 ] # 12px for MacBook, 8px for externals
 outer.right = 10
 
-# Home setup - ASUS VG279QE5A monitors and Built-in
-# Note: macOS names them (1) and (2) opposite to physical layout
+# Home setup - Physical: LEFT=[ID1] | MAIN=[ID3] | MacBook=[ID2] under left
 [workspace-to-monitor-force-assignment]
-1 = 2                         # Workspaces 1-4 on RIGHT monitor (ID 2)
-2 = 2
-3 = 2
-4 = 2
-5 = 1                         # Workspaces 5-7 on LEFT monitor (ID 1)
+1 = 3
+2 = 3
+3 = 3
+4 = 3
+5 = 1
 6 = 1
 7 = 1
-8 = 'Built-in Retina Display' # Workspaces 8-0 on MacBook display
-9 = 'Built-in Retina Display'
-0 = 'Built-in Retina Display'
+8 = 2
+9 = 2
+0 = 2
 
 [mode.main.binding]
 # Window focus (CAPS + arrows)

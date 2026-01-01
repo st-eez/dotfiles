@@ -115,6 +115,52 @@ theme-set <theme>
 - **Arch Linux**: pacman + yay AUR helper (auto-bootstrap)
 - **Debian/Ubuntu**: apt + NodeSource for Node 20+, AppImage for Ghostty
 
+## TROUBLESHOOTING
+
+### Monitor Arrangement Changed (AeroSpace + SketchyBar misaligned)
+
+When you rearrange monitors in macOS System Settings, display IDs shift. Both AeroSpace and SketchyBar configs use hardcoded IDs that become stale.
+
+**Symptoms:** Workspaces appear on wrong monitors, switching to workspace 1 focuses wrong display, SketchyBar shows wrong workspaces per monitor.
+
+**Fix (2 minutes):**
+
+1. Get new monitor IDs:
+
+   ```bash
+   aerospace list-monitors
+   ```
+
+   Output shows: `ID | Monitor Name` (e.g., `1 | VG279QE5A (2)`, `2 | Built-in Retina Display`)
+
+2. Update AeroSpace config (`aerospace/.config/aerospace/aerospace-home.toml`):
+
+   ```toml
+   [workspace-to-monitor-force-assignment]
+   1 = <MAIN_MONITOR_ID>
+   2 = <MAIN_MONITOR_ID>
+   ...
+   5 = <LEFT_MONITOR_ID>
+   ...
+   8 = <MACBOOK_ID>
+   ```
+
+3. Update SketchyBar map (`sketchybar/.config/sketchybar/settings.lua`):
+
+   ```lua
+   map = { [<LEFT_ID>] = 2, [<MACBOOK_ID>] = 3, [<MAIN_ID>] = 1 }
+   ```
+
+   This maps AeroSpace monitor IDs → SketchyBar display IDs (1 = main display in macOS).
+
+4. Apply and reload:
+   ```bash
+   cp ~/Projects/Personal/dotfiles/aerospace/.config/aerospace/aerospace-home.toml ~/.config/aerospace/aerospace.toml
+   aerospace reload-config && sketchybar --reload
+   ```
+
+**Root cause:** macOS reassigns display IDs unpredictably on arrangement changes. No dynamic solution exists without significant scripting.
+
 ## NOTES
 
 - **Omarchy compatibility**: Installer detects Omarchy and merges configs instead of overwriting
