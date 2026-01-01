@@ -1,9 +1,32 @@
 # PLAN: Installer UX Fixes
 
 **Created:** 2025-12-31  
-**Updated:** 2025-12-31  
-**Status:** ✅ IMPLEMENTED  
+**Completed:** 2025-12-31  
+**Status:** ✅ ARCHIVED  
 **Branch:** main
+
+---
+
+## Completion Notes
+
+### What Was Fixed
+
+| Issue                            | Resolution                                                      | Commit               |
+| -------------------------------- | --------------------------------------------------------------- | -------------------- |
+| Log leakage during spinners      | Removed gum style calls from native installer functions         | `8805a46`            |
+| LocalSend installation failure   | Added .deb as primary method, Flatpak as fallback               | `8805a46`, `fe3b7af` |
+| OpenCode sudo prompt mid-spinner | Changed from broken `npm:opencode` to official installer script | `5b4b138`            |
+| Security hardening               | Partial - stow array expansion done, checksums deferred         | `8805a46`            |
+
+### Deferred Items
+
+- **Checksum verification**: Not implemented. Would require maintaining SHA256 hashes for dynamic releases (Ghostty, LocalSend). Low priority given HTTPS transport security.
+- **mktemp for CSV**: Not critical, existing implementation works.
+
+### Verified On
+
+- Linux Mint 22.2 (x86_64) - 2025-12-31
+- macOS (regression test) - existing functionality preserved
 
 ---
 
