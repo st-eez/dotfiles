@@ -149,85 +149,60 @@ run_installation() {
     # POST-INSTALLATION SETUP
     # ═══════════════════════════════════════════════════════════════════════════════
     
-    echo ""
-    log_section "Post-Installation Setup"
+    local fonts_ok=true zsh_ok=true git_ok=true
 
-    # 1. Fonts (Universal)
-    if install_nerd_fonts; then
-        log_success "Fonts" "OK"
-    else
-        log_failure "Fonts" "Installation failed"
-        ((fail_count++))
-    fi
+    # 1. Fonts
+    install_nerd_fonts || { fonts_ok=false; ((fail_count++)); }
 
-    # 2. Zsh Configuration
-    # Check if zsh was in the list OR if we are just ensuring environment
+    # 2. Zsh
     if [[ " ${pkg_array[*]} " =~ " zsh " ]] || [[ "$SHELL" == */zsh ]]; then
-        if setup_zsh_env; then
-            log_success "Zsh" "OK"
-        else
-            log_failure "Zsh" "Setup failed"
-            ((fail_count++))
-        fi
+        setup_zsh_env || { zsh_ok=false; ((fail_count++)); }
     fi
 
-    # 3. Git Configuration
+    # 3. Git
     if [[ " ${pkg_array[*]} " =~ " git " ]]; then
-        if setup_git_config; then
-            log_success "Git" "OK"
-        else
-            log_failure "Git" "Setup failed"
-            ((fail_count++))
-        fi
+        setup_git_config || { git_ok=false; ((fail_count++)); }
     fi
 
-    # 4. OpenCode Configuration (link CLAUDE.md → AGENTS.md for native OpenCode)
+    # 4. OpenCode
     if [[ -f "$HOME/.claude/CLAUDE.md" ]]; then
         local opencode_agents="$HOME/.config/opencode/AGENTS.md"
         if [[ ! -e "$opencode_agents" ]] || [[ -L "$opencode_agents" ]]; then
             ln -sf "$HOME/.claude/CLAUDE.md" "$opencode_agents"
-            log_success "OpenCode" "Linked AGENTS.md"
+            post_add "OPENCODE" "AGENTS.md" "Linked"
         else
-            log_warn "OpenCode" "AGENTS.md exists as file, skipping"
+            post_add "OPENCODE" "AGENTS.md" "Skipped (file exists)"
         fi
     fi
 
-    # 5. Ghostty Desktop Integration (Debian/Ubuntu/Mint only)
+    # 5. Ghostty Desktop Integration (Debian only)
     if [[ " ${pkg_array[*]} " =~ " ghostty " ]] && [[ "$DISTRO" == "debian" ]]; then
-        if setup_ghostty_desktop; then
-            log_success "Ghostty" "OK"
-        else
-            log_failure "Ghostty" "Setup failed"
-            ((fail_count++))
-        fi
+        setup_ghostty_desktop || ((fail_count++))
     fi
 
-    # 6. Theme Setup (macOS only)
+    # 6. Theme Setup (macOS only, interactive)
     if [[ "$OS" == "macos" ]]; then
-        # Stow themes package to create ~/.local/bin/theme-set symlink
         stow -d "$DOTFILES_DIR" -t "$HOME" themes 2>/dev/null || true
         
         local theme_script="$DOTFILES_DIR/themes/.local/bin/theme-set"
         if [[ -x "$theme_script" ]]; then
-            gum style --foreground "$THEME_PRIMARY" "  ◆ Setting up theme..."
-            
             local selected_theme
-            if [[ -f "$HOME/.config/current-theme" ]]; then
-                selected_theme=$(<"$HOME/.config/current-theme")
-                gum style --foreground "$THEME_SUBTEXT" "  Current theme: $selected_theme"
-            fi
+            [[ -f "$HOME/.config/current-theme" ]] && selected_theme=$(<"$HOME/.config/current-theme")
             
             selected_theme=$(gum choose --header "Select theme:" \
                 --selected="${selected_theme:-tokyo-night}" \
                 "tokyo-night" "gruvbox" "everforest")
             
             if DOTFILES="$DOTFILES_DIR" "$theme_script" "$selected_theme" >/dev/null 2>&1; then
-                log_success "Theme" "$selected_theme"
+                post_add "THEME" "$selected_theme" "Applied"
             else
-                log_failure "Theme" "Setup failed (run 'theme-set $selected_theme' manually)"
+                post_add "THEME" "$selected_theme" "Failed"
             fi
         fi
     fi
+
+    # Render post-installation tree
+    render_post_install_summary "$zsh_ok" "$git_ok" "$fonts_ok"
 
     # Summary with detailed stats
     ui_summary "$bin_new" "$bin_exists" "$cfg_new" "$cfg_exists" "$fail_count" "$csv_file"

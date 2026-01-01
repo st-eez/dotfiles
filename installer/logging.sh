@@ -276,3 +276,111 @@ log_progress() {
         "$(gum style --foreground "$THEME_SUBTEXT" "$counter")" \
         "$(gum style --foreground "$THEME_PRIMARY" --bold "◆ $name")"
 }
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# POST-INSTALLATION TREE RENDERER
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Global status arrays - set by setup functions
+declare -a POST_ZSH_ITEMS=()
+declare -a POST_GIT_ITEMS=()
+declare -a POST_FONTS_ITEMS=()
+declare -a POST_OPENCODE_ITEMS=()
+declare -a POST_THEME_ITEMS=()
+
+# Add item to post-install status
+# Usage: post_add "ZSH" "Oh-My-Zsh" "Installed"
+post_add() {
+    local category="$1"
+    local label="$2"
+    local status="$3"
+    
+    case "$category" in
+        ZSH)      POST_ZSH_ITEMS+=("$label|$status") ;;
+        GIT)      POST_GIT_ITEMS+=("$label|$status") ;;
+        FONTS)    POST_FONTS_ITEMS+=("$label|$status") ;;
+        OPENCODE) POST_OPENCODE_ITEMS+=("$label|$status") ;;
+        THEME)    POST_THEME_ITEMS+=("$label|$status") ;;
+    esac
+}
+
+# Render a single tree category
+_render_tree_category() {
+    local title="$1"
+    local success="$2"
+    shift 2
+    local -a items=("$@")
+    
+    local icon="✔"
+    local title_color="$THEME_SUCCESS"
+    [[ "$success" != "true" ]] && icon="✘" && title_color="$THEME_ERROR"
+    
+    printf "  %s %s\n" \
+        "$(gum style --foreground "$title_color" "$icon")" \
+        "$(gum style --foreground "$THEME_TEXT" --bold "$title")"
+    
+    local count=${#items[@]}
+    local i=0
+    for item in "${items[@]}"; do
+        ((i++))
+        local label="${item%%|*}"
+        local status="${item##*|}"
+        
+        local branch="├──"
+        [[ $i -eq $count ]] && branch="└──"
+        
+        local dots=""
+        local dot_count=$((28 - ${#label}))
+        for ((d=0; d<dot_count; d++)); do dots+="."; done
+        
+        printf "     %s %s %s %s\n" \
+            "$(gum style --foreground "$THEME_SUBTEXT" "$branch")" \
+            "$(gum style --foreground "$THEME_TEXT" "$label")" \
+            "$(gum style --foreground "$THEME_SUBTEXT" "$dots")" \
+            "$(gum style --foreground "$THEME_SUBTEXT" "$status")"
+    done
+}
+
+# Render complete post-installation summary
+render_post_install_summary() {
+    local zsh_ok="${1:-true}"
+    local git_ok="${2:-true}"
+    local fonts_ok="${3:-true}"
+    
+    echo ""
+    
+    local width=64
+    local border_line=""
+    for ((i=0; i<width-2; i++)); do border_line+="─"; done
+    
+    gum style --foreground "$THEME_PRIMARY" "  ╭─ POST-INSTALLATION $border_line"
+    gum style --foreground "$THEME_PRIMARY" "  │"
+    
+    # Render each category that has items
+    if [[ ${#POST_ZSH_ITEMS[@]} -gt 0 ]]; then
+        _render_tree_category "Zsh Environment" "$zsh_ok" "${POST_ZSH_ITEMS[@]}"
+        gum style --foreground "$THEME_PRIMARY" "  │"
+    fi
+    
+    if [[ ${#POST_GIT_ITEMS[@]} -gt 0 ]]; then
+        _render_tree_category "Git Configuration" "$git_ok" "${POST_GIT_ITEMS[@]}"
+        gum style --foreground "$THEME_PRIMARY" "  │"
+    fi
+    
+    if [[ ${#POST_FONTS_ITEMS[@]} -gt 0 ]]; then
+        _render_tree_category "Fonts" "$fonts_ok" "${POST_FONTS_ITEMS[@]}"
+        gum style --foreground "$THEME_PRIMARY" "  │"
+    fi
+    
+    if [[ ${#POST_OPENCODE_ITEMS[@]} -gt 0 ]]; then
+        _render_tree_category "OpenCode" "true" "${POST_OPENCODE_ITEMS[@]}"
+        gum style --foreground "$THEME_PRIMARY" "  │"
+    fi
+    
+    if [[ ${#POST_THEME_ITEMS[@]} -gt 0 ]]; then
+        _render_tree_category "Theme" "true" "${POST_THEME_ITEMS[@]}"
+        gum style --foreground "$THEME_PRIMARY" "  │"
+    fi
+    
+    gum style --foreground "$THEME_PRIMARY" "  ╰$border_line──╯"
+}

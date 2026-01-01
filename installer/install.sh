@@ -520,20 +520,16 @@ EOF
     return 0
 }
 
-# Install Nerd Fonts (JetBrains Mono) for proper icon support
 install_nerd_fonts() {
-    gum style --foreground "$THEME_PRIMARY" "  ◆ Setting up Nerd Fonts..."
-
-    # Omarchy ships with JetBrainsMono Nerd Font pre-installed
     if [[ "${IS_OMARCHY:-false}" == true ]]; then
         if command -v fc-list >/dev/null 2>&1; then
             if fc-list 2>/dev/null | grep -qi "JetBrainsMono.*Nerd"; then
-                gum style --foreground "$THEME_SUBTEXT" "  Already installed"
+                post_add "FONTS" "JetBrainsMono Nerd" "OK"
                 return 0
             fi
         else
             if pacman -Qi ttf-jetbrains-mono-nerd &>/dev/null; then
-                gum style --foreground "$THEME_SUBTEXT" "  Already installed"
+                post_add "FONTS" "JetBrainsMono Nerd" "OK"
                 return 0
             fi
         fi
@@ -541,16 +537,15 @@ install_nerd_fonts() {
 
     if [[ "$OS" == "macos" ]]; then
         if brew list --cask font-jetbrains-mono-nerd-font &>/dev/null; then
-            gum style --foreground "$THEME_SUBTEXT" "  Already installed"
+            post_add "FONTS" "JetBrainsMono Nerd" "OK"
         else
-            gum style --foreground "$THEME_SECONDARY" "  Installing JetBrainsMono Nerd Font..."
-            gum spin --spinner dot --title "Brew: installing font-jetbrains-mono-nerd-font" -- \
+            gum spin --spinner dot --title "Installing JetBrainsMono Nerd Font..." -- \
                 brew install --cask font-jetbrains-mono-nerd-font
-            gum style --foreground "$THEME_SUCCESS" "  Installed"
+            post_add "FONTS" "JetBrainsMono Nerd" "Installed"
         fi
     elif [[ "$DISTRO" == "arch" ]]; then
         if pacman -Qi ttf-jetbrains-mono-nerd &>/dev/null; then
-            gum style --foreground "$THEME_SUBTEXT" "  Already installed"
+            post_add "FONTS" "JetBrainsMono Nerd" "OK"
         else
             if ! command -v yay >/dev/null 2>&1 && ! command -v paru >/dev/null 2>&1; then
                 bootstrap_aur_helper || return 1
@@ -559,20 +554,19 @@ install_nerd_fonts() {
             local aur_helper="yay"
             command -v paru >/dev/null 2>&1 && aur_helper="paru"
 
-            gum style --foreground "$THEME_SECONDARY" "  Installing JetBrainsMono Nerd Font..."
-            gum spin --spinner dot --title "AUR ($aur_helper): installing ttf-jetbrains-mono-nerd" -- \
+            gum spin --spinner dot --title "Installing JetBrainsMono Nerd Font..." -- \
                 "$aur_helper" -S --noconfirm --needed ttf-jetbrains-mono-nerd
-            gum style --foreground "$THEME_SUCCESS" "  Installed"
+            post_add "FONTS" "JetBrainsMono Nerd" "Installed"
         fi
     elif [[ "$DISTRO" == "debian" ]]; then
         local font_dir="$HOME/.local/share/fonts"
         if compgen -G "$font_dir/JetBrainsMono*NerdFont-*.ttf" > /dev/null; then
-            gum style --foreground "$THEME_SUBTEXT" "  Already installed"
+            post_add "FONTS" "JetBrainsMono Nerd" "OK"
             return 0
         fi
 
         if ! command -v curl >/dev/null 2>&1; then
-            gum style --foreground "$THEME_ERROR" "  curl is required for font installation"
+            post_add "FONTS" "JetBrainsMono Nerd" "Failed (curl missing)"
             return 1
         fi
 
@@ -582,26 +576,21 @@ install_nerd_fonts() {
         tmp_file=$(mktemp) || return 1
 
         local fc_cmd="true"
-        if command -v fc-cache >/dev/null 2>&1; then
-            fc_cmd="fc-cache -f"
-        else
-            gum style --foreground "$THEME_WARNING" "  fc-cache not found - font cache not updated"
-        fi
+        command -v fc-cache >/dev/null 2>&1 && fc_cmd="fc-cache -f"
 
-        gum style --foreground "$THEME_SECONDARY" "  Installing JetBrainsMono Nerd Font..."
-        if gum spin --spinner dot --title "Downloading..." -- \
+        if gum spin --spinner dot --title "Installing JetBrainsMono Nerd Font..." -- \
             bash -c "curl -L -f -o '$tmp_file' '$url' && \
                      tar -xf '$tmp_file' -C '$font_dir' && \
                      $fc_cmd"; then
             rm -f "$tmp_file"
-            gum style --foreground "$THEME_SUCCESS" "  Installed"
+            post_add "FONTS" "JetBrainsMono Nerd" "Installed"
         else
             rm -f "$tmp_file"
-            gum style --foreground "$THEME_ERROR" "  Failed to install"
+            post_add "FONTS" "JetBrainsMono Nerd" "Failed"
             return 1
         fi
     else
-        gum style --foreground "$THEME_WARNING" "  Unsupported OS/Distro: $OS/$DISTRO"
+        post_add "FONTS" "JetBrainsMono Nerd" "Skipped (unsupported)"
     fi
 }
 

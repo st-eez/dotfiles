@@ -187,106 +187,100 @@ migrate_p10k_to_starship() {
 }
 
 setup_starship() {
-    gum style --foreground "$THEME_PRIMARY" "  ◆ Setting up Starship prompt..."
+    local quiet="${1:-false}"
+    
+    if [[ "$quiet" != "true" ]]; then
+        gum style --foreground "$THEME_PRIMARY" "  ◆ Setting up Starship prompt..."
+    fi
 
-    if command -v starship >/dev/null 2>&1; then
-        gum style --foreground "$THEME_SUBTEXT" "  Starship already installed"
-    else
-        gum style --foreground "$THEME_WARNING" "  Starship binary not found"
+    if ! command -v starship >/dev/null 2>&1; then
+        [[ "$quiet" != "true" ]] && gum style --foreground "$THEME_WARNING" "  Starship binary not found"
+        if [[ "$quiet" == "true" ]]; then
+            return 1
+        fi
         if gum confirm --prompt.foreground="$THEME_TEXT" "Install Starship now?"; then
             install_package "starship" || return 1
         else
             gum style --foreground "$THEME_ERROR" "  Starship required for prompt"
             return 1
         fi
+    else
+        [[ "$quiet" != "true" ]] && gum style --foreground "$THEME_SUBTEXT" "  Starship already installed"
     fi
 
     if [[ -d "$DOTFILES_DIR/starship" ]]; then
         local stow_result
-        stow_package "starship"
+        stow_package "starship" >/dev/null 2>&1
         stow_result=$?
-        case $stow_result in
-            0) gum style --foreground "$THEME_SUCCESS" "  Config linked" ;;
-            3) gum style --foreground "$THEME_SUBTEXT" "  Config already linked" ;;
-            *) return 1 ;;
-        esac
+        if [[ "$quiet" != "true" ]]; then
+            case $stow_result in
+                0) gum style --foreground "$THEME_SUCCESS" "  Config linked" ;;
+                3) gum style --foreground "$THEME_SUBTEXT" "  Config already linked" ;;
+                *) return 1 ;;
+            esac
+        fi
     fi
 
     if [[ -f "$HOME/.zshrc" && ! -L "$HOME/.zshrc" ]]; then
         if ! grep -q 'starship init zsh' "$HOME/.zshrc"; then
             echo '' >> "$HOME/.zshrc"
-            echo '# Initialize Starship prompt' >> "$HOME/.zshrc"
             echo 'eval "$(starship init zsh)"' >> "$HOME/.zshrc"
-            gum style --foreground "$THEME_SUCCESS" "  Added starship init to ~/.zshrc"
+            [[ "$quiet" != "true" ]] && gum style --foreground "$THEME_SUCCESS" "  Added starship init to ~/.zshrc"
         fi
     fi
 
-    gum style --foreground "$THEME_SUCCESS" "  Starship configured"
+    [[ "$quiet" != "true" ]] && gum style --foreground "$THEME_SUCCESS" "  Starship configured"
     return 0
 }
 
 setup_zsh_env() {
-    gum style --foreground "$THEME_PRIMARY" "  ◆ Setting up Zsh environment..."
-
     local zsh_custom="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
-    local changes_made=false
+    local omz_status="OK"
+    local plugins_added=0
+    local starship_status="OK"
 
     # 1. Oh-My-Zsh
     if [[ ! -d "$HOME/.oh-my-zsh" ]]; then
-        gum style --foreground "$THEME_SECONDARY" "  Installing Oh-My-Zsh..."
-        if ! sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended --keep-zshrc; then
-            gum style --foreground "$THEME_ERROR" "  Failed to install Oh-My-Zsh"
+        if sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended --keep-zshrc 2>/dev/null; then
+            omz_status="Installed"
+        else
+            post_add "ZSH" "Oh-My-Zsh" "Failed"
             return 1
         fi
-        changes_made=true
     fi
+    post_add "ZSH" "Oh-My-Zsh" "$omz_status"
 
     # 2. Plugins
     local plugins_dir="$zsh_custom/plugins"
     mkdir -p "$plugins_dir"
 
     if [[ ! -d "$plugins_dir/zsh-autosuggestions" ]]; then
-        gum style --foreground "$THEME_SECONDARY" "  Installing zsh-autosuggestions..."
-        if ! git clone --quiet https://github.com/zsh-users/zsh-autosuggestions "$plugins_dir/zsh-autosuggestions"; then
-            gum style --foreground "$THEME_ERROR" "  Failed to clone zsh-autosuggestions"
-            return 1
+        if git clone --quiet https://github.com/zsh-users/zsh-autosuggestions "$plugins_dir/zsh-autosuggestions" 2>/dev/null; then
+            ((plugins_added++))
         fi
-        changes_made=true
     fi
 
     if [[ ! -d "$plugins_dir/zsh-syntax-highlighting" ]]; then
-        gum style --foreground "$THEME_SECONDARY" "  Installing zsh-syntax-highlighting..."
-        if ! git clone --quiet https://github.com/zsh-users/zsh-syntax-highlighting "$plugins_dir/zsh-syntax-highlighting"; then
-             gum style --foreground "$THEME_ERROR" "  Failed to clone zsh-syntax-highlighting"
-             return 1
+        if git clone --quiet https://github.com/zsh-users/zsh-syntax-highlighting "$plugins_dir/zsh-syntax-highlighting" 2>/dev/null; then
+            ((plugins_added++))
         fi
-        changes_made=true
     fi
 
-    # 3. Aliases file (skip if symlink exists from stow)
-    if [[ ! -e "$zsh_custom/aliases.zsh" && ! -L "$zsh_custom/aliases.zsh" ]]; then
-        if ! touch "$zsh_custom/aliases.zsh"; then
-             gum style --foreground "$THEME_ERROR" "  Failed to create aliases.zsh"
-             return 1
-        fi
-        changes_made=true
-    fi
-
-    # 4. Change default shell (optional, won't fail setup)
-    change_default_shell
-
-    # 5. P10k migration + Starship setup
-    if detect_p10k; then
-        migrate_p10k_to_starship
-    fi
-    setup_starship || true
-
-    # Summary
-    if [[ "$changes_made" == true ]]; then
-        gum style --foreground "$THEME_SUCCESS" "  Zsh environment configured"
+    if [[ $plugins_added -gt 0 ]]; then
+        post_add "ZSH" "Plugins" "$plugins_added added"
     else
-        gum style --foreground "$THEME_SUBTEXT" "  Already configured"
+        post_add "ZSH" "Plugins" "OK"
     fi
+
+    [[ ! -e "$zsh_custom/aliases.zsh" && ! -L "$zsh_custom/aliases.zsh" ]] && touch "$zsh_custom/aliases.zsh"
+
+    detect_p10k && migrate_p10k_to_starship >/dev/null 2>&1
+    if setup_starship "true"; then
+        starship_status="OK"
+    else
+        starship_status="Not configured"
+    fi
+    post_add "ZSH" "Starship" "$starship_status"
 
     return 0
 }
