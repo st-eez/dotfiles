@@ -12,7 +12,7 @@
 # ║    ui_summary     - Animated completion summary with stats                 ║
 # ║    ui_confirm     - Styled yes/no confirmation dialog                      ║
 # ║    ui_spin        - Spinner wrapper for long operations                    ║
-# ║    ui_progress_bar - Visual progress indicator                             ║
+# ║    (removed: ui_progress_bar - use log_progress counter instead)           ║
 # ║    ui_exit        - Styled goodbye message                                 ║
 # ║    ui_cancelled   - Cancellation warning                                   ║
 # ║    ui_error       - Error message display                                  ║
@@ -79,7 +79,7 @@ ui_splash() {
     gum style \
         --border rounded \
         --border-foreground "$THEME_SUBTEXT" \
-        --width 40 \
+        --width 50 \
         --padding "0 1" \
         --margin "0 2" \
         "$(gum style --foreground "$THEME_PRIMARY" --bold "SYSTEM")" \
@@ -104,23 +104,6 @@ ui_spin() {
         -- "$@"
 }
 
-# Animated progress bar (for known-length operations)
-ui_progress_bar() {
-    local current="$1"
-    local total="$2"
-    local width="${3:-30}"
-
-    local percent=$((current * 100 / total))
-    local filled=$((current * width / total))
-    local empty=$((width - filled))
-
-    local bar=""
-    for ((i=0; i<filled; i++)); do bar+="▰"; done
-    for ((i=0; i<empty; i++)); do bar+="▱"; done
-
-    printf "\r  %s %3d%%" "$(gum style --foreground "$THEME_PRIMARY" "$bar")" "$percent"
-}
-
 # Display a styled header (Alias to log_section or log_title depending on use)
 ui_header() {
     log_section "$1"
@@ -138,6 +121,7 @@ ui_confirm() {
         --negative "  $no_label  " \
         --prompt.foreground "$THEME_TEXT" \
         --prompt.bold \
+        --prompt.margin "1 2" \
         --selected.background "$THEME_PRIMARY" \
         --selected.foreground "$COLOR_BG" \
         --selected.bold \
@@ -150,7 +134,7 @@ ui_exit() {
     gum style \
         --border rounded \
         --border-foreground "$THEME_SUBTEXT" \
-        --width 40 \
+        --width 50 \
         --padding "0 1" \
         --margin "0 2" \
         --faint \
@@ -162,7 +146,15 @@ ui_exit() {
 ui_cancelled() {
     local reason="${1:-Operation cancelled}"
     echo ""
-    gum style --foreground "$THEME_WARNING" "  ⚠ $reason"
+    gum style \
+        --border rounded \
+        --border-foreground "$THEME_WARNING" \
+        --width 50 \
+        --padding "0 1" \
+        --margin "0 2" \
+        "$(gum style --foreground "$THEME_WARNING" --bold "CANCELLED")" \
+        "" \
+        "$reason"
     echo ""
 }
 
@@ -170,7 +162,15 @@ ui_cancelled() {
 ui_error() {
     local message="$1"
     echo ""
-    gum style --foreground "$THEME_ERROR" "  ✗ $message"
+    gum style \
+        --border rounded \
+        --border-foreground "$THEME_ERROR" \
+        --width 50 \
+        --padding "0 1" \
+        --margin "0 2" \
+        "$(gum style --foreground "$THEME_ERROR" --bold "ERROR")" \
+        "" \
+        "$message"
     echo ""
 }
 
@@ -189,7 +189,7 @@ _select_category() {
     done
 
     echo ""
-    gum style --foreground "$THEME_SECONDARY" --bold "  ─── $category_name (${#pkg_array[@]}) ───"
+    gum style --foreground "$THEME_SECONDARY" --bold --width 50 --align center "── $category_name (${#pkg_array[@]}) ──"
 
     local selection
     selection=$(gum choose \
@@ -198,9 +198,9 @@ _select_category() {
         --header.foreground "$THEME_SECONDARY" \
         --cursor "▸ " \
         --cursor.foreground "$THEME_ACCENT" \
-        --selected.foreground "$THEME_SUCCESS" \
-        --unselected-prefix "○ " \
-        --selected-prefix "● " \
+        --selected.foreground "$THEME_PRIMARY" \
+        --selected-prefix "$(gum style --foreground "$THEME_SUCCESS" "● ")" \
+        --unselected-prefix "$(gum style --foreground "$THEME_SUBTEXT" "○ ")" \
         "${items[@]}")
 
     while IFS= read -r line; do
@@ -221,7 +221,7 @@ ui_select_packages() {
     gum style \
         --border rounded \
         --border-foreground "$THEME_SUBTEXT" \
-        --width 40 \
+        --width 50 \
         --padding "0 1" \
         --margin "0 2" \
         "$(gum style --foreground "$THEME_PRIMARY" --bold "PACKAGES") $(gum style --foreground "$THEME_SUBTEXT" --faint "($total_count available)")" \
@@ -260,7 +260,7 @@ ui_main_menu() {
     gum style \
         --border rounded \
         --border-foreground "$THEME_SUBTEXT" \
-        --width 40 \
+        --width 50 \
         --padding "0 1" \
         --margin "0 2" \
         "$(gum style --foreground "$THEME_PRIMARY" --bold "INSTALLATION MODE")" \
@@ -300,7 +300,7 @@ ui_preflight() {
     gum style \
         --border rounded \
         --border-foreground "$THEME_SUBTEXT" \
-        --width 44 \
+        --width 50 \
         --padding "0 1" \
         --margin "0 2" \
         "$(gum style --foreground "$THEME_PRIMARY" --bold "PRE-FLIGHT") $(gum style --foreground "$THEME_SUBTEXT" --faint "($count items)")" \
@@ -347,16 +347,16 @@ ui_summary() {
 
     if [[ "$total_new" -eq 0 ]] && [[ "$failed" -eq 0 ]]; then
         summary_lines+=("$(gum style --foreground "$THEME_SUCCESS" "All packages already configured")")
-        [[ "$bin_exists" -gt 0 ]] && summary_lines+=("• $bin_exists binaries installed")
-        [[ "$cfg_exists" -gt 0 ]] && summary_lines+=("• $cfg_exists configs linked")
+        [[ "$bin_exists" -gt 0 ]] && summary_lines+=("$(gum style --foreground "$THEME_SUBTEXT" --faint "• $bin_exists binaries installed")")
+        [[ "$cfg_exists" -gt 0 ]] && summary_lines+=("$(gum style --foreground "$THEME_SUBTEXT" --faint "• $cfg_exists configs linked")")
     else
         [[ "$bin_new" -gt 0 ]] && summary_lines+=("$(gum style --foreground "$THEME_SUCCESS" "+ $bin_new binaries installed")")
         [[ "$cfg_new" -gt 0 ]] && summary_lines+=("$(gum style --foreground "$THEME_SUCCESS" "+ $cfg_new configs linked")")
 
         if [[ "$bin_exists" -gt 0 ]] || [[ "$cfg_exists" -gt 0 ]]; then
             summary_lines+=("")
-            [[ "$bin_exists" -gt 0 ]] && summary_lines+=("• $bin_exists binaries existed")
-            [[ "$cfg_exists" -gt 0 ]] && summary_lines+=("• $cfg_exists configs existed")
+            [[ "$bin_exists" -gt 0 ]] && summary_lines+=("$(gum style --foreground "$THEME_SUBTEXT" --faint "• $bin_exists binaries existed")")
+            [[ "$cfg_exists" -gt 0 ]] && summary_lines+=("$(gum style --foreground "$THEME_SUBTEXT" --faint "• $cfg_exists configs existed")")
         fi
 
         if [[ "$failed" -gt 0 ]]; then
@@ -368,7 +368,7 @@ ui_summary() {
     gum style \
         --border rounded \
         --border-foreground "$THEME_SUBTEXT" \
-        --width 40 \
+        --width 50 \
         --padding "0 1" \
         --margin "0 2" \
         "${summary_lines[@]}"
@@ -390,7 +390,7 @@ ui_summary() {
         gum style \
             --border rounded \
             --border-foreground "$THEME_ERROR" \
-            --width 40 \
+            --width 50 \
             --padding "0 1" \
             --margin "0 2" \
             "${failure_lines[@]}"

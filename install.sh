@@ -238,11 +238,10 @@ run_installation() {
 # ═══════════════════════════════════════════════════════════════════════════════
 
 main() {
-    # Handle flags (with gum fallback for pre-bootstrap invocation)
     if [[ "${1:-}" == "--version" || "${1:-}" == "-v" ]]; then
         if command -v gum >/dev/null 2>&1; then
             echo ""
-            gum style --foreground "$THEME_PRIMARY" --bold "  ◆ Steez Dotfiles v$VERSION"
+            gum style --foreground "$THEME_PRIMARY" --bold "  ● Steez Dotfiles v$VERSION"
             echo ""
         else
             echo "Steez Dotfiles v$VERSION"
@@ -253,18 +252,19 @@ main() {
     if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
         if command -v gum >/dev/null 2>&1; then
             echo ""
-            gum style --foreground "$THEME_PRIMARY" --bold "  ◆ Steez Dotfiles v$VERSION"
+            gum style --foreground "$THEME_PRIMARY" --bold "  ● Steez Dotfiles v$VERSION"
             echo ""
-            gum style --foreground "$THEME_SUBTEXT" "  ╭─ USAGE ──────────────────────────────────────────╮"
-            gum style --foreground "$THEME_SUBTEXT" "  │                                                  │"
-            gum style --foreground "$THEME_TEXT" "$(printf "  │  %-48s│" "./install.sh [options]")"
-            gum style --foreground "$THEME_SUBTEXT" "  │                                                  │"
-            gum style --foreground "$THEME_SUBTEXT" "  ├─ OPTIONS ────────────────────────────────────────┤"
-            gum style --foreground "$THEME_SUBTEXT" "  │                                                  │"
-            gum style --foreground "$THEME_SUBTEXT" "$(printf "  │  %-48s│" "-v, --version   Show version")"
-            gum style --foreground "$THEME_SUBTEXT" "$(printf "  │  %-48s│" "-h, --help      Show this help")"
-            gum style --foreground "$THEME_SUBTEXT" "  │                                                  │"
-            gum style --foreground "$THEME_SUBTEXT" "  ╰──────────────────────────────────────────────────╯"
+            printf '%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s' \
+                "USAGE" "" "./install.sh [options]" "" \
+                "OPTIONS" "" \
+                "-v, --version   Show version" \
+                "-h, --help      Show this help" | \
+            gum style \
+                --border rounded \
+                --border-foreground "$THEME_SUBTEXT" \
+                --width 44 \
+                --padding "0 1" \
+                --margin "0 2"
             echo ""
             gum style --foreground "$THEME_SUBTEXT" --faint "  https://github.com/steez/dotfiles"
             echo ""

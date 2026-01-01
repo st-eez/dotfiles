@@ -8,7 +8,7 @@
 # ║    log_title      - Animated logo splash with boot sequence                ║
 # ║    log_section    - Major section header with double border                ║
 # ║    log_phase      - Light phase separator                                  ║
-# ║    log_progress   - Package progress with gradient bar                     ║
+# ║    log_progress   - Package progress counter [01/12] ◆ name                ║
 # ║    log_success    - Success status item (✔ green)                          ║
 # ║    log_failure    - Failure status item (✘ red)                            ║
 # ║    log_info       - Info status item (• dimmed)                            ║
@@ -121,65 +121,45 @@ log_title() {
     clear
     echo ""
 
-    # Enhanced boot sequence with progressive reveal
-    gum style --foreground "$THEME_SUBTEXT" --faint "  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░"
-    sleep 0.05
-
-    # Boot messages with varying delays for rhythm
     local boot_msgs=(
-        "  ▸ initializing steez..."
-        "  ▸ loading modules..."
-        "  ▸ parsing configuration..."
-        "  ▸ detecting environment..."
+        "  ▸ system.init(verbose=true)"
+        "  ▸ modules.load(all)"
+        "  ▸ config.parse()"
+        "  ▸ env.detect()"
     )
 
     for msg in "${boot_msgs[@]}"; do
         gum style --foreground "$THEME_SUBTEXT" --faint "$msg"
-        sleep 0.04
+        sleep 0.02
     done
 
-    gum style --foreground "$THEME_ACCENT" --faint "  ▸ ready"
+    gum style --foreground "$THEME_ACCENT" "  ▸ system.ready"
     sleep 0.1
 
-    # Clear boot sequence for clean reveal
-    printf "\033[7A"  # Move up 7 lines
-    for i in {1..7}; do
-        printf "\033[2K\n"  # Clear each line
+    printf "\033[6A"
+    for i in {1..6}; do
+        printf "\033[2K\n"
     done
-    printf "\033[7A"  # Move back up
+    printf "\033[6A"
 
     echo ""
 
-    # Unicode STEEZ logo - scan-line reveal with glow effect (48 internal width)
     local logo=(
-        "  ╭────────────────────────────────────────────────╮"
-        "  │                                                │"
-        "  │   ▄███████╗████████╗███████╗███████╗███████╗   │"
-        "  │   ██╔════╝   ██╔══╝ ██╔════╝██╔════╝   ███╔╝   │"
-        "  │   ███████╗   ██║    █████╗  █████╗   ███╔╝     │"
-        "  │   ╚════██║   ██║    ██╔══╝  ██╔══╝  ███╔╝      │"
-        "  │   ███████║   ██║    ███████╗███████╗███████╗   │"
-        "  │   ╚══════╝   ╚═╝    ╚══════╝╚══════╝╚══════╝   │"
-        "  │                                                │"
-        "  │               ─── DOTFILES ───                 │"
-        "  │                                                │"
-        "  ╰────────────────────────────────────────────────╯"
+        "   ▄███████╗████████╗███████╗███████╗███████╗   "
+        "   ██╔════╝   ██╔══╝ ██╔════╝██╔════╝   ███╔╝   "
+        "   ███████╗   ██║    █████╗  █████╗   ███╔╝     "
+        "   ╚════██║   ██║    ██╔══╝  ██╔══╝  ███╔╝      "
+        "   ███████║   ██║    ███████╗███████╗███████╗   "
+        "   ╚══════╝   ╚═╝    ╚══════╝╚══════╝╚══════╝   "
     )
 
-    # Animated reveal with acceleration (starts slow, speeds up)
-    local delay=0.05
-    for i in "${!logo[@]}"; do
-        gum style --foreground "$THEME_PRIMARY" "${logo[$i]}"
-        sleep "$delay"
-        # Accelerate after first few lines
-        if [[ $i -gt 2 ]]; then
-            delay=0.015
-        fi
+    for line in "${logo[@]}"; do
+        gum style --foreground "$THEME_PRIMARY" --bold "  $line"
+        sleep 0.02
     done
 
     echo ""
 
-    # Subtitle with decorative accents
     if [[ -n "$subtitle" ]]; then
         local styled_sub
         styled_sub=$(echo "$subtitle" | tr '[:lower:]' '[:upper:]')
@@ -187,18 +167,17 @@ log_title() {
             --foreground "$THEME_SECONDARY" \
             --bold \
             --align center \
-            --width 51 \
-            "◆ $styled_sub ◆"
+            --width 52 \
+            "── $styled_sub ──"
     fi
 
-    # Extra Info (Dimmed)
     if [[ -n "$info" ]]; then
         sleep 0.1
         gum style \
             --foreground "$THEME_SUBTEXT" \
             --faint \
             --align center \
-            --width 51 \
+            --width 52 \
             "$info"
     fi
 
@@ -212,16 +191,23 @@ log_section() {
     upper_text=$(echo "$text" | tr '[:lower:]' '[:upper:]')
 
     echo ""
-    gum style --foreground "$THEME_PRIMARY" "  ═══════════════════════════════════════════════"
-    gum style --foreground "$THEME_PRIMARY" --bold "    $upper_text"
-    gum style --foreground "$THEME_PRIMARY" "  ───────────────────────────────────────────────"
+    local label=" $upper_text "
+    local label_len=${#label}
+    local total_width=48
+    local line_len=$((total_width - label_len - 2))
+    
+    local line
+    line=$(printf '%*s' "$line_len" '' | tr ' ' '─')
+    
+    gum style --foreground "$THEME_PRIMARY" --bold "  ╭─$label$line"
+    gum style --foreground "$THEME_PRIMARY" "  │"
 }
 
 # Phase separator (lighter than section)
 log_phase() {
     local text="$1"
     echo ""
-    gum style --foreground "$THEME_SUBTEXT" --faint "  ─── $text ───"
+    gum style --foreground "$THEME_SUBTEXT" --faint "  ── $text ──"
 }
 
 # Helper: Status item with clean alignment
@@ -232,22 +218,17 @@ _log_item() {
     local item="$3"
     local details="$4"
 
-    # Fixed total width for alignment
     local total_width=44
     local status_upper
     status_upper=$(echo "$details" | tr '[:lower:]' '[:upper:]')
 
-    # Calculate dot leader length
     local content_len=$((${#item} + ${#status_upper}))
     local dots_len=$((total_width - content_len))
     if [[ $dots_len -lt 3 ]]; then dots_len=3; fi
 
-    # Build dot leader with fade effect (solid → dim)
-    # Note: Use sed instead of tr for UTF-8 compatibility on Linux
     local dots
     dots=$(printf '%*s' "$dots_len" '' | sed 's/ /·/g')
 
-    # Compose the line with proper spacing
     printf "    %s %s %s %s\n" \
         "$(gum style --foreground "$color" "$icon")" \
         "$(gum style --foreground "$THEME_TEXT" "$item")" \
@@ -257,22 +238,16 @@ _log_item() {
 
 # 3. Success Item
 log_success() {
-    # Icon: Check mark
-    # Color: Green
     _log_item "✔" "$THEME_SUCCESS" "$1" "$2"
 }
 
 # 4. Failure Item
 log_failure() {
-    # Icon: Cross
-    # Color: Red
     _log_item "✘" "$THEME_ERROR" "$1" "$2"
 }
 
 # 5. Info/Skip Item
 log_info() {
-    # Icon: Dot
-    # Color: Dimmed
     _log_item "•" "$THEME_SUBTEXT" "$1" "$2"
 }
 
@@ -284,48 +259,20 @@ log_subsection() {
 
 # 7. Warning Item
 log_warn() {
-    # Icon: Warning triangle
-    # Color: Yellow
     _log_item "⚠" "$THEME_WARNING" "$1" "$2"
 }
 
-# 8. Progress Header (Package X/Total) with gradient progress bar
+# 8. Progress Header (Package X/Total) - clean counter format
 log_progress() {
     local current="$1"
     local total="$2"
     local name="$3"
 
-    # Calculate progress bar with gradient effect
-    local bar_width=24
-    local filled=$((current * bar_width / total))
-    local empty=$((bar_width - filled))
-
-    # Build gradient bar: solid → medium → light → empty
-    local bar=""
-    for ((i=0; i<filled; i++)); do
-        if [[ $i -eq $((filled - 1)) ]] && [[ $filled -lt $bar_width ]]; then
-            bar+="▓"  # Trailing edge is medium
-        else
-            bar+="█"  # Filled portion is solid
-        fi
-    done
-
-    # Add empty portion with subtle texture
-    for ((i=0; i<empty; i++)); do
-        bar+="░"
-    done
-
-    # Calculate percentage
-    local percent=$((current * 100 / total))
+    local counter
+    counter=$(printf "[%02d/%02d]" "$current" "$total")
 
     echo ""
-    # Package name header with bullet
-    gum style --foreground "$THEME_PRIMARY" --bold "  ◆ $name"
-
-    # Progress bar with percentage
-    local counter_str="[$current/$total]"
-    printf "    %s %s %3d%%\n" \
-        "$(gum style --foreground "$THEME_SECONDARY" "$bar")" \
-        "$(gum style --foreground "$THEME_SUBTEXT" --faint "$counter_str")" \
-        "$percent"
+    printf "  %s %s\n" \
+        "$(gum style --foreground "$THEME_SUBTEXT" "$counter")" \
+        "$(gum style --foreground "$THEME_PRIMARY" --bold "◆ $name")"
 }
