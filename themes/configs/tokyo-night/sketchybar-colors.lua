@@ -17,7 +17,7 @@ local colors = {
 
 colors.bar = {
   bg = colors.bg0,
-  border = 0xff7aa2f7,
+  border = 0xff7dcfff,
 }
 
 colors.popup = {
