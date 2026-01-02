@@ -865,27 +865,41 @@ check_stow_conflicts() {
     fi
 }
 
-# Check if a package's configs are already stowed (symlinks exist and point to dotfiles)
+# Check if a package's configs are correctly stowed
+# Verifies symlinks exist AND point to correct source in $DOTFILES_DIR
 # Usage: is_stowed "package_name"
-# Returns: 0 if fully stowed, 1 if not stowed or partial
+# Returns: 0 if fully/correctly stowed, 1 if not stowed, partial, or wrong target
 is_stowed() {
     local pkg="$1"
     local pkg_dir="$DOTFILES_DIR/$pkg"
-
+    
     [[ ! -d "$pkg_dir" ]] && return 1
-
-    # Use stow's dry-run to check if any links would be created
-    # LINK: appears when stow would create a new symlink
-    # Skipping appears when symlink already exists and points correctly
-    local output
-    output=$(stow --no --verbose --dir="$DOTFILES_DIR" --target="$HOME" "$pkg" 2>&1)
-
-    # If LINK: appears, package needs stowing (not fully stowed)
-    if echo "$output" | grep -q "^LINK:"; then
-        return 1  # Not stowed
-    fi
-
-    # No LINK: means nothing to do - already stowed
+    
+    local pkg_dir_canonical
+    pkg_dir_canonical=$(get_absolute_path "$pkg_dir") || return 1
+    
+    local -a targets=()
+    local line
+    while IFS= read -r line; do
+        [[ -n "$line" ]] && targets+=("$line")
+    done < <(get_stow_targets "$pkg")
+    
+    (( ${#targets[@]} == 0 )) && return 1
+    
+    local rel_path target_path expected_source actual_target
+    
+    for rel_path in "${targets[@]}"; do
+        target_path="$HOME/$rel_path"
+        expected_source="$pkg_dir_canonical/$rel_path"
+        
+        [[ ! -L "$target_path" ]] && return 1
+        
+        actual_target=$(resolve_symlink_target "$target_path")
+        [[ -z "$actual_target" ]] && return 1
+        
+        [[ "$actual_target" != "$expected_source" ]] && return 1
+    done
+    
     return 0
 }
 
