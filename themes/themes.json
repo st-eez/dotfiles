@@ -53,6 +53,24 @@
         "cyan": "#83c092",
         "orange": "#e69875"
       }
+    },
+    {
+      "id": "osaka-jade",
+      "name": "Osaka Jade",
+      "colors": {
+        "bg0": "#111c18",
+        "bg1": "#1a2520",
+        "bg2": "#23372B",
+        "fg": "#C1C497",
+        "grey": "#53685B",
+        "red": "#FF5345",
+        "green": "#549e6a",
+        "yellow": "#E5C736",
+        "blue": "#509475",
+        "magenta": "#D2689C",
+        "cyan": "#2DD5B7",
+        "orange": "#E5C736"
+      }
     }
   ]
 }

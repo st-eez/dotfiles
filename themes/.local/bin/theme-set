@@ -27,7 +27,7 @@ THEMES_DIR="$DOTFILES/themes"
 STATE_FILE="$HOME/.config/current-theme"
 
 # Theme cycle order
-THEMES=(everforest gruvbox tokyo-night)
+THEMES=(everforest gruvbox tokyo-night osaka-jade)
 
 # Colors for output
 RED='\033[0;31m'
@@ -297,6 +297,16 @@ except:
     raise
 EOF
     log "OpenCode"
+fi
+
+# =============================================================================
+# 8b. OpenCode - symlink custom theme (osaka-jade only)
+# =============================================================================
+if [[ "$THEME" == "osaka-jade" && -f "$THEMES_DIR/configs/$THEME/osaka-jade.json" ]]; then
+    OPENCODE_THEMES_DIR="$HOME/.config/opencode/themes"
+    mkdir -p "$OPENCODE_THEMES_DIR"
+    ln -sfn "$THEMES_DIR/configs/$THEME/osaka-jade.json" "$OPENCODE_THEMES_DIR/osaka-jade.json"
+    log "OpenCode theme"
 fi
 
 # =============================================================================
