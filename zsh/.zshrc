@@ -41,7 +41,7 @@ ZSH_THEME=""
 # DISABLE_MAGIC_FUNCTIONS="true"
 
 # Uncomment the following line to disable colors in ls.
-# DISABLE_LS_COLORS="true"
+ DISABLE_LS_COLORS="true"
 
 # Uncomment the following line to disable auto-setting terminal title.
 # DISABLE_AUTO_TITLE="true"
@@ -79,6 +79,10 @@ HIST_STAMPS="%m/%d/%Y %I:%M %p"
 plugins=(git zsh-autosuggestions zsh-syntax-highlighting)
 
 source $ZSH/oh-my-zsh.sh
+
+# Use eza's built-in defaults (matches Linux/Omarchy behavior)
+unset LS_COLORS
+zstyle ':completion:*' list-colors ''
 
 # User configuration
 
@@ -161,3 +165,8 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 if command -v starship >/dev/null 2>&1; then
   eval "$(starship init zsh)"
 fi
+
+# Force consistent completion colors cross-platform
+# Apple zsh and Arch zsh have different compiled defaults when list-colors is empty
+# Explicitly set directories to ANSI 34 (blue) to match eza and ensure consistency
+zstyle ':completion:*' list-colors 'di=34'
