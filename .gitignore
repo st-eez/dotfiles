@@ -33,6 +33,12 @@ sketchybar/.config/sketchybar/AGENTS.md
 opencode/.config/opencode/node_modules/
 opencode/.config/opencode/package-lock.json
 
+# Neovim (changes on theme switch)
+nvim/.config/nvim/lazy-lock.json
+
+# Raycast extensions (local dev only)
+raycast/extensions/*/package-lock.json
+
 # Machine-specific (not tracked)
 .zshrc.local
 
