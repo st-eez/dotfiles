@@ -39,18 +39,18 @@ outer.top = [
 ] # 12px for MacBook, 8px for externals
 outer.right = 10
 
-# Home setup - Physical: LEFT=[ID1] | MAIN=[ID3] | MacBook=[ID2] under left
+# Home setup - Physical: LEFT=[ID1 VG279QE5A (2)] | MAIN=[ID2 VG279QE5A (1)] | MacBook=[ID3] below main
 [workspace-to-monitor-force-assignment]
-1 = 3
-2 = 3
-3 = 3
-4 = 3
+1 = 2
+2 = 2
+3 = 2
+4 = 2
 5 = 1
 6 = 1
 7 = 1
-8 = 2
-9 = 2
-0 = 2
+8 = 3
+9 = 3
+0 = 3
 
 [mode.main.binding]
 # Window focus (CAPS + arrows)
