@@ -1,13 +1,77 @@
 :root {
-  --nav-item-color-active: #ebdbb2;
+  --gruvbox-sidebar: #1d2021;
+  --gruvbox-editor: #3c3836;
+  --gruvbox-fg: #ebdbb2;
+  --gruvbox-muted: #928374;
+  --gruvbox-folder: #83a598;
+  --gruvbox-accent: #83a598;
+  --nav-item-color-active: var(--gruvbox-fg);
   --nav-item-weight-active: 600;
+}
+
+body,
+.app-container,
+.workspace {
+  background-color: var(--gruvbox-sidebar) !important;
+}
+
+.workspace-split.mod-left-split,
+.workspace-split.mod-left-split .workspace-leaf-content,
+.workspace-split.mod-left-split .view-content,
+.workspace-drawer.mod-left,
+.nav-files-container,
+.workspace-ribbon.mod-left {
+  background-color: var(--gruvbox-sidebar) !important;
+}
+
+.workspace-split.mod-root .workspace-leaf-content,
+.workspace-split.mod-root .view-content,
+.workspace-split.mod-root .view-header,
+.workspace-split.mod-root .markdown-source-view.mod-cm6 .cm-scroller,
+.workspace-split.mod-root .markdown-preview-view,
+.workspace-split.mod-root .empty-state,
+.workspace-split.mod-root .empty-state-container {
+  background-color: var(--gruvbox-editor) !important;
+}
+
+.view-header-breadcrumb,
+.view-header-breadcrumb-separator,
+.view-header-title {
+  color: var(--gruvbox-fg) !important;
+}
+
+.workspace-tab-header-container {
+  background-color: var(--gruvbox-sidebar) !important;
+  border-bottom: none !important;
+}
+
+.workspace-tab-header {
+  color: var(--gruvbox-muted) !important;
+  background-color: transparent !important;
+}
+
+.workspace-tab-header.is-active {
+  color: var(--gruvbox-fg) !important;
+  background-color: var(--gruvbox-editor) !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.workspace-tab-header.is-active::before,
+.workspace-tab-header.is-active::after {
+  display: none !important;
+}
+
+.nav-file-title,
+.nav-file-title-content {
+  color: var(--gruvbox-fg) !important;
 }
 
 body:not(.is-grabbing) .nav-file-title.is-active,
 body:not(.is-grabbing) .nav-folder-title.is-active,
 .nav-file-title.is-active,
 .nav-folder-title.is-active {
-  color: #ebdbb2 !important;
+  color: var(--gruvbox-fg) !important;
   background-color: rgba(131, 165, 152, 0.15) !important;
   font-weight: 600 !important;
 }
@@ -15,44 +79,46 @@ body:not(.is-grabbing) .nav-folder-title.is-active,
 .nav-file-title.is-active .nav-file-title-content::before,
 .nav-folder-title.is-active .nav-folder-title-content::before {
   content: "\2726 ";
-  color: #ebdbb2;
+  color: var(--gruvbox-fg);
   font-weight: 700;
 }
 
 .nav-folder-title .nav-folder-title-content {
-  color: #ebdbb2;
+  color: var(--gruvbox-folder);
   font-weight: 800;
 }
+
 .nav-folder-title.is-active .nav-folder-title-content {
-  color: #ebdbb2 !important;
+  color: var(--gruvbox-folder) !important;
   font-weight: 800;
 }
 
 .nav-file-title.is-active .nav-file-title-content,
 .nav-folder-title.is-active .nav-folder-title-content {
-  color: #ebdbb2 !important;
-  caret-color: #ebdbb2;
+  color: var(--gruvbox-fg) !important;
+  caret-color: var(--gruvbox-fg);
 }
 
 .nav-folder.is-collapsed > .nav-folder-title .nav-folder-title-content::before {
   content: "\f07b ";
   font-family: "JetBrainsMono Nerd Font";
-  color: #928374;
+  color: var(--gruvbox-folder);
   padding-right: 8px;
 }
+
 .nav-folder:not(.is-collapsed)
   > .nav-folder-title
   .nav-folder-title-content::before {
   content: "\f07c ";
   font-family: "JetBrainsMono Nerd Font";
-  color: #928374;
+  color: var(--gruvbox-folder);
   padding-right: 8px;
 }
 
 .markdown-source-view.mod-cm6,
 .markdown-preview-view {
   --checklist-done-decoration: none !important;
-  --checklist-done-color: #928374 !important;
+  --checklist-done-color: var(--gruvbox-muted) !important;
 }
 
 .markdown-source-view.mod-cm6 .HyperMD-task-line[data-task="x"],
@@ -63,6 +129,6 @@ body:not(.is-grabbing) .nav-folder-title.is-active,
 .markdown-preview-view .task-list-item.is-checked .task-list-label {
   text-decoration: none !important;
   text-decoration-line: none !important;
-  color: #928374 !important;
+  color: var(--gruvbox-muted) !important;
   opacity: 1 !important;
 }
