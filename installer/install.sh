@@ -939,8 +939,14 @@ stow_package() {
         fi
     fi
 
+    # Packages that need --no-folding to prevent directory symlinks.
+    # Required when: external tools write to subdirectories that would
+    # otherwise be tree-folded into the repo (causing untracked files).
+    local -a no_folding_pkgs=(nvim zsh)
+
     local -a stow_args=(--dir="$DOTFILES_DIR" --target="$HOME" --restow)
-    [[ "$pkg" == "nvim" ]] && stow_args+=(--no-folding)
+    # shellcheck disable=SC2076
+    [[ " ${no_folding_pkgs[*]} " =~ " $pkg " ]] && stow_args+=(--no-folding)
     
     if stow "${stow_args[@]}" "$pkg" 2>/dev/null; then
         # 3. Post-stow hooks for packages that need additional setup

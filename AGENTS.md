@@ -74,13 +74,13 @@ cd raycast/extensions/<ext> && npm run dev
 
 ## ANTI-PATTERNS (THIS PROJECT)
 
-| Pattern                                     | Why Bad                     | Alternative                       |
-| ------------------------------------------- | --------------------------- | --------------------------------- |
-| Edit theme files directly                   | Breaks theme switching      | Edit in `themes/configs/<theme>/` |
-| Modify `v1-baseline.ts` in prompt-optimizer | **FROZEN** for A/B testing  | Create new strategy file          |
-| Manual symlinks for dotfiles                | Stow handles this           | Use `stow <package>`              |
-| Skip `--no-folding` for nvim                | Creates plugins/ as symlink | Already handled in installer      |
-| Hardcode paths in installer                 | Breaks cross-platform       | Use `safeExec`, `get_*_pkg()`     |
+| Pattern                                     | Why Bad                              | Alternative                                 |
+| ------------------------------------------- | ------------------------------------ | ------------------------------------------- |
+| Edit theme files directly                   | Breaks theme switching               | Edit in `themes/configs/<theme>/`           |
+| Modify `v1-baseline.ts` in prompt-optimizer | **FROZEN** for A/B testing           | Create new strategy file                    |
+| Manual symlinks for dotfiles                | Stow handles this                    | Use `stow <package>`                        |
+| Skip `--no-folding` for nvim/zsh            | Creates directory symlinks into repo | Add to `no_folding_pkgs` array in installer |
+| Hardcode paths in installer                 | Breaks cross-platform                | Use `safeExec`, `get_*_pkg()`               |
 
 ## UNIQUE PATTERNS
 
