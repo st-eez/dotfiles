@@ -1,24 +1,40 @@
 #!/usr/bin/env bash
 
-# OS Detection and Bootstrapping
-# This module handles identifying the system and ensuring core dependencies exist.
-
-# Global variables to store system info
 OS=""
 DISTRO=""
 export IS_OMARCHY=false
 
-# Detect Operating System and Distribution
+bootstrap_homebrew() {
+    command -v brew >/dev/null 2>&1 && return 0
+    
+    local brew_path=""
+    
+    if [[ "$(uname -m)" == "arm64" ]]; then
+        [[ -x /opt/homebrew/bin/brew ]] && brew_path="/opt/homebrew/bin/brew"
+    else
+        [[ -x /usr/local/bin/brew ]] && brew_path="/usr/local/bin/brew"
+    fi
+    
+    if [[ -n "$brew_path" ]]; then
+        eval "$($brew_path shellenv)"
+        return 0
+    fi
+    
+    echo "Error: Homebrew not found. Install it first:" >&2
+    echo "  /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"" >&2
+    return 1
+}
+
 detect_os() {
     case "$(uname -s)" in
         Darwin)
             OS="macos"
             DISTRO="macos"
+            bootstrap_homebrew || exit 1
             ;;
         Linux)
             OS="linux"
             if [[ -f /etc/os-release ]]; then
-                # Extract only ID to avoid polluting namespace with all os-release vars
                 local os_id
                 os_id=$(grep -E '^ID=' /etc/os-release | cut -d= -f2 | tr -d '"')
                 case "$os_id" in
@@ -43,24 +59,17 @@ detect_os() {
     esac
 }
 
-# Detect Omarchy environment (DHH's Arch Linux + Hyprland)
-# Must be called AFTER install_gum (uses gum for styled output)
 detect_omarchy() {
     [[ "$DISTRO" != "arch" ]] && return
-
-    # Guard: gum required for styled output
     command -v gum >/dev/null || return
 
     local omarchy_root="${HOME:?}/.local/share/omarchy"
-
-    # Verify actual Omarchy install (both root and bin directories present)
     if [[ -d "$omarchy_root" && -d "$omarchy_root/bin" ]]; then
         IS_OMARCHY=true
         gum style --foreground "${THEME_ACCENT:-#73daca}" "  Detected: Omarchy environment"
     fi
 }
 
-# Check for sudo access (prompts once if needed)
 check_sudo() {
     [[ "$OS" != "linux" ]] && return 0
     if ! sudo -n true 2>/dev/null; then
@@ -69,7 +78,6 @@ check_sudo() {
     fi
 }
 
-# Ensure apt cache is fresh (runs at most once per session)
 ensure_apt_fresh() {
     [[ "$DISTRO" != "debian" ]] && return 0
     local stamp="${TMPDIR:-/tmp}/.steez_apt_updated"
@@ -78,23 +86,16 @@ ensure_apt_fresh() {
     fi
 }
 
-# Install Charm Gum dependency
 install_gum() {
     if command -v gum >/dev/null 2>&1; then
         return 0
     fi
 
     echo "Gum not found. Installing..."
-
-    # Prompt for sudo early on Linux
     check_sudo
 
     case "$DISTRO" in
         macos)
-            if ! command -v brew >/dev/null 2>&1; then
-                echo "Error: Homebrew is required to install gum on macOS."
-                exit 1
-            fi
             brew install gum
             ;;
         arch)
@@ -109,7 +110,6 @@ install_gum() {
             fi
             curl -fsSL https://repo.charm.sh/apt/gpg.key | sudo gpg --batch --yes --dearmor -o /etc/apt/keyrings/charm.gpg
             echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" | sudo tee /etc/apt/sources.list.d/charm.list
-            # Must update after adding new repo source
             sudo apt-get update -qq && sudo apt install -y gum
             ;;
         *)
@@ -125,7 +125,6 @@ install_gum() {
     fi
 }
 
-# Export system variables
 export_system_info() {
     detect_os
     echo "Detected OS: $OS ($DISTRO)"

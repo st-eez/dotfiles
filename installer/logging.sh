@@ -382,5 +382,5 @@ render_post_install_summary() {
         gum style --foreground "$THEME_PRIMARY" "  │"
     fi
     
-    gum style --foreground "$THEME_PRIMARY" "  ╰$border_line──╯"
+    gum style --foreground "$THEME_PRIMARY" "  ╰${border_line}──╯"
 }

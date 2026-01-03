@@ -176,20 +176,23 @@ ui_error() {
 
 _select_category() {
     local category_name="$1"
-    local -n pkg_array="$2"
+    local pkg_array_name="$2"
     local height="${3:-8}"
 
-    [[ ${#pkg_array[@]} -eq 0 ]] && return
+    local -a pkgs
+    eval "pkgs=(\"\${${pkg_array_name}[@]}\")"
+    
+    [[ ${#pkgs[@]} -eq 0 ]] && return
 
     local items=()
-    for pkg in "${pkg_array[@]}"; do
+    for pkg in "${pkgs[@]}"; do
         local desc
         desc=$(get_pkg_description "$pkg")
         items+=("$(printf "%-18s" "$pkg")$(gum style --foreground "$THEME_SUBTEXT" --faint "$desc")")
     done
 
     echo ""
-    gum style --foreground "$THEME_SECONDARY" --bold --width 50 --align center "── $category_name (${#pkg_array[@]}) ──"
+    gum style --foreground "$THEME_SECONDARY" --bold --width 50 --align center "── $category_name (${#pkgs[@]}) ──"
 
     local selection
     selection=$(gum choose \

@@ -34,18 +34,8 @@ brew install stow  # macOS
 git clone https://github.com/st-eez/dotfiles.git ~/dotfiles
 cd ~/dotfiles
 
-# Install Oh-My-Zsh
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-
-# Install plugins
-git clone https://github.com/zsh-users/zsh-autosuggestions ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions
-git clone https://github.com/zsh-users/zsh-syntax-highlighting ~/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
-
-# Install dotfiles (uses GNU Stow)
+# Interactive installer (handles Oh-My-Zsh, plugins, stow, and packages)
 ./install.sh
-
-# Install packages (macOS)
-brew bundle --file Brewfile
 
 # Git config (edit name/email after copying)
 cp ~/dotfiles/git/.gitconfig.template ~/.gitconfig

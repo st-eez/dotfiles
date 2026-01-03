@@ -21,7 +21,7 @@ dotfiles/
 ├── nvim/               # LazyVim config (standard)
 ├── aerospace/          # Tiling WM with home/office/laptop profiles
 ├── ghostty/            # Terminal config
-├── zsh/                # Oh-My-Zsh + Starship
+├── zsh/                # Zsh config (ZDOTDIR-based, see below)
 ├── karabiner/          # Caps→Escape/Alt
 ├── borders/            # Window border styling
 ├── Brewfile            # macOS package manifest
@@ -94,9 +94,32 @@ install.sh
   → installer/ui.sh         # gum menus, spinners
   → installer/install.sh    # Package + stow logic
   → installer/utils.sh      # Backups, conflict detection
-  → installer/zsh_setup.sh  # Oh-My-Zsh, plugins
+  → installer/zsh_setup.sh  # Oh-My-Zsh, plugins, ZDOTDIR
   → installer/git_setup.sh  # Credential helpers
 ```
+
+### ZDOTDIR Bootstrap
+
+Zsh config uses `ZDOTDIR` to protect tracked config from external tool pollution (nvm, pyenv, rustup append to `~/.zshrc`).
+
+```
+~/.zshenv                          # Bootstrap: sets ZDOTDIR (written by installer, NOT stowed)
+~/.config/zsh/.zshrc               # Tracked config (stowed from zsh/.config/zsh/)
+~/.config/zsh/.zprofile            # Tracked profile
+~/.config/zsh/custom/aliases.zsh   # Tracked aliases
+~/.config/zsh/custom/plugins/      # Plugins cloned here by installer
+~/.zshrc                           # Untracked "sink" - external tools write here, sourced by tracked config
+~/.zshrc.local                     # Machine-specific config (unchanged)
+```
+
+**How it works:**
+
+1. Zsh starts → reads `~/.zshenv` (only file zsh reads from `$HOME` by default)
+2. `~/.zshenv` exports `ZDOTDIR=~/.config/zsh`
+3. Zsh loads `.zprofile`, `.zshrc` from `~/.config/zsh/` (same shell invocation)
+4. Tracked `.zshrc` sources `~/.zshrc` to pick up external tool additions
+
+**After install:** Run `exec zsh` or open new terminal. No logout required.
 
 ### Theme Switching
 

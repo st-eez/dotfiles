@@ -77,7 +77,7 @@ run_installation() {
     local fail_count=0   # Failed packages
 
     local csv_file
-    csv_file=$(mktemp "${TMPDIR:-/tmp}/steez_install.XXXXXX.csv") || return 1
+    csv_file=$(mktemp "${TMPDIR:-/tmp}/steez_install.XXXXXX") || return 1
     echo "Package,Binary,Config" > "$csv_file"
 
     echo ""
@@ -181,22 +181,45 @@ run_installation() {
     fi
 
     # 6. Theme Setup (macOS only, interactive)
+    # Only show theme selection when packages that support theming are installed
     if [[ "$OS" == "macos" ]]; then
-        stow -d "$DOTFILES_DIR" -t "$HOME" themes 2>/dev/null || true
+        # Packages that have theme integration
+        local -a THEMEABLE_PKGS=(sketchybar ghostty nvim borders aerospace raycast opencode)
         
-        local theme_script="$DOTFILES_DIR/themes/.local/bin/theme-set"
-        if [[ -x "$theme_script" ]]; then
-            local selected_theme
-            [[ -f "$HOME/.config/current-theme" ]] && selected_theme=$(<"$HOME/.config/current-theme")
+        # Check if any themeable package was selected
+        local has_themeable=false
+        for pkg in "${THEMEABLE_PKGS[@]}"; do
+            if [[ " ${pkg_array[*]} " =~ " $pkg " ]]; then
+                has_themeable=true
+                break
+            fi
+        done
+        
+        if [[ "$has_themeable" == true ]]; then
+            stow -d "$DOTFILES_DIR" -t "$HOME" themes 2>/dev/null || true
             
-            selected_theme=$(gum choose --header "Select theme:" \
-                --selected="${selected_theme:-tokyo-night}" \
-                "tokyo-night" "gruvbox" "everforest")
-            
-            if DOTFILES="$DOTFILES_DIR" "$theme_script" "$selected_theme" >/dev/null 2>&1; then
-                post_add "THEME" "$selected_theme" "Applied"
-            else
-                post_add "THEME" "$selected_theme" "Failed"
+            local theme_script="$DOTFILES_DIR/themes/.local/bin/theme-set"
+            if [[ -x "$theme_script" ]]; then
+                # Discover available themes dynamically from themes/configs/
+                local -a available_themes=()
+                for d in "$DOTFILES_DIR/themes/configs"/*/; do
+                    [[ -d "$d" ]] && available_themes+=("$(basename "$d")")
+                done
+                
+                if [[ ${#available_themes[@]} -gt 0 ]]; then
+                    local selected_theme
+                    [[ -f "$HOME/.config/current-theme" ]] && selected_theme=$(<"$HOME/.config/current-theme")
+                    
+                    selected_theme=$(gum choose --header "Select theme:" \
+                        --selected="${selected_theme:-tokyo-night}" \
+                        "${available_themes[@]}")
+                    
+                    if DOTFILES="$DOTFILES_DIR" "$theme_script" "$selected_theme" >/dev/null 2>&1; then
+                        post_add "THEME" "$selected_theme" "Applied"
+                    else
+                        post_add "THEME" "$selected_theme" "Failed"
+                    fi
+                fi
             fi
         fi
     fi
@@ -211,6 +234,23 @@ run_installation() {
 
     # Summary with detailed stats
     ui_summary "$bin_new" "$bin_exists" "$cfg_new" "$cfg_exists" "$fail_count" "$csv_file"
+    rm -f "$csv_file"
+
+    # Show next steps reminder
+    echo ""
+    gum style \
+        --border rounded \
+        --border-foreground "$THEME_ACCENT" \
+        --width 50 \
+        --padding "0 1" \
+        --margin "0 2" \
+        "$(gum style --foreground "$THEME_ACCENT" --bold "NEXT STEPS")" \
+        "" \
+        "$(gum style --foreground "$THEME_TEXT" "Restart your terminal to apply all changes:")" \
+        "" \
+        "$(gum style --foreground "$THEME_SUBTEXT" "  • Close and reopen your terminal, or")" \
+        "$(gum style --foreground "$THEME_SUBTEXT" "  • Run:") $(gum style --foreground "$THEME_PRIMARY" "exec zsh")"
+    echo ""
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════

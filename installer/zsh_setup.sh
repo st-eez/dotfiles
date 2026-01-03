@@ -57,6 +57,123 @@ change_default_shell() {
 }
 
 # =============================================================================
+# ZDOTDIR Bootstrap and Migration
+# =============================================================================
+
+# Sets up ZDOTDIR bootstrap in ~/.zshenv
+# Returns: 0 on success, 1 on failure
+setup_zdotdir() {
+    local zshenv="$HOME/.zshenv"
+    local zdotdir="${XDG_CONFIG_HOME:-$HOME/.config}/zsh"
+    local marker="# steez-dotfiles-zdotdir"
+
+    # Ensure cache directory exists for zcompdump
+    mkdir -p "${XDG_CACHE_HOME:-$HOME/.cache}/zsh"
+
+    # Check if already configured
+    if [[ -f "$zshenv" ]] && grep -q "$marker" "$zshenv" 2>/dev/null; then
+        gum style --foreground "$THEME_SUBTEXT" "  ZDOTDIR already configured"
+        return 0
+    fi
+
+    gum style --foreground "$THEME_PRIMARY" "  Setting up ZDOTDIR bootstrap..."
+
+    local bootstrap_content
+    bootstrap_content=$(cat << 'EOF'
+# steez-dotfiles-zdotdir - Zsh environment bootstrap
+# Sets ZDOTDIR so zsh loads config from ~/.config/zsh/
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+export ZDOTDIR="$XDG_CONFIG_HOME/zsh"
+[[ -f "$ZDOTDIR/.zshenv" ]] && source "$ZDOTDIR/.zshenv"
+EOF
+)
+
+    if [[ -f "$zshenv" ]]; then
+        # Existing .zshenv - prepend our content
+        local existing_content
+        existing_content=$(<"$zshenv")
+        printf '%s\n\n%s\n' "$bootstrap_content" "$existing_content" > "$zshenv"
+        gum style --foreground "$THEME_SUCCESS" "  Updated ~/.zshenv (preserved existing content)"
+    else
+        # No existing .zshenv - create new
+        printf '%s\n' "$bootstrap_content" > "$zshenv"
+        gum style --foreground "$THEME_SUCCESS" "  Created ~/.zshenv"
+    fi
+
+    return 0
+}
+
+# Migrates existing machines from old layout to ZDOTDIR
+# Returns: 0 on success/no-op, 1 on failure
+migrate_zsh_to_zdotdir() {
+    local old_zshrc="$HOME/.zshrc"
+    local old_zprofile="$HOME/.zprofile"
+    local old_plugins_dir="$HOME/.oh-my-zsh/custom/plugins"
+    local zdotdir="${XDG_CONFIG_HOME:-$HOME/.config}/zsh"
+    local new_plugins_dir="$zdotdir/custom/plugins"
+
+    # Check if old symlinks exist pointing to dotfiles/zsh/
+    if [[ -L "$old_zshrc" ]]; then
+        local target
+        target=$(readlink "$old_zshrc")
+        if [[ "$target" == *"dotfiles/zsh/.zshrc"* ]]; then
+            gum style --foreground "$THEME_WARNING" "  Migrating from old zsh layout..."
+
+            # Unstow old zsh package
+            stow -D -d "$DOTFILES_DIR" -t "$HOME" zsh 2>/dev/null || true
+
+            # Remove old symlinks explicitly (in case stow missed them)
+            [[ -L "$old_zshrc" ]] && rm -f "$old_zshrc"
+            [[ -L "$old_zprofile" ]] && rm -f "$old_zprofile"
+            [[ -L "$HOME/.oh-my-zsh/custom/aliases.zsh" ]] && rm -f "$HOME/.oh-my-zsh/custom/aliases.zsh"
+            [[ -L "$HOME/.oh-my-zsh/custom/autoreload.zsh" ]] && rm -f "$HOME/.oh-my-zsh/custom/autoreload.zsh"
+
+            gum style --foreground "$THEME_SUCCESS" "  Removed old layout symlinks"
+        fi
+    fi
+
+    # Migrate old plugins directory (preserve user-installed plugins)
+    if [[ -d "$old_plugins_dir" ]]; then
+        mkdir -p "$new_plugins_dir"
+
+        # Move contents, preserving any user-installed plugins
+        if [[ "$(ls -A "$old_plugins_dir" 2>/dev/null)" ]]; then
+            gum style --foreground "$THEME_SECONDARY" "  Migrating plugins to new location..."
+            for plugin in "$old_plugins_dir"/*/; do
+                local plugin_name=$(basename "$plugin")
+                if [[ ! -d "$new_plugins_dir/$plugin_name" ]]; then
+                    mv "$plugin" "$new_plugins_dir/" 2>/dev/null || true
+                    gum style --foreground "$THEME_SUBTEXT" "    Moved: $plugin_name"
+                fi
+            done
+        fi
+
+        # Only remove old dir if empty
+        rmdir "$old_plugins_dir" 2>/dev/null || true
+        gum style --foreground "$THEME_SUCCESS" "  Plugin migration complete"
+    fi
+
+    # If ~/.zshrc exists as a regular file, keep it (external tools sink)
+    if [[ -f "$old_zshrc" && ! -L "$old_zshrc" ]]; then
+        gum style --foreground "$THEME_SUBTEXT" "  Keeping ~/.zshrc for external tool additions"
+    fi
+
+    # Re-stow zsh package with new structure
+    # This is needed because stow_package() ran BEFORE this migration
+    if [[ -z "${DOTFILES_DIR:-}" ]] || [[ ! -d "$DOTFILES_DIR/zsh" ]]; then
+        gum style --foreground "$THEME_ERROR" "  Cannot restow: DOTFILES_DIR not set or zsh package missing"
+        return 1
+    fi
+
+    if ! stow --restow -d "$DOTFILES_DIR" -t "$HOME" zsh; then
+        gum style --foreground "$THEME_ERROR" "  Failed to stow zsh config (check for conflicts above)"
+        return 1
+    fi
+
+    return 0
+}
+
+# =============================================================================
 # Powerlevel10k Detection and Migration
 # =============================================================================
 
@@ -221,26 +338,26 @@ setup_starship() {
         fi
     fi
 
-    if [[ -f "$HOME/.zshrc" && ! -L "$HOME/.zshrc" ]]; then
-        if ! grep -q 'starship init zsh' "$HOME/.zshrc"; then
-            echo '' >> "$HOME/.zshrc"
-            echo 'eval "$(starship init zsh)"' >> "$HOME/.zshrc"
-            [[ "$quiet" != "true" ]] && gum style --foreground "$THEME_SUCCESS" "  Added starship init to ~/.zshrc"
-        fi
-    fi
-
     [[ "$quiet" != "true" ]] && gum style --foreground "$THEME_SUCCESS" "  Starship configured"
     return 0
 }
 
 setup_zsh_env() {
-    local zsh_custom="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
+    local zdotdir="${XDG_CONFIG_HOME:-$HOME/.config}/zsh"
+    local zsh_custom="$zdotdir/custom"
     local omz_status="OK"
     local plugins_added=0
     local starship_status="OK"
 
-    # 1. Oh-My-Zsh
+    # 0. Setup ZDOTDIR bootstrap
+    setup_zdotdir || return 1
+
+    # 0.5 Migrate from old layout if needed
+    migrate_zsh_to_zdotdir || return 1
+
+    # 1. Oh-My-Zsh (still installs to ~/.oh-my-zsh)
     if [[ ! -d "$HOME/.oh-my-zsh" ]]; then
+        export ZDOTDIR="$zdotdir"
         if sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended --keep-zshrc 2>/dev/null; then
             omz_status="Installed"
         else
@@ -250,7 +367,7 @@ setup_zsh_env() {
     fi
     post_add "ZSH" "Oh-My-Zsh" "$omz_status"
 
-    # 2. Plugins
+    # 2. Plugins (now under ZDOTDIR/custom/plugins)
     local plugins_dir="$zsh_custom/plugins"
     mkdir -p "$plugins_dir"
 
@@ -271,8 +388,6 @@ setup_zsh_env() {
     else
         post_add "ZSH" "Plugins" "OK"
     fi
-
-    [[ ! -e "$zsh_custom/aliases.zsh" && ! -L "$zsh_custom/aliases.zsh" ]] && touch "$zsh_custom/aliases.zsh"
 
     detect_p10k && migrate_p10k_to_starship >/dev/null 2>&1
     if setup_starship "true"; then

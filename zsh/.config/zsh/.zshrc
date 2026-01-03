@@ -4,11 +4,25 @@ case "$(uname -s)" in
   *)      IS_MACOS=false ;;
 esac
 
+# XDG Base Directory Specification
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+
+# Ensure cache directory exists for zcompdump (one-time creation)
+[[ ! -d "$XDG_CACHE_HOME/zsh" ]] && mkdir -p "$XDG_CACHE_HOME/zsh"
+
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH
 
 # Path to your Oh My Zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
+
+# Custom folder under ZDOTDIR (not default ~/.oh-my-zsh/custom)
+export ZSH_CUSTOM="${ZDOTDIR:-$HOME/.config/zsh}/custom"
+
+# Prevent .zcompdump clutter in $HOME
+export ZSH_COMPDUMP="$XDG_CACHE_HOME/zsh/zcompdump-${HOST}-${ZSH_VERSION}"
 
 # Set name of the theme to load --- if set to "random", it will
 # load a random theme each time Oh My Zsh is loaded, in which case,
@@ -137,6 +151,22 @@ if command -v fzf >/dev/null; then
     [[ -f /usr/share/doc/fzf/examples/key-bindings.zsh ]] && source /usr/share/doc/fzf/examples/key-bindings.zsh
     [[ -f /usr/share/doc/fzf/examples/completion.zsh ]] && source /usr/share/doc/fzf/examples/completion.zsh
   fi
+fi
+
+# Source external tool additions (nvm, pyenv, opencode, rustup, etc.)
+# These tools append to ~/.zshrc which is NOT tracked.
+# We source it here so their additions still work.
+#
+# Guards:
+# - The -ef check prevents self-sourcing if files are the same inode
+# - The _STEEZ_SOURCING_HOME_ZSHRC guard prevents infinite loop if ~/.zshrc
+#   sources back to us (common during migrations or from old shim setups)
+if [[ -f "$HOME/.zshrc" && ! "$HOME/.zshrc" -ef "${ZDOTDIR:-$HOME}/.zshrc" ]]; then
+    if (( ! ${+_STEEZ_SOURCING_HOME_ZSHRC} )); then
+        typeset -g _STEEZ_SOURCING_HOME_ZSHRC=1
+        source "$HOME/.zshrc"
+        unset _STEEZ_SOURCING_HOME_ZSHRC
+    fi
 fi
 
 # Source local secrets (not tracked in git)

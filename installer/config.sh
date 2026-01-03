@@ -11,9 +11,7 @@ export MACOS_PKGS=(
     borders
     karabiner
     raycast
-    prompt-optimizer
     sketchybar
-    themes
 )
 
 # Shell & Terminal

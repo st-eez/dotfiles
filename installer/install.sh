@@ -262,6 +262,7 @@ setup_raycast_core_extensions() {
 
     build_raycast_extension "keybinds" "Keybinds" || true
     build_raycast_extension "theme-switcher" "Theme Switcher" || true
+    build_raycast_extension "prompt-optimizer" "Prompt Optimizer" || true
 }
 
 show_raycast_import_instructions() {
@@ -865,42 +866,19 @@ check_stow_conflicts() {
     fi
 }
 
-# Check if a package's configs are correctly stowed
-# Verifies symlinks exist AND point to correct source in $DOTFILES_DIR
+# Check if a package is already correctly stowed
+# Uses stow's own dry-run to detect - handles tree folding correctly
 # Usage: is_stowed "package_name"
-# Returns: 0 if fully/correctly stowed, 1 if not stowed, partial, or wrong target
+# Returns: 0 if already stowed, 1 if not stowed or needs changes
 is_stowed() {
     local pkg="$1"
-    local pkg_dir="$DOTFILES_DIR/$pkg"
+    [[ ! -d "$DOTFILES_DIR/$pkg" ]] && return 1
     
-    [[ ! -d "$pkg_dir" ]] && return 1
-    
-    local pkg_dir_canonical
-    pkg_dir_canonical=$(get_absolute_path "$pkg_dir") || return 1
-    
-    local -a targets=()
-    local line
-    while IFS= read -r line; do
-        [[ -n "$line" ]] && targets+=("$line")
-    done < <(get_stow_targets "$pkg")
-    
-    (( ${#targets[@]} == 0 )) && return 1
-    
-    local rel_path target_path expected_source actual_target
-    
-    for rel_path in "${targets[@]}"; do
-        target_path="$HOME/$rel_path"
-        expected_source="$pkg_dir_canonical/$rel_path"
-        
-        [[ ! -L "$target_path" ]] && return 1
-        
-        actual_target=$(resolve_symlink_target "$target_path")
-        [[ -z "$actual_target" ]] && return 1
-        
-        [[ "$actual_target" != "$expected_source" ]] && return 1
-    done
-    
-    return 0
+    # Use stow's dry-run: if no LINK operations, already stowed
+    # IMPORTANT: Do NOT use --restow (always shows UNLINK/LINK even when stowed)
+    ! stow --no --verbose \
+        --dir="$DOTFILES_DIR" --target="$HOME" "$pkg" 2>&1 | \
+        grep -qE "^LINK:"
 }
 
 # Stow a package (link configs)
@@ -909,14 +887,6 @@ is_stowed() {
 stow_package() {
     local pkg="$1"
     local timestamp="${2:-}"
-
-    # Handle virtual packages that trigger builds but have no stow configs
-    if [[ "$pkg" == "prompt-optimizer" ]]; then
-        gum style --foreground "${THEME_ACCENT:-#73daca}" \
-            "  Building Prompt Optimizer extension..."
-        build_raycast_extension "prompt-optimizer" "Prompt Optimizer" || true
-        return 3
-    fi
 
     if [[ ! -d "$DOTFILES_DIR/$pkg" ]]; then
         # Brew-only package, nothing to stow
@@ -942,16 +912,6 @@ stow_package() {
             # NOTE: aerospace/borders/karabiner/sketchybar not listed - macOS only
         esac
     fi
-
-    # 0. Pre-flight: Check specific critical files
-    case "$pkg" in
-        zsh)
-            if ! ensure_backup "$HOME/.zshrc" "zsh"; then
-                 gum style --foreground "$THEME_ERROR" "Backup cancelled. Skipping $pkg config."
-                 return 1
-            fi
-            ;;
-    esac
 
     # 1. Check if already stowed
     if is_stowed "$pkg"; then
