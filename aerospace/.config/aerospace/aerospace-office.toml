@@ -29,15 +29,15 @@ exec-on-workspace-change = [
 ]
 
 [gaps]
-inner.horizontal = 10
-inner.vertical = 10
-outer.left = 10
-outer.bottom = 10
+inner.horizontal = 12
+inner.vertical = 12
+outer.left = 12
+outer.bottom = 12
 outer.top = [
-  { monitor."built-in" = 10 },
-  10,
-] # 12px for MacBook, 8px for externals
-outer.right = 10
+  { monitor."built-in" = 12 },
+  42,
+] # MacBook uses notch space; externals need 42px for SketchyBar
+outer.right = 12
 
 # Office setup - LG ULTRAWIDE and ASUS monitors
 [workspace-to-monitor-force-assignment]
@@ -148,7 +148,6 @@ ctrl-alt-r = 'flatten-workspace-tree'
 ctrl-alt-h = 'exec-and-forget /bin/bash -c "cp ~/.config/aerospace/aerospace-home.toml ~/.config/aerospace/aerospace.toml && aerospace reload-config && sketchybar --reload"'
 ctrl-alt-w = 'exec-and-forget /bin/bash -c "cp ~/.config/aerospace/aerospace-office.toml ~/.config/aerospace/aerospace.toml && aerospace reload-config && sketchybar --reload"'
 ctrl-alt-l = 'exec-and-forget /bin/bash -c "cp ~/.config/aerospace/aerospace-laptop.toml ~/.config/aerospace/aerospace.toml && aerospace reload-config && sketchybar --reload"'
-ctrl-alt-m = 'exec-and-forget ~/.config/sketchybar/toggle_topmost.lua'
 ctrl-alt-a = 'exec-and-forget /bin/bash ~/.config/AutoRaise/toggle_autoraise.sh'
 
 [[on-window-detected]]

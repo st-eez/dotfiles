@@ -57,6 +57,3 @@ end
 
 battery_pct:subscribe({ "routine", "system_woke", "power_source_change" }, update_battery)
 update_battery()
-add_status_icon("status.wifi", icons.wifi)
-add_status_icon("status.volume", icons.volume)
-add_status_icon("status.teams", icons.teams)

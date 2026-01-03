@@ -333,7 +333,6 @@ const AEROSPACE_SECTIONS: ShortcutSection[] = [
       { binding: "ctrl-alt-h", description: "Switch to home setup" },
       { binding: "ctrl-alt-w", description: "Switch to work/office setup" },
       { binding: "ctrl-alt-l", description: "Switch to laptop-only setup" },
-      { binding: "ctrl-alt-m", description: "Toggle sketchybar visibility" },
       { binding: "ctrl-alt-a", description: "Toggle AutoRaise on/off" },
       { binding: "ctrl-alt-c", description: "Reload aerospace config" },
       { binding: "ctrl-alt-shift-f", description: "Toggle macOS native fullscreen" },

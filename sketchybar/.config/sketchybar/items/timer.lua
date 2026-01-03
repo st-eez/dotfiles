@@ -74,15 +74,6 @@ local function start_timer(duration_secs)
   })
 end
 
--- Spacer for gap between betterdisplay and timer
-sbar.add("item", "timer.spacer", {
-  position = "right",
-  width = 16,
-  background = { drawing = false },
-  icon = { drawing = false },
-  label = { drawing = false },
-})
-
 -- Main Timer Item
 timer = sbar.add("item", "timer", {
   position = "right",
