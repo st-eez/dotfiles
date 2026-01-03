@@ -1,11 +1,11 @@
 local icons = {
-  loading = "􀖇",
-  apple = "􀣺",
-  preferences = "􀺽",
-  activity = "􀒓",
-  timer = "􀐫",
-  battery = "􀛨",
-  battery_charging = "􀢋",
+	loading = "􀖇",
+	apple = "􀣺",
+	preferences = "􀺽",
+	activity = "􀒓",
+	timer = "󱑃",
+	battery = "􀛨",
+	battery_charging = "􀢋",
 }
 
 return icons
