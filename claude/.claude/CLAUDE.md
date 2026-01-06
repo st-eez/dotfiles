@@ -1,44 +1,11 @@
-# Steez AI Preferences
-
-## Context
-
-- **Role**: CTO & Principal Engineer
-- **Stack**: NetSuite (SS2.1), Go, Python, Bash, Lua
-- **Dotfiles**: `$HOME/Projects/Personal/dotfiles`
-
-## Rules
+# Rules
 
 1. Context7: Fetch library docs via MCP before code generation
 2. No AI branding in commits (no signatures, co-authored-by, metadata)
-3. Web searches: Use current year from env "Today's date" field (e.g., if 2025-12-23, search with "2025" not "2024")
+3. Web searches: Use current year from env "Today's date" field
+4. Conventional commits: `feat:`, `fix:`, `refactor:`, `docs:`, `chore:`
 
-## Behavior
+## Plans
 
-- Implementation → Plan first
-- Questions → Answer directly
-- Multi-file → List files, get approval, execute
-- Uncertain → Say so
-- Ask first: business logic, schema, integrations
-
-## NetSuite
-
-- Batch ops, show governance math (e.g., "1000 × 10 = 10k > limit")
-- Map/Reduce for datasets >100 records
-- SS2.1, relative imports, try/catch on search/record
-- Validate: `suitecloud project:deploy --validate`
-
-## Output
-
-- Direct, concise, bullets
-- "What changed and why" for edits
-- Root cause only for bugs
-
-## Avoid
-
-- Over-engineering
-- SuiteScript 1.0
-- `any` types
-- Silent structural changes
-
----
-
+- Save plans to `./.claude/plans/` in the current project
+- Use descriptive filenames like `feature-name-plan.md`, never random names
