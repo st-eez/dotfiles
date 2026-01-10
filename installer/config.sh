@@ -12,6 +12,7 @@ export MACOS_PKGS=(
     karabiner
     raycast
     sketchybar
+    themes
 )
 
 # Shell & Terminal
@@ -80,13 +81,14 @@ get_brew_pkg() {
         aerospace) echo "--cask aerospace" ;;
         autoraise) echo "--cask autoraiseapp" ;;
         bitwarden) echo "--cask bitwarden" ;;
-        borders)   echo "borders" ;;
+        borders)   echo "felixkratz/formulae/borders" ;;
         ghostty)   echo "--cask ghostty" ;;
         karabiner) echo "--cask karabiner-elements" ;;
         localsend) echo "--cask localsend" ;;
         nvim)      echo "neovim" ;;
         raycast)   echo "--cask raycast" ;;
         sketchybar) echo "sketchybar" ;;
+        themes)    echo "" ;;  # Config-only, no brew package
         claude)    echo "claude-code" ;;
         codex)     echo "codex" ;;
         gemini)    echo "gemini-cli" ;;
@@ -154,6 +156,7 @@ get_binary_name() {
         gemini)          echo "gemini" ;;
         pnpm)            echo "pnpm" ;;
         prompt-optimizer) echo "" ;;
+        themes)          echo "" ;;  # Config-only package, no binary
         fd)
             if [[ "$DISTRO" == "debian" ]]; then
                 echo "fdfind"

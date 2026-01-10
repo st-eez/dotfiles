@@ -224,6 +224,15 @@ run_installation() {
         fi
     fi
 
+    # 6b. Raycast Theme Switcher (when themes selected)
+    if [[ " ${pkg_array[*]} " =~ " themes " ]]; then
+        if command -v npm >/dev/null 2>&1; then
+            build_raycast_extension "theme-switcher" "Theme Switcher" || true
+        else
+            post_add "RAYCAST" "theme-switcher" "Skipped (npm not available)"
+        fi
+    fi
+
     # Render post-installation tree
     render_post_install_summary "$zsh_ok" "$git_ok" "$fonts_ok"
 

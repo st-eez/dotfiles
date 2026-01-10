@@ -103,7 +103,22 @@ esac
 
 log() { echo -e "  ${GREEN}✓${NC} $1"; }
 warn() { echo -e "  ${YELLOW}!${NC} $1"; }
+skip() { echo -e "  ${BLUE}○${NC} $1 (not installed)"; }
 error() { echo -e "  ${RED}✗${NC} $1"; exit 1; }
+
+# App detection - returns 0 if installed, 1 if not
+is_installed() {
+    case "$1" in
+        sketchybar) command -v sketchybar &>/dev/null ;;
+        borders)    command -v borders &>/dev/null ;;
+        ghostty)    command -v ghostty &>/dev/null ;;
+        nvim)       command -v nvim &>/dev/null ;;
+        obsidian)   [[ -d "$HOME/Library/Mobile Documents/iCloud~md~obsidian" ]] ;;
+        antigravity) [[ -d "$HOME/Library/Application Support/Antigravity" ]] ;;
+        opencode)   command -v opencode &>/dev/null ;;
+        *)          return 1 ;;
+    esac
+}
 
 BACKUP_DIR=""
 BACKUP_BASE="$HOME/.config/theme-backups"
@@ -148,36 +163,46 @@ echo ""
 # =============================================================================
 # 1. SketchyBar - symlink colors.lua + reload
 # =============================================================================
-if [[ -f "$THEMES_DIR/configs/$THEME/sketchybar-colors.lua" ]]; then
+if ! is_installed sketchybar; then
+    skip "SketchyBar"
+elif [[ -f "$THEMES_DIR/configs/$THEME/sketchybar-colors.lua" ]]; then
     mkdir -p ~/.config/sketchybar
     ln -sfn "$THEMES_DIR/configs/$THEME/sketchybar-colors.lua" ~/.config/sketchybar/colors.lua
-    if command -v sketchybar &>/dev/null && pgrep -xq sketchybar; then
+    if pgrep -xq sketchybar; then
         sketchybar --reload 2>/dev/null && log "SketchyBar" || warn "SketchyBar (reload failed)"
     else
-        log "SketchyBar (symlink created)"
+        log "SketchyBar (config ready)"
     fi
 fi
 
 # =============================================================================
 # 2. Ghostty - symlink theme.conf + reload via SIGUSR2
 # =============================================================================
-if [[ -f "$THEMES_DIR/configs/$THEME/ghostty.conf" ]]; then
+if ! is_installed ghostty; then
+    skip "Ghostty"
+elif [[ -f "$THEMES_DIR/configs/$THEME/ghostty.conf" ]]; then
     mkdir -p ~/.config/ghostty
     ln -sfn "$THEMES_DIR/configs/$THEME/ghostty.conf" ~/.config/ghostty/theme.conf
-    killall -SIGUSR2 ghostty 2>/dev/null && log "Ghostty" || log "Ghostty (symlink created)"
+    if pgrep -xq ghostty; then
+        killall -SIGUSR2 ghostty 2>/dev/null && log "Ghostty" || log "Ghostty (config ready)"
+    else
+        log "Ghostty (config ready)"
+    fi
 fi
 
 # =============================================================================
 # 3. Borders - symlink bordersrc + hot-update via running the script
 # =============================================================================
-if [[ -f "$THEMES_DIR/configs/$THEME/bordersrc" ]]; then
+if ! is_installed borders; then
+    skip "Borders"
+elif [[ -f "$THEMES_DIR/configs/$THEME/bordersrc" ]]; then
     mkdir -p ~/.config/borders
     ln -sfn "$THEMES_DIR/configs/$THEME/bordersrc" ~/.config/borders/bordersrc
     # Hot-update: running bordersrc sends new config to running borders instance
-    if ~/.config/borders/bordersrc >/dev/null 2>&1; then
+    if pgrep -xq borders && ~/.config/borders/bordersrc >/dev/null 2>&1; then
         log "Borders"
     else
-        warn "Borders (update failed)"
+        log "Borders (config ready)"
     fi
 fi
 
@@ -194,9 +219,11 @@ fi
 # =============================================================================
 # 5. Neovim - symlink theme.lua (with Stow folding guard)
 # =============================================================================
-if [[ -f "$THEMES_DIR/configs/$THEME/neovim.lua" ]]; then
+if ! is_installed nvim; then
+    skip "Neovim"
+elif [[ -f "$THEMES_DIR/configs/$THEME/neovim.lua" ]]; then
     NVIM_PLUGINS_DIR="$HOME/.config/nvim/lua/plugins"
-    
+
     # Guard against Stow directory folding
     if [[ -L "$NVIM_PLUGINS_DIR" ]]; then
         warn "Neovim: plugins/ is a symlink (Stow folding)"
@@ -213,7 +240,9 @@ fi
 # =============================================================================
 OBSIDIAN_VAULT="$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents/Steve_Notes"
 OBSIDIAN_APPEARANCE="$OBSIDIAN_VAULT/.obsidian/appearance.json"
-if [[ -f "$OBSIDIAN_APPEARANCE" ]]; then
+if ! is_installed obsidian; then
+    skip "Obsidian"
+elif [[ -f "$OBSIDIAN_APPEARANCE" ]]; then
     backup_file "$OBSIDIAN_APPEARANCE"
     python3 << EOF
 import json
@@ -237,7 +266,9 @@ fi
 # 7. Antigravity (VS Code fork) - text replace in settings.json (JSONC-safe)
 # =============================================================================
 ANTIGRAVITY_SETTINGS="$HOME/Library/Application Support/Antigravity/User/settings.json"
-if [[ -f "$ANTIGRAVITY_SETTINGS" ]]; then
+if ! is_installed antigravity; then
+    skip "Antigravity"
+elif [[ -f "$ANTIGRAVITY_SETTINGS" ]]; then
     backup_file "$ANTIGRAVITY_SETTINGS"
     python3 << EOF
 import re
@@ -269,7 +300,9 @@ fi
 # 8. OpenCode - update theme in opencode.json (strict JSON)
 # =============================================================================
 OPENCODE_CONFIG="$HOME/.config/opencode/opencode.json"
-if [[ -f "$OPENCODE_CONFIG" ]]; then
+if ! is_installed opencode; then
+    skip "OpenCode"
+elif [[ -f "$OPENCODE_CONFIG" ]]; then
     backup_file "$OPENCODE_CONFIG"
     python3 << EOF
 import json
@@ -302,7 +335,7 @@ fi
 # =============================================================================
 # 8b. OpenCode - symlink custom theme (osaka-jade only)
 # =============================================================================
-if [[ "$THEME" == "osaka-jade" && -f "$THEMES_DIR/configs/$THEME/osaka-jade.json" ]]; then
+if is_installed opencode && [[ "$THEME" == "osaka-jade" && -f "$THEMES_DIR/configs/$THEME/osaka-jade.json" ]]; then
     OPENCODE_THEMES_DIR="$HOME/.config/opencode/themes"
     mkdir -p "$OPENCODE_THEMES_DIR"
     ln -sfn "$THEMES_DIR/configs/$THEME/osaka-jade.json" "$OPENCODE_THEMES_DIR/osaka-jade.json"
