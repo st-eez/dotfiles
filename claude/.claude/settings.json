@@ -20,10 +20,25 @@
       "Bash(aerospace list-windows --workspace focused --format '%{window-id} | %{app-name}')",
       "WebSearch",
       "WebFetch",
-      "TodoWrite"
+      "TodoWrite",
+      "Skill(ralph-wiggum:ralph-loop)",
+      "Bash(bash:*)",
+      "Bash(bash -n:*)",
+      "Bash(wc:*)",
+      "Bash(cat:*)",
+      "Bash(du:*)",
+      "Bash(git -C /Users/stevedimakos/Projects/Personal/dotfiles log --oneline -15)",
+      "Bash(git ls-tree:*)",
+      "mcp__plugin_context7_context7__resolve-library-id",
+      "mcp__plugin_context7_context7__query-docs"
     ],
     "deny": [],
-    "ask": []
+    "ask": [],
+    "defaultMode": "default"
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash -c 'cwd=$(jq -r .workspace.current_dir); os=\"󰀵 \"; dir=$(basename \"$cwd\"); gb=\"\"; gs=\"\"; if git -C \"$cwd\" rev-parse --git-dir &>/dev/null; then b=$(git -C \"$cwd\" symbolic-ref --short HEAD 2>/dev/null); [ -n \"$b\" ] && gb=\" $(printf \"\\xee\\x9c\\xa5\") $b \"; [ -n \"$(git -C \"$cwd\" ls-files --others --exclude-standard 2>/dev/null)\" ] && gs=\"${gs}? \"; git -C \"$cwd\" diff --quiet 2>/dev/null || gs=\"${gs} \"; fi; printf \"%s%s%s%s\" \"$os\" \"$dir\" \"$gb\" \"$gs\"'"
   },
   "enabledPlugins": {
     "frontend-design@claude-plugins-official": true,
@@ -34,6 +49,13 @@
     "pr-review-toolkit@claude-plugins-official": true,
     "ralph-wiggum@claude-plugins-official": true,
     "plugin-dev@claude-plugins-official": true,
-    "lua-lsp@claude-plugins-official": true
+    "lua-lsp@claude-plugins-official": true,
+    "hookify@claude-plugins-official": true,
+    "context7@claude-plugins-official": true,
+    "github@claude-plugins-official": true,
+    "serena@claude-plugins-official": true,
+    "pyright-lsp@claude-plugins-official": true,
+    "ralph-loop@claude-plugins-official": true,
+    "code-simplifier@claude-plugins-official": true
   }
 }

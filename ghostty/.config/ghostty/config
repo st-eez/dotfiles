@@ -16,5 +16,9 @@ unfocused-split-opacity = 0.5
 # Disable paste protection warning
 clipboard-paste-protection = false
 
-# Enabke copy on highlight
+# Enable copy on highlight
 copy-on-select = clipboard
+
+# Enable desktop notifs
+desktop-notifications = true
+

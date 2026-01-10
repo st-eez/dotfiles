@@ -200,3 +200,5 @@ fi
 # Apple zsh and Arch zsh have different compiled defaults when list-colors is empty
 # Explicitly set directories to ANSI 34 (blue) to match eza and ensure consistency
 zstyle ':completion:*' list-colors 'di=34'
+
+. "$HOME/.local/share/../bin/env"

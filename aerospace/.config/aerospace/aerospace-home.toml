@@ -188,3 +188,7 @@ run = 'layout floating'
 [[on-window-detected]]
 if.app-name-regex-substring = 'facetime'
 run = 'layout floating'
+
+[[on-window-detected]]
+if.app-name-regex-substring = 'ghostty'
+run = 'layout floating'

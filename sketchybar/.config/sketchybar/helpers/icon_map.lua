@@ -29,7 +29,7 @@ return {
 	["Calculator"] = ":calculator:",
 	["Calendar"] = ":calendar:",
 	["ChatGPT"] = ":openai:",
-	["Google Chrome"] = ":chrome:",
+	["Google Chrome"] = ":google_chrome:",
 	["Claude"] = ":claude:",
 	["Clock"] = ":clock:",
 	["Contacts"] = ":contacts:",
