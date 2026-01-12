@@ -70,6 +70,7 @@ export function formatPromptForDisplay(prompt: string): string {
     task: "Task",
     output: "Output Format",
     execution_protocol: "Execution Protocol",
+    synthesis: "Synthesis",
   };
 
   let formatted = prompt;

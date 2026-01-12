@@ -15,6 +15,7 @@ function getNormalizedPath(): string {
 
   const basePath = process.env.PATH ?? "";
   const bunPath = `${homedir()}/.bun/bin`;
+  const localBinPath = `${homedir()}/.local/bin`;
   let normalizedPath = basePath;
 
   if (!basePath.includes(bunPath)) {
@@ -22,6 +23,9 @@ function getNormalizedPath(): string {
   }
   if (!basePath.includes("/opt/homebrew/bin")) {
     normalizedPath = `/opt/homebrew/bin:${normalizedPath}`;
+  }
+  if (!basePath.includes(localBinPath)) {
+    normalizedPath = `${localBinPath}:${normalizedPath}`;
   }
 
   cachedNormalizedPath = normalizedPath;
@@ -39,6 +43,7 @@ export async function safeExec(
   try {
     const { stdout } = await execa(command, args, {
       env: {
+        ...process.env,
         ...env,
         PATH: normalizedPath,
       },
@@ -92,6 +97,7 @@ export async function safeExecStreaming(
 
   const subprocess = execa(command, args, {
     env: {
+      ...process.env,
       ...env,
       PATH: normalizedPath,
     },
@@ -195,6 +201,24 @@ export function parseGeminiStreamChunk(chunk: string, state: StreamParserState):
   return newText;
 }
 
+export interface CodexStreamEvent {
+  type:
+    | "thread.started"
+    | "turn.started"
+    | "item.started"
+    | "item.completed"
+    | "turn.completed"
+    | "turn.failed"
+    | "error";
+  item?: {
+    id: string;
+    type: "reasoning" | "agent_message" | "command_execution";
+    text?: string;
+  };
+  error?: { message: string };
+  message?: string;
+}
+
 export function parseCodexStreamChunk(chunk: string, state: StreamParserState): string {
   state.buffer += chunk;
   const lines = state.buffer.split("\n");
@@ -204,14 +228,22 @@ export function parseCodexStreamChunk(chunk: string, state: StreamParserState): 
   for (const line of lines) {
     if (!line.trim()) continue;
     try {
-      const event = JSON.parse(line) as { type?: string; text?: string; content?: string };
-      if (event.type === "text" && event.text) {
-        newText += event.text;
-      } else if (event.type === "content" && event.content) {
-        newText += event.content;
+      const event = JSON.parse(line) as CodexStreamEvent;
+
+      if (event.type === "item.completed" && event.item?.text) {
+        if (event.item.type === "agent_message" || event.item.type === "reasoning") {
+          newText += event.item.text + "\n";
+        }
+      }
+
+      if (event.type === "error" && event.message) {
+        newText += `Error: ${event.message}\n`;
+      }
+      if (event.type === "turn.failed" && event.error?.message) {
+        newText += `Failed: ${event.error.message}\n`;
       }
     } catch {
-      newText += line + "\n";
+      continue;
     }
   }
 

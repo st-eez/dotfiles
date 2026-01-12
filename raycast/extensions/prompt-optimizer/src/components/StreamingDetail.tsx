@@ -1,8 +1,14 @@
-import { Detail, ActionPanel, Action, Icon, showToast, Toast, useNavigation } from "@raycast/api";
+import { Detail, ActionPanel, Action, Icon, showToast, Toast, useNavigation, Color } from "@raycast/api";
 import { useEffect, useState, useRef } from "react";
-import { formatPromptForDisplay } from "../utils/format";
+import { formatPromptForDisplay, buildResultMarkdown } from "../utils/format";
 import { addToHistory } from "../utils/history";
-import type { StreamingCallbacks, SmartModeResult } from "../utils/engines";
+import {
+  getPersonaTitle,
+  getPersonaIcon,
+  getEngineIcon,
+  type StreamingCallbacks,
+  type SmartModeResult,
+} from "../utils/engines";
 
 export interface StreamingConfig {
   originalPrompt: string;
@@ -114,7 +120,14 @@ export function StreamingDetail({ config }: { config: StreamingConfig }) {
     }
 
     if (finalResult) {
-      return `# Optimized Prompt\n\n${streamedContent}\n\n---\n\n## Original Prompt\n\n${originalPrompt}`;
+      // Use buildResultMarkdown for proper formatting (same as non-streaming path)
+      return buildResultMarkdown({
+        optimizedPrompt: finalResult.optimizedPrompt,
+        originalPrompt,
+        additionalContext: config.additionalContext,
+        specialistOutputs: finalResult.smartResult?.perspectives,
+        getPersonaTitle,
+      });
     }
 
     if (streamedContent) {
@@ -127,23 +140,46 @@ export function StreamingDetail({ config }: { config: StreamingConfig }) {
 
   const durationSec = finalResult ? (finalResult.durationMs / 1000).toFixed(1) : undefined;
 
+  // Determine persona display
+  const displayPersona = smartMode ? "Orchestrator" : persona;
+  const personaIcon = smartMode ? Icon.Stars : getPersonaIcon(persona);
+
   return (
     <Detail
       isLoading={isStreaming}
       markdown={buildMarkdown()}
       metadata={
         <Detail.Metadata>
-          <Detail.Metadata.Label title="Engine" text={engineName} />
+          {/* Static fields - visible during streaming */}
+          <Detail.Metadata.Label title="Engine" text={engineName} icon={getEngineIcon(engineName)} />
           {model && <Detail.Metadata.Label title="Model" text={model} />}
+          <Detail.Metadata.Label title="Persona" text={getPersonaTitle(displayPersona)} icon={personaIcon} />
           <Detail.Metadata.Label
             title="Status"
             text={error ? "Error" : isStreaming ? "Streaming..." : "Complete"}
             icon={error ? Icon.XMarkCircle : isStreaming ? Icon.Circle : Icon.CheckCircle}
           />
-          {durationSec && (
+
+          {/* Dynamic fields - visible after completion */}
+          {finalResult && (
             <>
+              {finalResult.smartResult?.perspectives && finalResult.smartResult.perspectives.length > 0 && (
+                <Detail.Metadata.TagList title="Active Specialists">
+                  {finalResult.smartResult.perspectives.map((s) => (
+                    <Detail.Metadata.TagList.Item
+                      key={s.persona}
+                      text={getPersonaTitle(s.persona)}
+                      icon={getPersonaIcon(s.persona)}
+                      color={Color.Magenta}
+                    />
+                  ))}
+                </Detail.Metadata.TagList>
+              )}
               <Detail.Metadata.Separator />
-              <Detail.Metadata.Label title="Duration" text={`${durationSec}s`} icon={Icon.Clock} />
+              {durationSec && <Detail.Metadata.Label title="Duration" text={`${durationSec}s`} icon={Icon.Clock} />}
+              <Detail.Metadata.Label title="Original Input" text={originalPrompt} />
+              <Detail.Metadata.Label title="Original Length" text={`${originalPrompt.length} chars`} />
+              <Detail.Metadata.Label title="Optimized Length" text={`${finalResult.optimizedPrompt.length} chars`} />
             </>
           )}
         </Detail.Metadata>

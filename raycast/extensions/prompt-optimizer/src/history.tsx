@@ -1,7 +1,7 @@
 import { Action, ActionPanel, Color, Detail, Icon, List, showToast, Toast, confirmAlert, Alert } from "@raycast/api";
 import { useEffect, useState } from "react";
 import { getHistory, clearHistory, removeFromHistory, HistoryItem } from "./utils/history";
-import { getPersonaTitle, getPersonaIcon } from "./utils/engines";
+import { getPersonaTitle, getPersonaIcon, getEngineIcon } from "./utils/engines";
 import { formatPromptForDisplay, buildResultMarkdown } from "./utils/format";
 import { homedir } from "os";
 import { writeFile } from "fs/promises";
@@ -37,21 +37,6 @@ function groupHistoryByDate(items: HistoryItem[]): Record<DateGroup, HistoryItem
   });
 
   return groups;
-}
-
-function getEngineIcon(engine: string): Icon {
-  switch (engine.toLowerCase()) {
-    case "codex":
-      return Icon.Code;
-    case "gemini":
-      return Icon.Stars;
-    case "opencode":
-      return Icon.Terminal;
-    case "claude":
-      return Icon.Message;
-    default:
-      return Icon.Dot;
-  }
 }
 
 function extractTitle(text: string, maxLength: number = 80): string {

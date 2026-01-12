@@ -19,6 +19,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
+import { execFileSync } from "child_process";
 
 // Stable ID based on process start time - survives within same process, new on restart
 const INSTANCE_ID = `${process.pid}-${Date.now().toString(36).slice(-4)}`;
@@ -238,5 +239,58 @@ export function getIsolationStatus(): {
     codex: codexIsolation !== null,
     opencode: opencodeIsolation !== null,
     instanceId: INSTANCE_ID,
+  };
+}
+
+/**
+ * Claude isolation configuration.
+ * Claude isolation is achieved via CLI flags. We also pass HOME to ensure
+ * credentials at ~/.claude/ are found when run from Raycast's sandboxed env.
+ */
+export interface ClaudeIsolation {
+  args: string[];
+  env: { HOME: string; CLAUDE_CODE_OAUTH_TOKEN?: string };
+}
+
+/**
+ * Read Claude OAuth token from macOS Keychain.
+ * Claude stores credentials in Keychain (unlike Gemini/Codex which use JSON files).
+ * Returns the access token or null if not found.
+ */
+function getClaudeOAuthToken(): string | null {
+  try {
+    const output = execFileSync("security", ["find-generic-password", "-s", "Claude Code-credentials", "-w"], {
+      encoding: "utf8",
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    const creds = JSON.parse(output.trim()) as { claudeAiOauth?: { accessToken?: string } };
+    return creds.claudeAiOauth?.accessToken ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Get Claude CLI isolation args and env.
+ * These flags disable MCP servers, tools, and skills to ensure clean execution.
+ * OAuth token is read from Keychain and passed via env var to work in Raycast's sandbox.
+ */
+export function getClaudeIsolation(): ClaudeIsolation {
+  const token = getClaudeOAuthToken();
+  return {
+    args: [
+      "--setting-sources",
+      "",
+      "--strict-mcp-config",
+      "--mcp-config",
+      '{"mcpServers":{}}',
+      "--tools",
+      "",
+      "--disable-slash-commands",
+    ],
+    env: {
+      HOME: os.homedir(),
+      ...(token && { CLAUDE_CODE_OAUTH_TOKEN: token }),
+    },
   };
 }
