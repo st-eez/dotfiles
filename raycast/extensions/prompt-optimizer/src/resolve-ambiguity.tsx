@@ -1,7 +1,7 @@
 import { Action, ActionPanel, Detail, Form, Icon, showToast, Toast, useNavigation, Color } from "@raycast/api";
 import { useState, Fragment } from "react";
-import { ClarificationQuestion, engines, PERSONAS } from "./utils/engines";
-import { formatPromptForDisplay } from "./utils/format";
+import { ClarificationQuestion, engines, getPersonaTitle, getPersonaIcon } from "./utils/engines";
+import { startProgressTimer, buildResultMarkdown } from "./utils/format";
 import { addToHistory } from "./utils/history";
 
 interface ResolveAmbiguityProps {
@@ -37,11 +37,7 @@ export default function ResolveAmbiguity({
       title: `${statusMessage}...`,
     });
 
-    const start = Date.now();
-    const timer = setInterval(() => {
-      const elapsed = ((Date.now() - start) / 1000).toFixed(1);
-      toast.title = `${statusMessage}… ${elapsed}s`;
-    }, 1000);
+    const progress = startProgressTimer(toast, statusMessage);
 
     try {
       const engine = engines.find((e) => e.name === engineName);
@@ -65,7 +61,7 @@ export default function ResolveAmbiguity({
         optimizedPrompt = await engine.runWithClarifications(draftPrompt, clarifications, model, context, persona);
       }
 
-      const totalSec = ((Date.now() - start) / 1000).toFixed(1);
+      const totalSec = progress.stop().toFixed(1);
 
       toast.style = Toast.Style.Success;
       toast.title = "Prompt optimized!";
@@ -83,29 +79,33 @@ export default function ResolveAmbiguity({
 
       push(
         <Detail
-          markdown={`# Optimized Prompt\n\n${formatPromptForDisplay(optimizedPrompt)}\n\n---\n\n## Original Prompt\n\n${draftPrompt}${context ? `\n\n---\n\n## Additional Context\n\n${context}` : ""}\n\n---\n\n## Clarifications\n${clarifications.map((c) => `- **Q:** ${c.question}\n  **A:** ${c.answer}`).join("\n")}${smartMode && results.length > 0 ? `\n\n---\n\n## Specialist Perspectives\n\n${results.map((s) => `### ${PERSONAS.find((p) => p.id === s.persona)?.title || s.persona}\n\n${s.output}`).join("\n\n---\n\n")}` : ""}`}
+          markdown={buildResultMarkdown({
+            optimizedPrompt,
+            originalPrompt: draftPrompt,
+            additionalContext: context || undefined,
+            clarifications,
+            specialistOutputs: smartMode && results.length > 0 ? results : undefined,
+            getPersonaTitle,
+          })}
           metadata={
             <Detail.Metadata>
               <Detail.Metadata.Label title="Engine" text={engine.displayName} icon={engine.icon} />
               <Detail.Metadata.Label title="Model" text={model} />
               <Detail.Metadata.Label
                 title="Persona"
-                text={smartMode ? "Smart Orchestrator" : (PERSONAS.find((p) => p.id === persona)?.title ?? persona)}
-                icon={smartMode ? Icon.Stars : PERSONAS.find((p) => p.id === persona)?.icon}
+                text={smartMode ? "Smart Orchestrator" : getPersonaTitle(persona)}
+                icon={smartMode ? Icon.Stars : getPersonaIcon(persona)}
               />
               {smartMode && personasUsed.length > 0 && (
                 <Detail.Metadata.TagList title="Active Specialists">
-                  {personasUsed.map((specialistId) => {
-                    const p = PERSONAS.find((pers) => pers.id === specialistId);
-                    return (
-                      <Detail.Metadata.TagList.Item
-                        key={specialistId}
-                        text={p?.title || specialistId}
-                        icon={p?.icon}
-                        color={Color.Magenta}
-                      />
-                    );
-                  })}
+                  {personasUsed.map((specialistId) => (
+                    <Detail.Metadata.TagList.Item
+                      key={specialistId}
+                      text={getPersonaTitle(specialistId)}
+                      icon={getPersonaIcon(specialistId)}
+                      color={Color.Magenta}
+                    />
+                  ))}
                 </Detail.Metadata.TagList>
               )}
               <Detail.Metadata.Separator />
@@ -124,11 +124,11 @@ export default function ResolveAmbiguity({
         />,
       );
     } catch (error) {
+      progress.stop();
       toast.style = Toast.Style.Failure;
       toast.title = "Failed to optimize";
       toast.message = String(error);
     } finally {
-      clearInterval(timer);
       setIsLoading(false);
     }
   }

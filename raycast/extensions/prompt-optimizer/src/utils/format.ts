@@ -1,3 +1,59 @@
+export function startProgressTimer(
+  toast: { title: string },
+  initialMessage: string,
+): { stop: () => number; setMessage: (msg: string) => void } {
+  let statusMessage = initialMessage;
+  const start = Date.now();
+  const timer = setInterval(() => {
+    const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+    toast.title = `${statusMessage}… ${elapsed}s`;
+  }, 1000);
+  return {
+    stop: () => {
+      clearInterval(timer);
+      return (Date.now() - start) / 1000;
+    },
+    setMessage: (msg: string) => {
+      statusMessage = msg;
+      const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+      toast.title = `${statusMessage}… ${elapsed}s`;
+    },
+  };
+}
+
+interface ResultMarkdownOptions {
+  optimizedPrompt: string;
+  originalPrompt: string;
+  additionalContext?: string;
+  clarifications?: { question: string; answer: string }[];
+  specialistOutputs?: { persona: string; output: string }[];
+  getPersonaTitle: (personaId: string) => string;
+}
+
+export function buildResultMarkdown(options: ResultMarkdownOptions): string {
+  const { optimizedPrompt, originalPrompt, additionalContext, clarifications, specialistOutputs, getPersonaTitle } =
+    options;
+
+  let markdown = `# Optimized Prompt\n\n${formatPromptForDisplay(optimizedPrompt)}`;
+  markdown += `\n\n---\n\n## Original Prompt\n\n${originalPrompt}`;
+
+  if (additionalContext) {
+    markdown += `\n\n---\n\n## Additional Context\n\n${additionalContext}`;
+  }
+
+  if (clarifications && clarifications.length > 0) {
+    markdown += `\n\n---\n\n## Clarifications\n`;
+    markdown += clarifications.map((c) => `- **Q:** ${c.question}\n  **A:** ${c.answer}`).join("\n");
+  }
+
+  if (specialistOutputs && specialistOutputs.length > 0) {
+    markdown += `\n\n---\n\n## Specialist Perspectives\n\n`;
+    markdown += specialistOutputs.map((s) => `### ${getPersonaTitle(s.persona)}\n\n${s.output}`).join("\n\n---\n\n");
+  }
+
+  return markdown;
+}
+
 export function formatPromptForDisplay(prompt: string): string {
   const tagMappings: Record<string, string> = {
     role: "Role",

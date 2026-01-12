@@ -33,6 +33,14 @@ export const PERSONAS: Persona[] = [
   { id: "researcher", title: "Researcher", icon: Icon.MagnifyingGlass },
 ];
 
+export function getPersonaTitle(personaId: string): string {
+  return PERSONAS.find((p) => p.id === personaId)?.title ?? personaId;
+}
+
+export function getPersonaIcon(personaId: string): Icon | undefined {
+  return PERSONAS.find((p) => p.id === personaId)?.icon;
+}
+
 export function buildOptimizationPrompt(
   userPrompt: string,
   context?: string,

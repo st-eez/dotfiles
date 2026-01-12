@@ -11,9 +11,16 @@ import {
   getSelectedText,
 } from "@raycast/api";
 import { useEffect, useState } from "react";
-import { engines, PERSONAS, type SmartModeResult, type StreamingCallbacks } from "./utils/engines";
+import {
+  engines,
+  PERSONAS,
+  getPersonaTitle,
+  getPersonaIcon,
+  type SmartModeResult,
+  type StreamingCallbacks,
+} from "./utils/engines";
 import { StreamingDetail, type StreamingConfig } from "./components/StreamingDetail";
-import { formatPromptForDisplay } from "./utils/format";
+import { startProgressTimer, buildResultMarkdown } from "./utils/format";
 import { addToHistory } from "./utils/history";
 import { useDebounce } from "./hooks/useDebounce";
 import { config } from "./config";
@@ -32,9 +39,6 @@ export default function Command() {
   const [smartMode, setSmartMode] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const { push, pop } = useNavigation();
-
-  // Persona definitions moved to utils/engines.ts
-  // Persona definitions moved to utils/engines.ts
 
   async function handleGrabContext() {
     try {
@@ -144,12 +148,7 @@ export default function Command() {
       title: "Optimizing prompt...",
     });
 
-    let statusMessage = "Optimizing prompt";
-    const start = Date.now();
-    const timer = setInterval(() => {
-      const elapsed = ((Date.now() - start) / 1000).toFixed(1);
-      toast.title = `${statusMessage}… ${elapsed}s`;
-    }, 1000);
+    const progress = startProgressTimer(toast, "Optimizing prompt");
 
     try {
       let optimizedPrompt = "";
@@ -160,8 +159,7 @@ export default function Command() {
         if (!engine.runOrchestrated) {
           throw new Error("Smart mode requires an engine with runOrchestrated support");
         }
-        statusMessage = "Smart mode optimization";
-        toast.title = `${statusMessage}...`;
+        progress.setMessage("Smart mode optimization");
 
         const smartResult: SmartModeResult = await engine.runOrchestrated(
           finalPrompt,
@@ -175,7 +173,7 @@ export default function Command() {
         optimizedPrompt = await engine.run(finalPrompt, modelToUse, additionalContext, selectedPersona);
       }
 
-      const totalSec = ((Date.now() - start) / 1000).toFixed(1);
+      const totalSec = progress.stop().toFixed(1);
       toast.style = Toast.Style.Success;
       toast.title = `Prompt optimized in ${totalSec}s`;
 
@@ -190,37 +188,34 @@ export default function Command() {
         specialistOutputs: smartMode && results.length > 0 ? results : undefined,
       });
 
-      const contextSection = additionalContext ? `\n\n---\n\n## Additional Context\n\n${additionalContext}` : "";
-
       push(
         <Detail
-          markdown={`# Optimized Prompt\n\n${formatPromptForDisplay(optimizedPrompt)}\n\n---\n\n## Original Prompt\n\n${prompt}${contextSection}${smartMode && results.length > 0 ? `\n\n---\n\n## Specialist Perspectives\n\n${results.map((s) => `### ${PERSONAS.find((p) => p.id === s.persona)?.title || s.persona}\n\n${s.output}`).join("\n\n---\n\n")}` : ""}`}
+          markdown={buildResultMarkdown({
+            optimizedPrompt,
+            originalPrompt: prompt,
+            additionalContext: additionalContext || undefined,
+            specialistOutputs: smartMode && results.length > 0 ? results : undefined,
+            getPersonaTitle,
+          })}
           metadata={
             <Detail.Metadata>
               <Detail.Metadata.Label title="Engine" text={engine.displayName} icon={engine.icon} />
               {modelToUse && <Detail.Metadata.Label title="Model" text={modelToUse} />}
               <Detail.Metadata.Label
                 title="Persona"
-                text={
-                  smartMode
-                    ? "Smart Orchestrator"
-                    : (PERSONAS.find((p) => p.id === selectedPersona)?.title ?? selectedPersona)
-                }
-                icon={smartMode ? Icon.Stars : PERSONAS.find((p) => p.id === selectedPersona)?.icon}
+                text={smartMode ? "Smart Orchestrator" : getPersonaTitle(selectedPersona)}
+                icon={smartMode ? Icon.Stars : getPersonaIcon(selectedPersona)}
               />
               {smartMode && personasToRun.length > 0 && (
                 <Detail.Metadata.TagList title="Active Specialists">
-                  {personasToRun.map((specialistId) => {
-                    const p = PERSONAS.find((persona) => persona.id === specialistId);
-                    return (
-                      <Detail.Metadata.TagList.Item
-                        key={specialistId}
-                        text={p?.title || specialistId}
-                        icon={p?.icon}
-                        color={Color.Magenta}
-                      />
-                    );
-                  })}
+                  {personasToRun.map((specialistId) => (
+                    <Detail.Metadata.TagList.Item
+                      key={specialistId}
+                      text={getPersonaTitle(specialistId)}
+                      icon={getPersonaIcon(specialistId)}
+                      color={Color.Magenta}
+                    />
+                  ))}
                 </Detail.Metadata.TagList>
               )}
               <Detail.Metadata.Separator />
@@ -243,11 +238,11 @@ export default function Command() {
         />,
       );
     } catch (error: unknown) {
+      progress.stop();
       toast.style = Toast.Style.Failure;
       toast.title = "Failed to optimize prompt";
       toast.message = error instanceof Error ? error.message : String(error);
     } finally {
-      clearInterval(timer);
       setIsLoading(false);
     }
   }
@@ -290,11 +285,7 @@ export default function Command() {
     const statusMessage = smartMode ? "Smart audit" : "Auditing";
     const toast = await showToast({ style: Toast.Style.Animated, title: `${statusMessage}...` });
 
-    const start = Date.now();
-    const timer = setInterval(() => {
-      const elapsed = ((Date.now() - start) / 1000).toFixed(1);
-      toast.title = `${statusMessage}… ${elapsed}s`;
-    }, 1000);
+    const progress = startProgressTimer(toast, statusMessage);
 
     try {
       const finalPrompt = applyTemplate(prompt, variableValues);
@@ -316,7 +307,7 @@ export default function Command() {
         questions = singlePersonaQuestions;
       }
 
-      clearInterval(timer);
+      progress.stop();
 
       if (questions.length === 0) {
         toast.title = "No ambiguity found. Optimizing...";
@@ -341,11 +332,11 @@ export default function Command() {
         />,
       );
     } catch (error) {
+      progress.stop();
       toast.style = Toast.Style.Failure;
       toast.title = "Audit failed";
       console.error(error);
     } finally {
-      clearInterval(timer);
       setIsLoading(false);
     }
   }
