@@ -27,6 +27,8 @@ export function StreamingDetail({ config }: { config: StreamingConfig }) {
 
   const [isStreaming, setIsStreaming] = useState(true);
   const [streamedContent, setStreamedContent] = useState("");
+  const [synthesisContent, setSynthesisContent] = useState("");
+  const [rawBuffer, setRawBuffer] = useState("");
   const [finalResult, setFinalResult] = useState<{
     optimizedPrompt: string;
     durationMs: number;
@@ -46,7 +48,25 @@ export function StreamingDetail({ config }: { config: StreamingConfig }) {
       try {
         const callbacks: StreamingCallbacks = {
           onChunk: (text: string) => {
-            if (mounted) {
+            if (!mounted) return;
+
+            if (smartMode) {
+              // For smart mode: accumulate raw buffer and extract synthesis in real-time
+              setRawBuffer((prev) => {
+                const newBuffer = prev + text;
+                // Extract synthesis content as it streams
+                const synthStart = newBuffer.indexOf("<synthesis>");
+                if (synthStart !== -1) {
+                  const contentStart = synthStart + "<synthesis>".length;
+                  const synthEnd = newBuffer.indexOf("</synthesis>");
+                  const content =
+                    synthEnd !== -1 ? newBuffer.slice(contentStart, synthEnd) : newBuffer.slice(contentStart);
+                  setSynthesisContent(content);
+                }
+                return newBuffer;
+              });
+            } else {
+              // Non-smart mode: accumulate full stream for display
               setStreamedContent((prev) => prev + text);
             }
           },
@@ -130,8 +150,22 @@ export function StreamingDetail({ config }: { config: StreamingConfig }) {
       });
     }
 
-    if (streamedContent) {
+    // Handle streaming display
+    const hasStreamContent = smartMode ? rawBuffer.length > 0 : streamedContent.length > 0;
+    if (hasStreamContent) {
       const cursor = isStreaming ? " ▊" : "";
+
+      if (smartMode) {
+        // For smart mode: show synthesis content or progress indicator
+        if (synthesisContent) {
+          // Apply same formatting as final result for visual consistency
+          return `# Optimizing...\n\n${formatPromptForDisplay(synthesisContent)}${cursor}\n\n---\n\n## Original Prompt\n\n${originalPrompt}`;
+        } else {
+          return `# Optimizing...\n\n_Analyzing with specialist perspectives..._${cursor}\n\n---\n\n## Original Prompt\n\n${originalPrompt}`;
+        }
+      }
+
+      // Non-smart mode: show full stream (current behavior)
       return `# Optimizing...\n\n${streamedContent}${cursor}\n\n---\n\n## Original Prompt\n\n${originalPrompt}`;
     }
 
