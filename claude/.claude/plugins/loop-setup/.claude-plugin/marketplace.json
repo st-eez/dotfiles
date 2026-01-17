@@ -1,0 +1,14 @@
+{
+  "name": "local-plugins",
+  "owner": {
+    "name": "steez"
+  },
+  "plugins": [
+    {
+      "name": "loop-setup",
+      "source": "./plugins/loop-setup",
+      "description": "Ralph Loop scaffolding - specs, PIN, implementation plans for bash loop workflow",
+      "version": "1.0.0"
+    }
+  ]
+}
