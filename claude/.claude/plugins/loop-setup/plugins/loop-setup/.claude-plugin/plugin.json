@@ -1,8 +1,0 @@
-{
-  "name": "loop-setup",
-  "description": "Ralph Loop scaffolding - specs, PIN, implementation plans for bash loop workflow",
-  "author": {
-    "name": "steez"
-  },
-  "version": "1.0.0"
-}
