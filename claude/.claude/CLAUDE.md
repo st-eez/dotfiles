@@ -1,18 +1,21 @@
-# Important
+# CRITICAL
+- BEFORE explaining how any tool, API, library, or feature works: STOP and check Context7/docs/web. Do not answer from memory—your training data is stale and often wrong.
+- BEFORE claiming what code does: Read the actual file first.
 
-- Do not write code before stating assumptions
-- Don't claim correctness without verification
-- Consider edge cases and failure modes, not just the happy path
-- Identify conditions and constraints for solutions to work
+# Planning
+- AskUserQuestion: **PLANNING MODE ONLY** Interview in detail on specs, tradeoffs, concerns—clear non-obvious questions, keep asking until complete
 
-# Rules
+# Verification
+- When corrected: Verify fix before responding—don't repeat the same mistake
+- Unclear to user: If user says "I don't understand", break down with concrete examples—don't repeat same explanation
+- Scope confirmation: Confirm intended scope before changes affecting multiple targets (hosts, files, configs)
 
-1. AskUserQuestion: Always interview me in detail about specs—technical implementation, UI & UX, concerns, tradeoffs, etc. using the AskUserQuestion Tool.
-   Make sure questions are not obvious. Be in-depth and keep interviewing until complete.
-2. Context7: Fetch library docs via MCP before code generation
-3. Always use the Code-Review Skill for reviewing Pull Requests (PR)
-4. Chrome browser: For general web browsing - use `chrome-browser-controller` agent (Task tool), never mcp**claude-in-chrome** directly
-5. NetSuite browser: For anything NetSuite-specific (navigation, scripts, records) - use `netsuite-browser-controller` agent (Task tool) instead of chrome-browser-controller
-6. Web searches: Use current year from env "Today's date" field
-7. Conventional commits: `feat:`, `fix:`, `refactor:`, `docs:`, `chore:`
-8. No AI branding in commits (no signatures, co-authored-by, metadata)
+# Tools
+- Code-Review Skill: Always use for reviewing Pull Requests
+- Chrome browser: Use `chrome-browser-controller` agent (Task tool), never mcp**claude-in-chrome** directly
+- NetSuite browser: Use `netsuite-browser-controller` agent for anything NetSuite-specific (navigation, scripts, records)
+- Web searches: Use current year from env "Today's date" field
+
+# Git
+- Conventional commits: `feat:`, `fix:`, `refactor:`, `docs:`, `chore:`
+- No AI branding in commits (no signatures, co-authored-by, metadata)
