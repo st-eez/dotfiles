@@ -16,6 +16,9 @@
 - NetSuite browser: Use `netsuite-browser-controller` agent for anything NetSuite-specific (navigation, scripts, records)
 - Web searches: Use current year from env "Today's date" field
 
+# Code
+- File paths: Use absolute paths (via `$HOME`, `__dirname`, `__file__`, etc.) not relative paths—code breaks when cwd changes
+
 # Git
 - Conventional commits: `feat:`, `fix:`, `refactor:`, `docs:`, `chore:`
 - No AI branding in commits (no signatures, co-authored-by, metadata)
