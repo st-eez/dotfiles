@@ -9,6 +9,9 @@ export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
 export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
 
+# Use system ripgrep for Claude Code (faster, compiled for this arch)
+export USE_BUILTIN_RIPGREP=0
+
 # Ensure cache directory exists for zcompdump (one-time creation)
 [[ ! -d "$XDG_CACHE_HOME/zsh" ]] && mkdir -p "$XDG_CACHE_HOME/zsh"
 

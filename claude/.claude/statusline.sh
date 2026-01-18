@@ -27,8 +27,6 @@ ahead=""
 behind=""
 untracked=""
 modified=""
-lines_added=0
-lines_removed=0
 
 if cd "$dir" 2>/dev/null && git rev-parse --git-dir &>/dev/null; then
   branch=$(git symbolic-ref --short HEAD 2>/dev/null)
@@ -46,15 +44,6 @@ if cd "$dir" 2>/dev/null && git rev-parse --git-dir &>/dev/null; then
   # Status indicators
   [ -n "$(git ls-files --others --exclude-standard 2>/dev/null)" ] && untracked="?"
   git diff --quiet 2>/dev/null || modified="●"
-
-  # Diff stats
-  diff_stats=$(git diff --shortstat 2>/dev/null)
-  if [ -n "$diff_stats" ]; then
-    lines_added=$(echo "$diff_stats" | sed -n 's/.* \([0-9]*\) insertion.*/\1/p')
-    lines_removed=$(echo "$diff_stats" | sed -n 's/.* \([0-9]*\) deletion.*/\1/p')
-    [ -z "$lines_added" ] && lines_added=0
-    [ -z "$lines_removed" ] && lines_removed=0
-  fi
 fi
 
 # Context window percentage (using new pre-calculated field)
@@ -98,7 +87,7 @@ format_tokens() {
 input_fmt=$(format_tokens "$total_input")
 output_fmt=$(format_tokens "$total_output")
 
-# BUILD LINE 1: 󰀵 …/dir  branch ⇡2 ⇣1 ?  +32 -12
+# BUILD LINE 1: 󰀵 …/dir  branch ⇡2 ⇣1 ? ●
 line1=$(printf "${WHITE}󰀵 ${BOLD_CYAN}…/%s${RESET}" "$dir_name")
 
 if [ -n "$branch" ]; then
@@ -109,10 +98,6 @@ fi
 [ -n "$behind" ] && line1="$line1 $(printf "${YELLOW}%s${RESET}" "$behind")"
 [ -n "$modified" ] && line1="$line1 $(printf "${YELLOW}%s${RESET}" "$modified")"
 [ -n "$untracked" ] && line1="$line1 $(printf "${YELLOW}%s${RESET}" "$untracked")"
-
-if [ "$lines_added" != "0" ] || [ "$lines_removed" != "0" ]; then
-  line1="$line1 $(printf "${GREEN}+%s${RESET} ${RED}-%s${RESET}" "$lines_added" "$lines_removed")"
-fi
 
 # BUILD LINE 2: model │ duration │ ctx% │ tokens (all dim/grey)
 line2=$(printf "${DIM}%s" "$model")
