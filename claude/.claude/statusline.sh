@@ -12,6 +12,7 @@ YELLOW='\033[93m'      # bright-yellow: git warnings
 RED='\033[91m'         # red: deletions, context <20%
 DIM='\033[2m'          # dim: separators
 RESET='\033[0m'
+CLEAR='\033[K'         # clear to end of line
 
 # Extract JSON data
 dir=$(echo "$input" | jq -r '.workspace.current_dir // "."')
@@ -48,17 +49,9 @@ fi
 
 # Context window percentage (using new pre-calculated field)
 ctx=""
-ctx_color=""
 used=$(echo "$input" | jq -r '.context_window.used_percentage // 0' | cut -d. -f1)
 
 if [ "$used" -gt 0 ] 2>/dev/null; then
-  if [ "$used" -lt 50 ]; then
-    ctx_color="$STD_GREEN"
-  elif [ "$used" -lt 80 ]; then
-    ctx_color="$YELLOW"
-  else
-    ctx_color="$RED"
-  fi
   ctx="${used}%"
 fi
 
@@ -116,5 +109,5 @@ fi
 
 line2="${line2}${RESET}"
 
-# Output both lines
-printf '%b\n\n%b' "$line1" "$line2"
+# Output both lines (CLEAR ensures no leftover characters from previous renders)
+printf '%b%b\n%b%b' "$line1" "$CLEAR" "$line2" "$CLEAR"
