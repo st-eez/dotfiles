@@ -6,7 +6,7 @@ config-file = ?"~/.config/ghostty/theme.conf"
 
 background-opacity = 1
 font-family = JetBrainsMono Nerd Font
-font-size = 16
+font-size = 14
 keybind = shift+enter=text:\n
 
 # Split appearance
