@@ -1,62 +1,80 @@
 {
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
   "permissions": {
     "allow": [
+      "Bash(aerospace:*)",
+      "Bash(pgrep:*)",
       "Bash(brew services list)",
-      "Bash(pgrep -fl 'yabai|skhd')",
-      "Bash(aerospace --help)",
-      "Bash(aerospace --config-path)",
-      "Bash(aerospace --version)",
-      "Bash(aerospace config -h)",
-      "Bash(aerospace config --config-path)",
-      "Read(//Applications/**)",
-      "Bash(open -a AeroSpace)",
-      "Bash(aerospace list-workspaces --all)",
       "Bash(brew services restart sketchybar)",
-      "Bash(pgrep -fl sketchybar)",
-      "Bash(aerospace balance-sizes --help)",
-      "Bash(aerospace balance-sizes)",
-      "Bash(aerospace list-windows --workspace focused --format '%{window-id} | %{app-name} | floating: %{window-floating}')",
-      "Bash(aerospace flatten-workspace-tree)",
-      "Bash(aerospace list-windows --workspace focused --format '%{window-id} | %{app-name}')",
+      "Bash(open -a AeroSpace)",
+      "Read(/Applications/**)",
       "WebSearch",
       "WebFetch",
       "TodoWrite",
-      "Skill(ralph-wiggum:ralph-loop)",
-      "Bash(bash:*)",
-      "Bash(bash -n:*)",
       "Bash(wc:*)",
-      "Bash(cat:*)",
       "Bash(du:*)",
-      "Bash(git -C /Users/stevedimakos/Projects/Personal/dotfiles log --oneline -15)",
       "Bash(git ls-tree:*)",
-      "mcp__plugin_context7_context7__resolve-library-id",
-      "mcp__plugin_context7_context7__query-docs",
+      "Bash(git log:*)",
+      "Bash(git rev-list:*)",
       "Bash(grep:*)",
       "Bash(ls:*)",
-      "Bash(xargs -I{} sh -c 'grep -l \"\"chrome-browser-controller\"\" \"\"{}\"\" 2>/dev/null')"
+      "Bash(bd:*)",
+      "mcp__plugin_context7_context7__resolve-library-id",
+      "mcp__plugin_context7_context7__query-docs"
     ],
-    "deny": [],
+    "deny": [
+      "Bash(rm -rf:*)",
+      "Bash(chmod 777:*)",
+      "Bash(git push --force:*)",
+      "Bash(git reset --hard:*)"
+    ],
     "ask": [],
     "defaultMode": "default"
+  },
+  "hooks": {
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bd prime"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bd prime"
+          }
+        ]
+      }
+    ]
   },
   "statusLine": {
     "type": "command",
     "command": "~/.claude/statusline.sh"
   },
   "enabledPlugins": {
-    "frontend-design@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true,
     "code-review@claude-plugins-official": true,
-    "security-guidance@claude-plugins-official": true,
-    "ralph-wiggum@claude-plugins-official": true,
-    "plugin-dev@claude-plugins-official": true,
-    "lua-lsp@claude-plugins-official": true,
-    "hookify@claude-plugins-official": true,
-    "context7@claude-plugins-official": true,
-    "serena@claude-plugins-official": false,
-    "pyright-lsp@claude-plugins-official": true,
     "code-simplifier@claude-plugins-official": true,
+    "context7@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true,
+    "loop-setup-v2@steez-claude-marketplace": true,
+    "lua-lsp@claude-plugins-official": true,
+    "plugin-dev@claude-plugins-official": true,
+    "pyright-lsp@claude-plugins-official": true,
+    "ralph-wiggum@claude-plugins-official": false,
+    "security-guidance@claude-plugins-official": true,
+    "serena@claude-plugins-official": false,
     "swift-lsp@claude-plugins-official": true,
-    "loop-setup-v2@steez-claude-marketplace": true
+    "typescript-lsp@claude-plugins-official": true
   }
 }
