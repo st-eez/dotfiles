@@ -183,9 +183,64 @@ install_localsend_linux() {
 
 # Post-install setup for Ghostty on Debian/Ubuntu/Mint
 # Creates .desktop entry and ensures PATH is set
+# Setup TPM and tmux plugins after stowing tmux config
+# Clones TPM, tmux-which-key, and builds the which-key menu
+setup_tmux_plugins() {
+    local tpm_dir="$HOME/.tmux/plugins/tpm"
+    local whichkey_dir="$HOME/.tmux/plugins/tmux-which-key"
+
+    # 1. Clone TPM if not present
+    if [[ ! -d "$tpm_dir" ]]; then
+        gum style --foreground "$THEME_PRIMARY" "  ◆ Installing TPM (Tmux Plugin Manager)..."
+        if ! git clone --quiet https://github.com/tmux-plugins/tpm "$tpm_dir" 2>/dev/null; then
+            gum style --foreground "$THEME_ERROR" "  Failed to clone TPM"
+            return 1
+        fi
+        gum style --foreground "$THEME_SUCCESS" "  TPM installed"
+    else
+        gum style --foreground "$THEME_SUBTEXT" "  TPM already installed"
+    fi
+
+    # 2. Clone tmux-which-key if not present
+    if [[ ! -d "$whichkey_dir" ]]; then
+        gum style --foreground "$THEME_PRIMARY" "  ◆ Installing tmux-which-key..."
+        if ! git clone --quiet --recursive https://github.com/alexwforsythe/tmux-which-key "$whichkey_dir" 2>/dev/null; then
+            gum style --foreground "$THEME_ERROR" "  Failed to clone tmux-which-key"
+            return 1
+        fi
+    else
+        # Ensure submodules are initialized (may have been cloned without --recursive)
+        if [[ ! -d "$whichkey_dir/plugin/pyyaml/lib" ]]; then
+            gum style --foreground "$THEME_PRIMARY" "  ◆ Initializing tmux-which-key submodules..."
+            (cd "$whichkey_dir" && git submodule update --init --recursive 2>/dev/null) || true
+        fi
+    fi
+
+    # 3. Setup which-key config if not present
+    if [[ ! -f "$whichkey_dir/config.yaml" ]]; then
+        cp "$whichkey_dir/config.example.yaml" "$whichkey_dir/config.yaml"
+    fi
+    if [[ ! -f "$whichkey_dir/plugin/init.tmux" ]]; then
+        cp "$whichkey_dir/plugin/init.example.tmux" "$whichkey_dir/plugin/init.tmux"
+    fi
+
+    # 4. Build which-key menu from config (requires python3)
+    if command -v python3 >/dev/null 2>&1; then
+        if python3 "$whichkey_dir/plugin/build.py" "$whichkey_dir/config.yaml" "$whichkey_dir/plugin/init.tmux" 2>/dev/null; then
+            gum style --foreground "$THEME_SUCCESS" "  tmux-which-key configured"
+        else
+            gum style --foreground "$THEME_WARNING" "  tmux-which-key build failed (will use defaults)"
+        fi
+    else
+        gum style --foreground "$THEME_WARNING" "  python3 not found - tmux-which-key will use defaults"
+    fi
+
+    return 0
+}
+
 setup_opencode_plugins() {
     local opencode_dir="$HOME/.config/opencode"
-    
+
     if [[ ! -f "$opencode_dir/package.json" ]]; then
         return 0
     fi
@@ -956,6 +1011,9 @@ stow_package() {
                 ;;
             raycast)
                 setup_raycast_core_extensions || true
+                ;;
+            tmux)
+                setup_tmux_plugins || return 1
                 ;;
         esac
         return 0
