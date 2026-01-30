@@ -116,6 +116,7 @@ is_installed() {
         obsidian)   [[ -d "$HOME/Library/Mobile Documents/iCloud~md~obsidian" ]] ;;
         antigravity) [[ -d "$HOME/Library/Application Support/Antigravity" ]] ;;
         opencode)   command -v opencode &>/dev/null ;;
+        tmux)       command -v tmux &>/dev/null ;;
         *)          return 1 ;;
     esac
 }
@@ -370,6 +371,21 @@ elif [[ -f "$THEMES_DIR/wallpapers/$THEME.png" ]]; then
         log "Wallpaper"
     else
         warn "Wallpaper (permission denied)"
+    fi
+fi
+
+# =============================================================================
+# 10. Tmux - symlink theme.conf + hot-reload
+# =============================================================================
+if ! is_installed tmux; then
+    skip "Tmux"
+elif [[ -f "$THEMES_DIR/configs/$THEME/tmux.conf" ]]; then
+    mkdir -p ~/.config/tmux
+    ln -sfn "$THEMES_DIR/configs/$THEME/tmux.conf" ~/.config/tmux/theme.conf
+    if pgrep -xq tmux; then
+        tmux source-file ~/.config/tmux/tmux.conf 2>/dev/null && log "Tmux" || warn "Tmux (reload failed)"
+    else
+        log "Tmux (config ready)"
     fi
 fi
 
