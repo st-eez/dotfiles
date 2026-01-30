@@ -1,63 +1,57 @@
 #!/usr/bin/env bash
-# tmux-git-info - Display git branch info for tmux status bar
-# Usage: tmux-git-info [--with-path]
+# tmux-git-info - Display git branch + abbreviated directory for tmux status bar
+# Usage: tmux-git-info [path]
 #
-# Options:
-#   --with-path    Include abbreviated current directory before branch name
-#
-# Output:
-#   - If in a git repo: branch name (e.g., "main" or "feature/foo")
-#   - If not in a git repo: empty string
-#   - With --with-path: "~/Projects/foo main" or just "~/Projects/foo" if not in repo
+# Output: "~/P/P/dirname  branch" - path abbreviated with first letter of each parent
+# Padded to fixed width to prevent status bar shifting
 
-# Fast exit if git is not available
 command -v git &>/dev/null || exit 0
 
-show_path=false
-if [[ "${1:-}" == "--with-path" ]]; then
-    show_path=true
-fi
+target_dir="${1:-$PWD}"
+cd "$target_dir" 2>/dev/null || exit 0
 
-# Get abbreviated path (replace $HOME with ~)
-get_abbrev_path() {
-    echo "${PWD/$HOME/\~}"
-}
+# Abbreviated path: ~/P/P/dirname (first letter of parents, full name for current)
+abbrev_path() {
+  local path="${PWD/#$HOME/\~}"
+  local parts=()
+  local IFS='/'
+  read -ra parts <<<"$path"
 
-# Get git branch name efficiently
-# Uses git symbolic-ref first (fast), falls back to rev-parse for detached HEAD
-get_git_branch() {
-    # Check if we're in a git repo (fastest check)
-    git rev-parse --is-inside-work-tree &>/dev/null || return 1
+  local result=""
+  local last_idx=$((${#parts[@]} - 1))
 
-    # Try symbolic-ref first (works for normal branches)
-    local branch
-    branch=$(git symbolic-ref --short HEAD 2>/dev/null)
-
-    if [[ -n "$branch" ]]; then
-        echo "$branch"
-        return 0
-    fi
-
-    # Fallback for detached HEAD - show short commit hash
-    local commit
-    commit=$(git rev-parse --short HEAD 2>/dev/null)
-    if [[ -n "$commit" ]]; then
-        echo "($commit)"
-        return 0
-    fi
-
-    return 1
-}
-
-# Main output
-if $show_path; then
-    path=$(get_abbrev_path)
-    branch=$(get_git_branch)
-    if [[ -n "$branch" ]]; then
-        echo "$path $branch"
+  for i in "${!parts[@]}"; do
+    local part="${parts[$i]}"
+    if [[ -z "$part" ]]; then
+      continue
+    elif [[ "$part" == "~" ]]; then
+      result="~"
+    elif [[ $i -eq $last_idx ]]; then
+      # Last part: show full name
+      result="$result/$part"
     else
-        echo "$path"
+      # Parent: show first letter only
+      result="$result/${part:0:1}"
     fi
-else
-    get_git_branch
+  done
+
+  echo "$result"
+}
+
+abbrev=$(abbrev_path)
+
+# Git branch
+branch=""
+if git rev-parse --is-inside-work-tree &>/dev/null; then
+  branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+  [[ -z "$branch" ]] && branch=$(git rev-parse --short HEAD 2>/dev/null)
 fi
+
+if [[ -n "$branch" ]]; then
+  output="$abbrev  $branch"
+else
+  output="$abbrev"
+fi
+
+# Pad to fixed width (30 chars) to prevent status bar shifting
+printf "%30s" "$output"
