@@ -19,6 +19,7 @@ export MACOS_PKGS=(
 export SHELL_PKGS=(
     ghostty
     starship
+    tmux
     zsh
     zoxide
 )
@@ -213,6 +214,7 @@ get_pkg_description() {
         ripgrep)      echo "Fast grep replacement" ;;
         starship)     echo "Cross-shell prompt" ;;
         stow)         echo "Symlink farm manager" ;;
+        tmux)         echo "Terminal multiplexer" ;;
         wireguard-tools) echo "VPN tools" ;;
         zoxide)       echo "Smart cd command" ;;
         zsh)          echo "Z shell" ;;
