@@ -19,7 +19,8 @@ export USE_BUILTIN_RIPGREP=0
 # export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH
 
 # Path to your Oh My Zsh installation.
-export ZSH="$HOME/.oh-my-zsh"
+# Path to your Oh My Zsh installation.
+export ZSH="${ZDOTDIR:-$HOME/.config/zsh}/ohmyzsh"
 
 # Custom folder under ZDOTDIR (not default ~/.oh-my-zsh/custom)
 export ZSH_CUSTOM="${ZDOTDIR:-$HOME/.config/zsh}/custom"

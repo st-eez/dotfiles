@@ -355,9 +355,19 @@ setup_zsh_env() {
     # 0.5 Migrate from old layout if needed
     migrate_zsh_to_zdotdir || return 1
 
-    # 1. Oh-My-Zsh (still installs to ~/.oh-my-zsh)
-    if [[ ! -d "$HOME/.oh-my-zsh" ]]; then
+    # 1. Oh-My-Zsh (installs to $ZDOTDIR/ohmyzsh)
+    local omz_dir="$zdotdir/ohmyzsh"
+
+    # Migrate legacy ~/.oh-my-zsh to new location
+    if [[ -d "$HOME/.oh-my-zsh" && ! -d "$omz_dir" ]]; then
+        gum style --foreground "$THEME_SECONDARY" "  Migrating Oh-My-Zsh to $zdotdir/ohmyzsh..."
+        mv "$HOME/.oh-my-zsh" "$omz_dir"
+        omz_status="Migrated"
+    fi
+
+    if [[ ! -d "$omz_dir" ]]; then
         export ZDOTDIR="$zdotdir"
+        export ZSH="$omz_dir"
         if sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended --keep-zshrc 2>/dev/null; then
             omz_status="Installed"
         else
