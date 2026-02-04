@@ -205,4 +205,5 @@ fi
 # Explicitly set directories to ANSI 34 (blue) to match eza and ensure consistency
 zstyle ':completion:*' list-colors 'di=34'
 
-. "$HOME/.local/share/../bin/env"
+# pnpm env (auto-added by pnpm)
+[[ -f "$HOME/.local/share/../bin/env" ]] && . "$HOME/.local/share/../bin/env"
