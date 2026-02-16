@@ -1,8 +1,6 @@
 # Verification
 
-- When corrected: Verify fix before responding—don't repeat the same mistake
 - Unclear to user: If user says "I don't understand", break down with concrete examples—don't repeat same explanation
-- Scope confirmation: Confirm intended scope before changes affecting multiple targets (hosts, files, configs)
 
 # Tools
 
