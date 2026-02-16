@@ -3,9 +3,7 @@
 # Outside tmux, Claude Code's built-in idle notification handles this
 # natively after 60 seconds with proper terminal focus detection.
 
-# Debug: log each invocation with stdin JSON
 INPUT=$(cat)
-echo "$(date '+%H:%M:%S') hook fired (TMUX_PANE=$TMUX_PANE) input=$INPUT" >> /tmp/tmux-notify-debug.log
 
 [ -z "$TMUX_PANE" ] && exit 0
 
