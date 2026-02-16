@@ -56,6 +56,17 @@
           }
         ]
       }
+    ],
+    "Notification": [
+      {
+        "matcher": "idle_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/stevedimakos/.claude/hooks/tmux-notify.sh"
+          }
+        ]
+      }
     ]
   },
   "statusLine": {
@@ -76,5 +87,7 @@
     "swift-lsp@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
     "gopls-lsp@claude-plugins-official": true
-  }
+  },
+  "outputStyle": "Explanatory",
+  "skipDangerousModePermissionPrompt": true
 }
