@@ -1,6 +1,6 @@
 add_newline = true
 command_timeout = 200
-format = "$os[$directory$git_branch$git_status]($style)$character"
+format = "$os$hostname[$directory$git_branch$git_status]($style)$character"
 
 [os]
 disabled = false
@@ -12,6 +12,10 @@ Arch = "󰣇 "
 Ubuntu = " "
 Mint = "󰣭 "
 Linux = " "
+
+[hostname]
+ssh_only = true
+format = "[$hostname](bright-white):"
 
 [character]
 error_symbol = "[✘](bold red)"
