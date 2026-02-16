@@ -8,6 +8,7 @@ background-opacity = 1
 font-family = JetBrainsMono Nerd Font
 font-size = 14
 keybind = shift+enter=text:\n
+keybind = super+left=text:\x1bOH
 
 # Split appearance
 unfocused-split-opacity = 0.5
