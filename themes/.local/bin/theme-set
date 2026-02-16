@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # theme-set - Switch macOS theme across all configured apps
 # Usage: theme-set <theme> | --next | --prev
-# Available themes: tokyo-night, gruvbox, everforest
+# Available themes: tokyo-night, gruvbox, everforest, osaka-jade
 
 set -euo pipefail
 
-# Ensure Homebrew binaries are in PATH (needed when called from Raycast/sandboxed environments)
-export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
+# Ensure binaries are in PATH (needed when called from Raycast/sandboxed environments)
+export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:/Applications/Ghostty.app/Contents/MacOS:$PATH"
 
 # Ensure USER is set (required by sketchybar, not always set in sandboxed environments)
 export USER="${USER:-$(whoami)}"
