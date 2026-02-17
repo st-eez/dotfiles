@@ -7,9 +7,9 @@ package.path = package.path .. ";./helpers/?.lua"
 local app_icons = require("helpers.icon_map")
 
 -- State: keyed by macOS space_id, each holding 10 workspace items
-local spaces = {}           -- [space_id][ws_name] = sbar item
+local spaces = {}            -- [space_id][ws_name] = sbar item
 local current_workspace = {} -- [space_id] = active ws_name
-local window_cache = {}     -- [space_id .. "." .. ws_name] = icon string
+local window_cache = {}      -- [space_id .. "." .. ws_name] = icon string
 
 -- Styling Constants (same as original)
 local active_color = colors.white
@@ -118,30 +118,70 @@ local function update_display(space_id)
   end)
 end
 
--- Main Setup: query displays, then create workspace items per display
-local displays_cmd = "rift-cli query displays | " .. JQ .. " -r '.[] | \"\\(.screen_id)\\t\\(.space)\\t\\(.name)\"'"
+-- Build display mapping and set up items
+-- Phase 1: Probe SketchyBar display positions to build screen_id → display mapping
+-- Rift's screen_id does NOT match SketchyBar's display numbering, so we create
+-- temporary items on each SketchyBar display, query their global coordinates,
+-- and match them to Rift display frame origins via closest distance.
 
-sbar.exec(displays_cmd, function(output)
-  if not output or output == "" then return end
+local probe_script = [[
+RIFT_JSON=$(rift-cli query displays)
+N=$(echo "$RIFT_JSON" | ]] .. JQ .. [[ 'length')
 
-  local display_list = {} -- { {screen_id=N, space_id=N, name=S}, ... }
+# Create hidden probe items on each SketchyBar display
+for i in $(seq 1 $N); do
+  sketchybar --add item __probe_$i left --set __probe_$i display=$i icon.drawing=off label.drawing=off background.drawing=off 2>/dev/null
+done
+sleep 0.15
 
-  for line in output:gmatch("[^\r\n]+") do
-    local screen_id, space_id, name = line:match("^([^\t]+)\t([^\t]+)\t(.+)$")
-    if screen_id and space_id then
+# For each SketchyBar display, find the matching Rift screen_id
+for i in $(seq 1 $N); do
+  QUERY=$(sketchybar --query __probe_$i 2>/dev/null)
+  PX=$(echo "$QUERY" | ]] .. JQ .. [[ -r ".bounding_rects[\"display-$i\"].origin[0]")
+  PY=$(echo "$QUERY" | ]] .. JQ .. [[ -r ".bounding_rects[\"display-$i\"].origin[1]")
+
+  # Find closest Rift display by Manhattan distance to frame origin
+  MATCH=$(echo "$RIFT_JSON" | ]] .. JQ .. [[ -r --argjson px "$PX" --argjson py "$PY" '
+    [.[] | {
+      screen_id: .screen_id,
+      space: .space,
+      name: .name,
+      dist: (((.frame.origin.x - $px) | if . < 0 then -. else . end) +
+             ((.frame.origin.y - $py) | if . < 0 then -. else . end))
+    }] | sort_by(.dist) | .[0] | "\(.screen_id)\t\(.space)\t\(.name)"
+  ')
+
+  printf "%s\t%s\n" "$MATCH" "$i"
+  sketchybar --remove __probe_$i 2>/dev/null
+done
+]]
+
+sbar.exec(probe_script, function(mapping_output)
+  if not mapping_output or mapping_output == "" then return end
+
+  -- Parse probe output: "screen_id\tspace_id\tdisplay_name\tsketchybar_display" per line
+  local display_list = {}
+
+  for line in mapping_output:gmatch("[^\r\n]+") do
+    local screen_id, space_id, name, sb_display = line:match("^([^\t]+)\t([^\t]+)\t([^\t]+)\t(%d+)$")
+    if screen_id and space_id and sb_display then
       table.insert(display_list, {
         screen_id = tonumber(screen_id),
         space_id = tonumber(space_id),
         name = name,
+        sb_display = tonumber(sb_display),
       })
     end
   end
 
+  if #display_list == 0 then return end
+
+  -- Phase 2: Create workspace items per display with correct SketchyBar display assignment
   local workspace_names = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0" }
 
   for _, display in ipairs(display_list) do
     local sid = display.space_id
-    local screen = display.screen_id
+    local sb_disp = display.sb_display
     spaces[sid] = {}
 
     for _, ws_name in ipairs(workspace_names) do
@@ -175,7 +215,7 @@ sbar.exec(displays_cmd, function(output)
           color = transparent,
           border_color = transparent,
         },
-        display = screen,
+        display = sb_disp,
         click_script = "rift-cli execute workspace switch " .. ws_index,
         position = "left",
       })
@@ -231,7 +271,6 @@ sbar.exec(displays_cmd, function(output)
 
   front_app:subscribe("front_app_switched", function(env)
     front_app:set({ label = env.INFO })
-    -- Refresh all displays to catch window moves
     for sid, _ in pairs(spaces) do
       update_display(sid)
     end
