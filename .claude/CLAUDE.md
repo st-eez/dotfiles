@@ -13,6 +13,8 @@ GNU Stow-managed dotfiles. Each top-level directory is a stow package mirroring 
 - Don't edit theme files directly — edit in `themes/configs/<theme>/`
 - Don't use manual symlinks — Stow handles this
 - Zsh uses ZDOTDIR (`~/.config/zsh/`) — edit there, not `~/.zshrc`
+- Stow symlinks: use `unlink` to remove, never `rm -r` (follows symlinks and deletes source files)
+- Manual stow: always pass `--target=$HOME` — default target is `..`, not `$HOME`
 
 ## Monitor Troubleshooting
 

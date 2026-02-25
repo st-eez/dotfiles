@@ -1,17 +1,21 @@
-# Verification
-
-- Unclear to user: If user says "I don't understand", break down with concrete examples—don't repeat same explanation
+# Self-Healing
+- After 2 consecutive tool failures, STOP — retrying with minor variations is brute-forcing, not problem-solving
+  - Re-read errors, verify actual state (files, configs, paths), then fix your assumptions before retrying
+- When corrected or after a recurring issue, ask: "would this recur in a fresh session?"
+  - If yes, propose a concise CLAUDE.md rule (user-level for general, project-level for project-specific)
 
 # Tools
 
 - Code-Review Skill: Always use for reviewing Pull Requests
 - Web searches: Use current year from env "Today's date" field
+- Playwright: Use `playwright-cli` skill for browser automation
+  - Setup: run `playwright-cli install --skills` in the project directory (per-workspace)
+  - Snapshots: Use `playwright-cli eval` or `Grep` on YAML to extract specific values — never `Read` full snapshot files (token waste)
 
 # Task Tracking
 
-- Use `bd` (beads) for ALL task tracking — do NOT use TodoWrite, TaskCreate, or markdown files
-- Create a beads issue BEFORE writing code, mark `in_progress` when starting
 - Run `bd prime` for full workflow context if not auto-injected by hooks
+- Beads: Always add a label with the worktree name or abbreviation (e.g., `bd update <id> --add-label <worktree>`)
 
 # Code
 
@@ -20,3 +24,4 @@
 # Git
 
 - Conventional commits: `feat:`, `fix:`, `refactor:`, `docs:`, `chore:`
+- Worktrees: Use `bd worktree create` instead of `git worktree add`—it sets up the `.beads/redirect` automatically

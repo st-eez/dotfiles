@@ -1,0 +1,214 @@
+# Rift config — translated from AeroSpace setup
+# ~/.config/rift/config.toml
+
+[settings]
+# Animations
+animate = true
+animation_duration = 0.25
+animation_fps = 120.0
+animation_easing = "ease_in_out"
+
+# Mouse/Focus behavior
+focus_follows_mouse = false
+mouse_follows_focus = true
+mouse_hides_on_focus = false
+
+# All workspaces start with tiling active (matches AeroSpace behavior)
+default_disable = false
+
+auto_focus_blacklist = []
+
+# Start SketchyBar and JankyBorders alongside Rift
+# NOTE: SketchyBar workspace display requires updating spaces.lua to use
+# rift-cli commands instead of aerospace commands. For now, the bar will
+# render but workspace indicators won't update on workspace switch.
+run_on_start = [
+  "/opt/homebrew/opt/borders/bin/borders",
+  "/opt/homebrew/opt/sketchybar/bin/sketchybar",
+]
+
+hot_reload = true
+
+[settings.layout]
+# "traditional" = i3/sway-like containers (closest to AeroSpace's tiles mode)
+# Other options: "bsp", "master_stack", "scrolling"
+mode = "traditional"
+
+[settings.layout.stack]
+stack_offset = 40.0
+default_orientation = "perpendicular"
+
+# Gaps — matching AeroSpace's 12px inner + outer gaps
+# Top is 42px for SketchyBar on external monitors.
+# For the built-in MacBook display (notch handles the bar), add a per_display
+# override below with top = 12.
+[settings.layout.gaps.outer]
+top = 42
+left = 12
+bottom = 12
+right = 12
+
+[settings.layout.gaps.inner]
+horizontal = 12
+vertical = 12
+
+# Per-display overrides for MacBook built-in display (12px top instead of 42px)
+# Find your display UUID with: clang -framework ApplicationServices ...
+[settings.layout.gaps.per_display."37D8832A-2D66-02CA-B9F7-8F30A301B230".outer]
+top = 12
+left = 12
+bottom = 12
+right = 12
+
+[settings.ui.menu_bar]
+enabled = false   # Using SketchyBar instead
+
+[settings.ui.mission_control]
+enabled = false
+
+[settings.gestures]
+enabled = true
+fingers = 3
+skip_empty = true
+haptics_enabled = true
+haptic_pattern = "level_change"
+
+[settings.window_snapping]
+drag_swap_fraction = 0.3
+
+# ── Virtual Workspaces ──────────────────────────────────────────────
+# 10 workspaces matching AeroSpace's 1-9,0 scheme
+# NOTE: Rift uses 0-based indexing internally. Workspace names display as 1-9,0
+# but switch_to_workspace uses index 0-9.
+[virtual_workspaces]
+enabled = true
+default_workspace_count = 10
+auto_assign_windows = true
+preserve_focus_per_workspace = true
+workspace_auto_back_and_forth = false
+workspace_names = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
+
+# Float rules — matching AeroSpace [[on-window-detected]] rules
+app_rules = [
+  { app_name = "Finder", floating = true },
+  { app_name = "IINA", floating = true },
+  { app_name = "Pixea", floating = true },
+  { app_name = "Numi", floating = true },
+  { app_name = "TLauncher", floating = true },
+  { app_id = "net.whatsapp.WhatsApp", floating = true },
+  { app_id = "com.apple.MobileSMS", floating = true },
+  { app_id = "com.bitwarden.desktop", floating = true },
+  { app_name = "App Store", floating = true },
+  { app_id = "com.apple.systempreferences", floating = true },
+  { app_name = "FaceTime", floating = true },
+]
+
+# ── Modifier Combinations ──────────────────────────────────────────
+[modifier_combinations]
+comb1 = "Alt + Shift"
+
+# ── Keybindings ─────────────────────────────────────────────────────
+[keys]
+
+# Toggle Rift management of current macOS Space
+# Press this first after starting Rift to activate tiling!
+"Alt + Z" = "toggle_space_activated"
+
+# ── Focus direction (Alt + vim keys) ──
+"Alt + H" = { move_focus = "left" }
+"Alt + J" = { move_focus = "down" }
+"Alt + K" = { move_focus = "up" }
+"Alt + L" = { move_focus = "right" }
+
+# ── Focus direction (Alt + arrows) ──
+"Alt + Left"  = { move_focus = "left" }
+"Alt + Down"  = { move_focus = "down" }
+"Alt + Up"    = { move_focus = "up" }
+"Alt + Right" = { move_focus = "right" }
+
+# ── Move windows (Alt + Shift + vim keys) ──
+"comb1 + H" = { move_node = "left" }
+"comb1 + J" = { move_node = "down" }
+"comb1 + K" = { move_node = "up" }
+"comb1 + L" = { move_node = "right" }
+
+# ── Move windows (Alt + Shift + arrows) ──
+# NOTE: In AeroSpace these also move across monitors at boundaries.
+# Rift's move_node stays within the current Space. Use Ctrl+Alt+Shift+arrows
+# to move windows to other displays.
+"comb1 + Left"  = { move_node = "left" }
+"comb1 + Down"  = { move_node = "down" }
+"comb1 + Up"    = { move_node = "up" }
+"comb1 + Right" = { move_node = "right" }
+
+# ── Switch workspace (Alt + number) ──
+# Rift uses 0-based indexing: Alt+1 → index 0 (named "1"), Alt+0 → index 9 (named "0")
+"Alt + 1" = { switch_to_workspace = 0 }
+"Alt + 2" = { switch_to_workspace = 1 }
+"Alt + 3" = { switch_to_workspace = 2 }
+"Alt + 4" = { switch_to_workspace = 3 }
+"Alt + 5" = { switch_to_workspace = 4 }
+"Alt + 6" = { switch_to_workspace = 5 }
+"Alt + 7" = { switch_to_workspace = 6 }
+"Alt + 8" = { switch_to_workspace = 7 }
+"Alt + 9" = { switch_to_workspace = 8 }
+"Alt + 0" = { switch_to_workspace = 9 }
+
+# ── Move window to workspace (Alt + Shift + number) ──
+"comb1 + 1" = { move_window_to_workspace = 0 }
+"comb1 + 2" = { move_window_to_workspace = 1 }
+"comb1 + 3" = { move_window_to_workspace = 2 }
+"comb1 + 4" = { move_window_to_workspace = 3 }
+"comb1 + 5" = { move_window_to_workspace = 4 }
+"comb1 + 6" = { move_window_to_workspace = 5 }
+"comb1 + 7" = { move_window_to_workspace = 6 }
+"comb1 + 8" = { move_window_to_workspace = 7 }
+"comb1 + 9" = { move_window_to_workspace = 8 }
+"comb1 + 0" = { move_window_to_workspace = 9 }
+
+# ── Workspace navigation ──
+# Alt+Tab = last workspace (AeroSpace: ctrl-alt-tab back-and-forth)
+# NOTE: AeroSpace used alt-tab for next workspace cycling. Rift uses it for
+# back-and-forth by default. Adjust if you prefer cycling behavior.
+"Alt + Tab" = "next_workspace"
+"comb1 + Tab" = "prev_workspace"
+"Ctrl + Alt + Tab" = "switch_to_last_workspace"
+
+# ── Window controls ──
+"Alt + T" = "toggle_window_floating"
+"Alt + F" = "toggle_fullscreen"
+"Ctrl + Alt + Shift + F" = "toggle_fullscreen_within_gaps"
+
+# ── Resize ──
+"Alt + Equal" = "resize_window_grow"
+"Alt + Minus" = "resize_window_shrink"
+
+# ── Join windows / layout management (Ctrl + Alt + arrows) ──
+"Ctrl + Alt + Left"  = { join_window = "left" }
+"Ctrl + Alt + Right" = { join_window = "right" }
+"Ctrl + Alt + Up"    = { join_window = "up" }
+"Ctrl + Alt + Down"  = { join_window = "down" }
+
+# ── Layout orientation toggle ──
+"Ctrl + Alt + J" = "toggle_orientation"
+
+# ── Move window to display (Ctrl + Alt + Shift + direction) ──
+"Ctrl + Alt + Shift + Up"    = { move_window_to_display = { selector = "up" } }
+"Ctrl + Alt + Shift + Down"  = { move_window_to_display = { selector = "down" } }
+"Ctrl + Alt + Shift + Left"  = { move_window_to_display = { selector = "left" } }
+"Ctrl + Alt + Shift + Right" = { move_window_to_display = { selector = "right" } }
+
+# ── Move window to display by index (Ctrl + Alt + Shift + number) ──
+# Rift uses 0-based display indexing
+"Ctrl + Alt + Shift + 1" = { move_window_to_display = { selector = 0 } }
+"Ctrl + Alt + Shift + 2" = { move_window_to_display = { selector = 1 } }
+"Ctrl + Alt + Shift + 3" = { move_window_to_display = { selector = 2 } }
+
+# ── Stack operations ──
+"Alt + Comma" = "toggle_stack"
+"Alt + Slash" = "toggle_orientation"
+
+# ── Debug ──
+"Alt + Shift + D" = "debug"
+"Ctrl + Alt + S" = "serialize"
+"Ctrl + Alt + Q" = "save_and_exit"
