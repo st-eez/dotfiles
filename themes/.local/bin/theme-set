@@ -169,7 +169,7 @@ if ! is_installed sketchybar; then
 elif [[ -f "$THEMES_DIR/configs/$THEME/sketchybar-colors.lua" ]]; then
     mkdir -p ~/.config/sketchybar
     ln -sfn "$THEMES_DIR/configs/$THEME/sketchybar-colors.lua" ~/.config/sketchybar/colors.lua
-    if pgrep -xq sketchybar; then
+    if pgrep -x sketchybar >/dev/null 2>&1; then
         sketchybar --reload 2>/dev/null && log "SketchyBar" || warn "SketchyBar (reload failed)"
     else
         log "SketchyBar (config ready)"
@@ -184,7 +184,7 @@ if ! is_installed ghostty; then
 elif [[ -f "$THEMES_DIR/configs/$THEME/ghostty.conf" ]]; then
     mkdir -p ~/.config/ghostty
     ln -sfn "$THEMES_DIR/configs/$THEME/ghostty.conf" ~/.config/ghostty/theme.conf
-    if pgrep -xq ghostty; then
+    if pgrep -x ghostty >/dev/null 2>&1; then
         killall -SIGUSR2 ghostty 2>/dev/null && log "Ghostty" || log "Ghostty (config ready)"
     else
         log "Ghostty (config ready)"
@@ -200,7 +200,7 @@ elif [[ -f "$THEMES_DIR/configs/$THEME/bordersrc" ]]; then
     mkdir -p ~/.config/borders
     ln -sfn "$THEMES_DIR/configs/$THEME/bordersrc" ~/.config/borders/bordersrc
     # Hot-update: running bordersrc sends new config to running borders instance
-    if pgrep -xq borders && ~/.config/borders/bordersrc >/dev/null 2>&1; then
+    if pgrep -x borders >/dev/null 2>&1 && ~/.config/borders/bordersrc >/dev/null 2>&1; then
         log "Borders"
     else
         log "Borders (config ready)"
@@ -344,12 +344,14 @@ if is_installed opencode && [[ "$THEME" == "osaka-jade" && -f "$THEMES_DIR/confi
 fi
 
 # =============================================================================
-# 9. Wallpaper - set via osascript (supports directory-based wallpapers)
+# 9. Wallpaper - set via osascript (macOS only, supports directory-based wallpapers)
 # =============================================================================
 WALLPAPER_DIR="$THEMES_DIR/wallpapers/$THEME"
 WALLPAPER_STATE="$HOME/.config/current-wallpaper"
 
-if [[ -d "$WALLPAPER_DIR" ]]; then
+if [[ "$(uname)" != "Darwin" ]]; then
+    skip "Wallpaper"
+elif [[ -d "$WALLPAPER_DIR" ]]; then
     # Directory-based wallpapers: use first wallpaper (1-*.{png,jpg})
     FIRST_WALLPAPER=$(find "$WALLPAPER_DIR" -maxdepth 1 -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" \) 2>/dev/null | sort -V | head -n 1)
     if [[ -n "$FIRST_WALLPAPER" ]]; then
@@ -382,7 +384,7 @@ if ! is_installed tmux; then
 elif [[ -f "$THEMES_DIR/configs/$THEME/tmux.conf" ]]; then
     mkdir -p ~/.config/tmux
     ln -sfn "$THEMES_DIR/configs/$THEME/tmux.conf" ~/.config/tmux/theme.conf
-    if pgrep -xq tmux; then
+    if pgrep -x tmux >/dev/null 2>&1; then
         tmux source-file ~/.config/tmux/tmux.conf 2>/dev/null && log "Tmux" || warn "Tmux (reload failed)"
     else
         log "Tmux (config ready)"
