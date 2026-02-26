@@ -11,6 +11,7 @@
 - Playwright: Use `playwright-cli` skill for browser automation
   - Setup: run `playwright-cli install --skills` in the project directory (per-workspace)
   - Snapshots: Use `playwright-cli eval` or `Grep` on YAML to extract specific values — never `Read` full snapshot files (token waste)
+- Reminders: Use `remindctl` for Apple Reminders (lists, add, complete, edit). Use `--json` for structured output.
 
 # Task Tracking
 
