@@ -1,0 +1,5 @@
+\.DS_Store
+# Claude Code doesn't follow symlinks for commands — keep as backup copies only
+\.claude/commands
+# settings.json has runtime state — keep as backup copy only
+\.claude/settings\.json
