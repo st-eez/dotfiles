@@ -21,6 +21,15 @@
 
 - File paths: Use absolute paths (via `$HOME`, `__dirname`, `__file__`, etc.) not relative paths—code breaks when cwd changes
 
+# Tmux
+
+- **Two-step send:** Always send text and Enter as separate tmux commands:
+  ```bash
+  tmux send-keys -t <session>:<window> "the text"
+  tmux send-keys -t <session>:<window> Enter
+  ```
+  Never combine as `tmux send-keys "text" Enter` — the Enter gets swallowed as a newline, not a submit action.
+
 # Git
 
 - Conventional commits: `feat:`, `fix:`, `refactor:`, `docs:`, `chore:`
