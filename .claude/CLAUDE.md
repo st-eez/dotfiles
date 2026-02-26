@@ -8,6 +8,13 @@ GNU Stow-managed dotfiles. Each top-level directory is a stow package mirroring 
 - Packages `nvim`, `zsh`, `claude` require `--no-folding` when stowing
 - Any keyboard shortcut changes must also update: `raycast/extensions/keybinds/src/search-keybinds.tsx`
 
+## Post-Stow Manual Steps
+
+Claude Code doesn't follow symlinks for slash commands, so after stowing `claude`:
+```bash
+mkdir -p ~/.claude/commands && cp claude/.claude/commands/*.md ~/.claude/commands/
+```
+
 ## Anti-Patterns
 
 - Don't edit theme files directly — edit in `themes/configs/<theme>/`
