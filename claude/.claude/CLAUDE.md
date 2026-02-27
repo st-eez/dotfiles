@@ -3,7 +3,7 @@
 ```sh
 # Use the Code-Review skill for PRs
 # Use current year in web searches (from env "Today's date")
-# Use remindctl for Apple Reminders — always pass --json
+# Use remindctl for Apple Reminders
 remindctl lists | add | complete | edit
 
 # Playwright (browser automation)
