@@ -67,3 +67,6 @@ zsh/.secrets
 # Gemini Clipboard
 .gemini-clipboard
 
+# Dolt artifacts (local-only)
+.dolt/
+*.db
