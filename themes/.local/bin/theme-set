@@ -84,7 +84,10 @@ load_themes() {
         return 1
     fi
 
-    mapfile -t THEMES <<< "$manifest_themes"
+    THEMES=()
+    while IFS= read -r theme_id; do
+        [[ -n "$theme_id" ]] && THEMES+=("$theme_id")
+    done <<< "$manifest_themes"
 }
 
 validate_generated_artifacts() {
