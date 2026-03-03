@@ -1,21 +1,21 @@
 {
   "themes": [
     {
-      "id": "tokyo-night",
-      "name": "Tokyo Night",
+      "id": "everforest",
+      "name": "Everforest Dark",
       "colors": {
-        "bg0": "#1a1b26",
-        "bg1": "#24283b",
-        "bg2": "#414868",
-        "fg": "#c0caf5",
-        "grey": "#565f89",
-        "red": "#fc5d7c",
-        "green": "#3aa99f",
-        "yellow": "#e7c664",
-        "blue": "#7aa2f7",
-        "magenta": "#b39df3",
-        "cyan": "#7dcfff",
-        "orange": "#f39660"
+        "bg0": "#2d353b",
+        "bg1": "#3d484d",
+        "bg2": "#4f585e",
+        "fg": "#d3c6aa",
+        "grey": "#859289",
+        "red": "#e67e80",
+        "green": "#a7c080",
+        "yellow": "#dbbc7f",
+        "blue": "#7fbbb3",
+        "magenta": "#d699b6",
+        "cyan": "#83c092",
+        "orange": "#e69875"
       }
     },
     {
@@ -37,39 +37,39 @@
       }
     },
     {
-      "id": "everforest",
-      "name": "Everforest Dark",
-      "colors": {
-        "bg0": "#2d353b",
-        "bg1": "#3d484d",
-        "bg2": "#4f585e",
-        "fg": "#d3c6aa",
-        "grey": "#859289",
-        "red": "#e67e80",
-        "green": "#a7c080",
-        "yellow": "#dbbc7f",
-        "blue": "#7fbbb3",
-        "magenta": "#d699b6",
-        "cyan": "#83c092",
-        "orange": "#e69875"
-      }
-    },
-    {
       "id": "osaka-jade",
       "name": "Osaka Jade",
       "colors": {
         "bg0": "#111c18",
         "bg1": "#1a2520",
-        "bg2": "#23372B",
-        "fg": "#C1C497",
-        "grey": "#53685B",
-        "red": "#FF5345",
+        "bg2": "#23372b",
+        "fg": "#c1c497",
+        "grey": "#53685b",
+        "red": "#ff5345",
         "green": "#549e6a",
-        "yellow": "#E5C736",
+        "yellow": "#e5c736",
         "blue": "#509475",
-        "magenta": "#D2689C",
-        "cyan": "#2DD5B7",
-        "orange": "#E5C736"
+        "magenta": "#d2689c",
+        "cyan": "#2dd5b7",
+        "orange": "#e5c736"
+      }
+    },
+    {
+      "id": "tokyo-night",
+      "name": "Tokyo Night",
+      "colors": {
+        "bg0": "#1a1b26",
+        "bg1": "#24283b",
+        "bg2": "#414868",
+        "fg": "#c0caf5",
+        "grey": "#565f89",
+        "red": "#f7768e",
+        "green": "#9ece6a",
+        "yellow": "#e0af68",
+        "blue": "#7aa2f7",
+        "magenta": "#bb9af7",
+        "cyan": "#7dcfff",
+        "orange": "#ff9e64"
       }
     }
   ]

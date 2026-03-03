@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import dataclass
+import json
 from pathlib import Path
 import re
 import sys
@@ -36,6 +37,20 @@ REQUIRED_PALETTE_KEYS = (
     "cyan",
     "blue",
     "magenta",
+)
+THEME_JSON_COLOR_KEYS = (
+    "bg0",
+    "bg1",
+    "bg2",
+    "fg",
+    "grey",
+    "red",
+    "green",
+    "yellow",
+    "blue",
+    "magenta",
+    "cyan",
+    "orange",
 )
 
 ALLOWED_TOP_LEVEL_KEYS = {"schema_version", "theme", "identifiers", "palette", "overrides"}
@@ -170,6 +185,10 @@ def default_sources_dir() -> Path:
 
 def default_meta_dir() -> Path:
     return Path(__file__).resolve().parent.parent / "meta"
+
+
+def default_themes_json_path() -> Path:
+    return Path(__file__).resolve().parent.parent / "themes.json"
 
 
 def load_theme_source(source_file: str | Path) -> ThemeSource:
@@ -470,6 +489,63 @@ def run_generate_meta_mode(
     return 0
 
 
+def render_themes_manifest(theme_sources: Sequence[ThemeSource]) -> str:
+    sorted_sources = sorted(theme_sources, key=lambda theme_source: theme_source.theme.id)
+    payload = {
+        "themes": [
+            {
+                "id": theme_source.theme.id,
+                "name": theme_source.theme.name,
+                "colors": {
+                    key: getattr(theme_source.palette, key)
+                    for key in THEME_JSON_COLOR_KEYS
+                },
+            }
+            for theme_source in sorted_sources
+        ]
+    }
+    return json.dumps(payload, indent=2) + "\n"
+
+
+def generate_themes_manifest_file(
+    sources_dir: str | Path | None = None,
+    themes_json_path: str | Path | None = None,
+) -> Path:
+    resolved_themes_json_path = (
+        Path(themes_json_path).resolve()
+        if themes_json_path
+        else default_themes_json_path()
+    )
+    resolved_themes_json_path.parent.mkdir(parents=True, exist_ok=True)
+
+    theme_sources = load_theme_sources(sources_dir)
+    rendered_manifest = render_themes_manifest(theme_sources)
+    resolved_themes_json_path.write_text(rendered_manifest, encoding="utf-8")
+    return resolved_themes_json_path
+
+
+def run_generate_themes_json_mode(
+    sources_dir: str | Path | None = None,
+    themes_json_path: str | Path | None = None,
+    output: TextIO | None = None,
+) -> int:
+    resolved_output = output if output is not None else sys.stdout
+    try:
+        written_path = generate_themes_manifest_file(
+            sources_dir=sources_dir,
+            themes_json_path=themes_json_path,
+        )
+    except ThemeSourceError as error:
+        print(f"theme-build generate-themes-json: FAIL ({error})", file=resolved_output)
+        return 1
+
+    print(
+        f"theme-build generate-themes-json: OK (wrote {written_path})",
+        file=resolved_output,
+    )
+    return 0
+
+
 def _build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Build and validate canonical theme TOML sources.")
     parser.add_argument(
@@ -483,6 +559,11 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         help="Generate themes/meta/*.env files from source TOML values.",
     )
     parser.add_argument(
+        "--generate-themes-json",
+        action="store_true",
+        help="Generate themes/themes.json from source TOML values.",
+    )
+    parser.add_argument(
         "--sources-dir",
         type=Path,
         default=default_sources_dir(),
@@ -494,6 +575,12 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         default=default_meta_dir(),
         help="Directory for generated theme metadata env files.",
     )
+    parser.add_argument(
+        "--themes-json-path",
+        type=Path,
+        default=default_themes_json_path(),
+        help="Output path for generated themes.json manifest.",
+    )
     return parser
 
 
@@ -501,13 +588,20 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = _build_arg_parser()
     args = parser.parse_args(argv)
 
-    if args.check and args.generate_meta:
-        parser.error("--check and --generate-meta are mutually exclusive")
+    selected_modes = [
+        bool(args.check),
+        bool(args.generate_meta),
+        bool(args.generate_themes_json),
+    ]
+    if sum(selected_modes) > 1:
+        parser.error("--check, --generate-meta, and --generate-themes-json are mutually exclusive")
 
     if args.check:
         return run_check_mode(args.sources_dir)
     if args.generate_meta:
         return run_generate_meta_mode(args.sources_dir, args.meta_dir)
+    if args.generate_themes_json:
+        return run_generate_themes_json_mode(args.sources_dir, args.themes_json_path)
     parser.print_help(sys.stderr)
     return 2
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import io
+import json
 from pathlib import Path
 import sys
 import tempfile
@@ -234,6 +235,81 @@ class ThemeBuildTests(unittest.TestCase):
             self.assertEqual(exit_code, 0)
             self.assertIn("theme-build generate-meta: OK", captured_output.getvalue())
             self.assertTrue((meta_dir / "sample-theme.env").exists())
+
+    def test_render_themes_manifest_uses_stable_theme_and_color_order(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            first_source = root / "z-theme.toml"
+            second_source = root / "a-theme.toml"
+            first_source.write_text(
+                VALID_THEME_TOML.replace('id = "sample-theme"', 'id = "z-theme"').replace(
+                    'name = "Sample Theme"',
+                    'name = "Z Theme"',
+                ),
+                encoding="utf-8",
+            )
+            second_source.write_text(
+                VALID_THEME_TOML.replace('id = "sample-theme"', 'id = "a-theme"').replace(
+                    'name = "Sample Theme"',
+                    'name = "A Theme"',
+                ),
+                encoding="utf-8",
+            )
+            theme_sources = [
+                theme_build.load_theme_source(first_source),
+                theme_build.load_theme_source(second_source),
+            ]
+
+        rendered = theme_build.render_themes_manifest(theme_sources)
+        manifest = json.loads(rendered)
+        self.assertEqual([theme["id"] for theme in manifest["themes"]], ["a-theme", "z-theme"])
+
+        color_keys = list(manifest["themes"][0]["colors"].keys())
+        self.assertEqual(color_keys, list(theme_build.THEME_JSON_COLOR_KEYS))
+
+    def test_generate_themes_manifest_file_writes_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            sources_dir = root / "sources"
+            manifest_path = root / "generated" / "themes.json"
+            sources_dir.mkdir()
+            (sources_dir / "sample-theme.toml").write_text(VALID_THEME_TOML, encoding="utf-8")
+
+            written_path = theme_build.generate_themes_manifest_file(
+                sources_dir=sources_dir,
+                themes_json_path=manifest_path,
+            )
+
+            self.assertEqual(written_path, manifest_path.resolve())
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            self.assertEqual(len(manifest["themes"]), 1)
+            self.assertEqual(manifest["themes"][0]["id"], "sample-theme")
+            self.assertEqual(manifest["themes"][0]["colors"]["bg0"], "#1a1b26")
+
+    def test_main_generate_themes_json_mode_writes_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            sources_dir = root / "sources"
+            manifest_path = root / "themes.json"
+            sources_dir.mkdir()
+            (sources_dir / "sample-theme.toml").write_text(VALID_THEME_TOML, encoding="utf-8")
+
+            captured_output = io.StringIO()
+            with contextlib.redirect_stdout(captured_output):
+                exit_code = theme_build.main(
+                    [
+                        "--generate-themes-json",
+                        "--sources-dir",
+                        str(sources_dir),
+                        "--themes-json-path",
+                        str(manifest_path),
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            self.assertIn("theme-build generate-themes-json: OK", captured_output.getvalue())
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            self.assertEqual(manifest["themes"][0]["name"], "Sample Theme")
 
     def test_main_check_mode_returns_non_zero_with_diagnostics(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
