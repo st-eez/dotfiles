@@ -407,12 +407,13 @@ EOF
 fi
 
 # =============================================================================
-# 8b. OpenCode - symlink custom theme (osaka-jade only)
+# 8b. OpenCode - symlink optional custom theme (<theme>/<theme>.json)
 # =============================================================================
-if is_installed opencode && [[ "$THEME" == "osaka-jade" && -f "$THEMES_DIR/configs/$THEME/osaka-jade.json" ]]; then
+OPENCODE_CUSTOM_THEME="$THEMES_DIR/configs/$THEME/$THEME.json"
+if is_installed opencode && [[ -f "$OPENCODE_CUSTOM_THEME" ]]; then
     OPENCODE_THEMES_DIR="$HOME/.config/opencode/themes"
     mkdir -p "$OPENCODE_THEMES_DIR"
-    ln -sfn "$THEMES_DIR/configs/$THEME/osaka-jade.json" "$OPENCODE_THEMES_DIR/osaka-jade.json"
+    ln -sfn "$OPENCODE_CUSTOM_THEME" "$OPENCODE_THEMES_DIR/$THEME.json"
     log "OpenCode theme"
 fi
 
