@@ -312,6 +312,35 @@ class ThemeBuildTests(unittest.TestCase):
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
             self.assertEqual(manifest["themes"][0]["name"], "Sample Theme")
 
+    def test_render_theme_meta_env_files_match_repo_artifacts(self) -> None:
+        sources_dir = DOTFILES_ROOT / "themes" / "sources"
+        meta_dir = DOTFILES_ROOT / "themes" / "meta"
+        theme_sources = theme_build.load_theme_sources(sources_dir)
+
+        self.assertEqual(
+            sorted(path.stem for path in meta_dir.glob("*.env")),
+            [theme_source.theme.id for theme_source in theme_sources],
+        )
+        for theme_source in theme_sources:
+            artifact_path = meta_dir / f"{theme_source.theme.id}.env"
+            self.assertTrue(artifact_path.exists(), f"missing artifact {artifact_path}")
+            self.assertEqual(
+                artifact_path.read_text(encoding="utf-8"),
+                theme_build.render_theme_meta_env(theme_source),
+                f"artifact mismatch: {artifact_path}",
+            )
+
+    def test_render_themes_manifest_matches_repo_artifact(self) -> None:
+        sources_dir = DOTFILES_ROOT / "themes" / "sources"
+        manifest_path = DOTFILES_ROOT / "themes" / "themes.json"
+
+        self.assertTrue(manifest_path.exists(), f"missing artifact {manifest_path}")
+        theme_sources = theme_build.load_theme_sources(sources_dir)
+        self.assertEqual(
+            manifest_path.read_text(encoding="utf-8"),
+            theme_build.render_themes_manifest(theme_sources),
+        )
+
     def test_render_solid_wallpaper_png_uses_bg0_and_default_dimensions(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             source_file = Path(temp_dir) / "sample-theme.toml"
