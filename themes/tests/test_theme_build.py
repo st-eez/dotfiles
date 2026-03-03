@@ -312,6 +312,83 @@ class ThemeBuildTests(unittest.TestCase):
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
             self.assertEqual(manifest["themes"][0]["name"], "Sample Theme")
 
+    def test_render_solid_wallpaper_png_uses_bg0_and_default_dimensions(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source_file = Path(temp_dir) / "sample-theme.toml"
+            source_file.write_text(VALID_THEME_TOML, encoding="utf-8")
+            theme_source = theme_build.load_theme_source(source_file)
+
+        rendered = theme_build.render_solid_wallpaper_png(theme_source)
+        self.assertEqual(rendered[:8], b"\x89PNG\r\n\x1a\n")
+        self.assertEqual(rendered[12:16], b"IHDR")
+        self.assertEqual(
+            int.from_bytes(rendered[16:20], "big"),
+            theme_build.DEFAULT_WALLPAPER_WIDTH,
+        )
+        self.assertEqual(
+            int.from_bytes(rendered[20:24], "big"),
+            theme_build.DEFAULT_WALLPAPER_HEIGHT,
+        )
+        self.assertEqual(rendered, theme_build.render_solid_wallpaper_png(theme_source))
+
+    def test_generate_theme_wallpaper_files_writes_and_prunes_managed_file(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            sources_dir = root / "sources"
+            wallpapers_dir = root / "wallpapers"
+            sources_dir.mkdir()
+            wallpapers_dir.mkdir()
+
+            source_file = sources_dir / "sample-theme.toml"
+            source_file.write_text(VALID_THEME_TOML, encoding="utf-8")
+            theme_source = theme_build.load_theme_source(source_file)
+
+            stale_theme_dir = wallpapers_dir / "stale-theme"
+            stale_theme_dir.mkdir()
+            stale_file = stale_theme_dir / theme_build.MANAGED_WALLPAPER_FILENAME
+            stale_file.write_bytes(b"stale")
+            additional_file = stale_theme_dir / "2-custom.jpg"
+            additional_file.write_bytes(b"keep")
+
+            written_files = theme_build.generate_theme_wallpaper_files(
+                sources_dir=sources_dir,
+                wallpapers_dir=wallpapers_dir,
+            )
+            resolved_wallpapers_dir = wallpapers_dir.resolve()
+
+            self.assertEqual(
+                [path.relative_to(resolved_wallpapers_dir).as_posix() for path in written_files],
+                ["sample-theme/1-solid.png"],
+            )
+            self.assertFalse(stale_file.exists())
+            self.assertTrue(additional_file.exists())
+            generated_file = wallpapers_dir / "sample-theme" / theme_build.MANAGED_WALLPAPER_FILENAME
+            self.assertEqual(generated_file.read_bytes(), theme_build.render_solid_wallpaper_png(theme_source))
+
+    def test_main_generate_wallpapers_mode_writes_files(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            sources_dir = root / "sources"
+            wallpapers_dir = root / "wallpapers"
+            sources_dir.mkdir()
+            (sources_dir / "sample-theme.toml").write_text(VALID_THEME_TOML, encoding="utf-8")
+
+            captured_output = io.StringIO()
+            with contextlib.redirect_stdout(captured_output):
+                exit_code = theme_build.main(
+                    [
+                        "--generate-wallpapers",
+                        "--sources-dir",
+                        str(sources_dir),
+                        "--wallpapers-dir",
+                        str(wallpapers_dir),
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            self.assertIn("theme-build generate-wallpapers: OK", captured_output.getvalue())
+            self.assertTrue((wallpapers_dir / "sample-theme" / "1-solid.png").exists())
+
     def test_generate_theme_config_files_writes_and_prunes(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
@@ -442,6 +519,20 @@ class ThemeBuildTests(unittest.TestCase):
                 self.assertTrue(artifact_path.exists(), f"missing artifact {artifact_path}")
                 actual_content = artifact_path.read_text(encoding="utf-8")
                 self.assertEqual(actual_content, expected_content, f"artifact mismatch: {artifact_path}")
+
+    def test_render_solid_wallpapers_match_repo_artifacts(self) -> None:
+        sources_dir = DOTFILES_ROOT / "themes" / "sources"
+        wallpapers_dir = DOTFILES_ROOT / "themes" / "wallpapers"
+        theme_sources = theme_build.load_theme_sources(sources_dir)
+
+        for theme_source in theme_sources:
+            artifact_path = wallpapers_dir / theme_source.theme.id / theme_build.MANAGED_WALLPAPER_FILENAME
+            self.assertTrue(artifact_path.exists(), f"missing artifact {artifact_path}")
+            self.assertEqual(
+                artifact_path.read_bytes(),
+                theme_build.render_solid_wallpaper_png(theme_source),
+                f"artifact mismatch: {artifact_path}",
+            )
 
     def test_main_check_mode_returns_non_zero_with_diagnostics(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

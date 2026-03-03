@@ -23,7 +23,7 @@ generated repository artifacts and to runtime files touched by `theme-set`.
 | Obsidian snippet | `palette.*`, `overrides.obsidian.*` | `themes/configs/<theme-id>/obsidian-snippet.css` | `$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents/Steve_Notes/.obsidian/snippets/active-explorer-color.css` (copied) | **Generated-owned** in repo. Runtime copy is replaceable output. |
 | OpenCode custom theme file (optional per theme) | `palette.*`, `overrides.opencode_theme.*` | `themes/configs/<theme-id>/<theme-id>.json` | `$HOME/.config/opencode/themes/<theme-id>.json` (symlink, currently osaka-jade only) | **Generated-owned** when present. Do not hand-edit generated JSON in repo. |
 | Raycast theme catalog | `theme.id`, `theme.name`, `palette.*` | `themes/themes.json` (theme entry list) | Consumed by Raycast extension runtime loader | **Generated-owned**. Never patch entries manually once generator is in place. |
-| Wallpapers | `wallpaper.*` metadata (if added) + external assets | `themes/wallpapers/<theme-id>/*` | macOS desktop picture + `$HOME/.config/current-wallpaper` (symlink) | Wallpaper binaries are **source-owned assets** unless/until a wallpaper generator is introduced. |
+| Wallpapers | `palette.bg0` -> managed `1-solid.png`; additional wallpaper assets remain source-owned | `themes/wallpapers/<theme-id>/*` | macOS desktop picture + `$HOME/.config/current-wallpaper` (symlink) | `1-solid.png` is **generated-owned** (from canonical BG color). Other wallpaper files are **source-owned assets**. |
 | Legacy palette refs | None (derived convenience artifact) | `themes/palettes/<theme-id>.lua` | None | Treat as **generated-owned** during migration. No manual edits. |
 
 ## Runtime Files Updated In-Place (Not Symlinked)
@@ -43,7 +43,7 @@ are never source-controlled.
 ## Migration Rules (Enforced Boundary)
 
 1. Edit only `themes/sources/<theme-id>.toml` and wallpaper assets.
-2. Treat `themes/meta`, `themes/configs`, `themes/themes.json`, and
-   `themes/palettes` as generator output.
+2. Treat `themes/meta`, `themes/configs`, `themes/themes.json`, `themes/palettes`,
+   and managed wallpaper artifact `themes/wallpapers/<theme-id>/1-solid.png` as generator output.
 3. Treat files under `$HOME/.config` and app config directories as runtime state;
    regenerate + reapply with `theme-set` instead of manual drift edits.

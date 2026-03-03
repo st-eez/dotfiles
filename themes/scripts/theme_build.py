@@ -8,9 +8,11 @@ from dataclasses import dataclass
 import json
 from pathlib import Path
 import re
+import struct
 import sys
 import tomllib
 from typing import Any, Mapping, Sequence, TextIO
+import zlib
 
 THEME_ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 HEX_COLOR_PATTERN = re.compile(r"^#[0-9a-fA-F]{6}$")
@@ -61,6 +63,9 @@ MANAGED_THEME_CONFIG_FILENAMES = (
     "neovim.lua",
     "obsidian-snippet.css",
 )
+MANAGED_WALLPAPER_FILENAME = "1-solid.png"
+DEFAULT_WALLPAPER_WIDTH = 5120
+DEFAULT_WALLPAPER_HEIGHT = 2880
 
 ALLOWED_TOP_LEVEL_KEYS = {"schema_version", "theme", "identifiers", "palette", "overrides"}
 ALLOWED_OVERRIDE_TARGETS = {
@@ -198,6 +203,10 @@ def default_meta_dir() -> Path:
 
 def default_configs_dir() -> Path:
     return Path(__file__).resolve().parent.parent / "configs"
+
+
+def default_wallpapers_dir() -> Path:
+    return Path(__file__).resolve().parent.parent / "wallpapers"
 
 
 def default_themes_json_path() -> Path:
@@ -1198,6 +1207,67 @@ def run_generate_configs_mode(
     return 0
 
 
+def render_solid_wallpaper_png(
+    theme_source: ThemeSource,
+    *,
+    width: int = DEFAULT_WALLPAPER_WIDTH,
+    height: int = DEFAULT_WALLPAPER_HEIGHT,
+) -> bytes:
+    red, green, blue = _hex_to_rgb_channels(theme_source.palette.bg0)
+    return _render_solid_png(width, height, red, green, blue)
+
+
+def generate_theme_wallpaper_files(
+    sources_dir: str | Path | None = None,
+    wallpapers_dir: str | Path | None = None,
+) -> list[Path]:
+    resolved_wallpapers_dir = Path(wallpapers_dir).resolve() if wallpapers_dir else default_wallpapers_dir()
+    resolved_wallpapers_dir.mkdir(parents=True, exist_ok=True)
+
+    theme_sources = load_theme_sources(sources_dir)
+    written_files: list[Path] = []
+    expected_files: set[Path] = set()
+
+    for theme_source in theme_sources:
+        theme_dir = resolved_wallpapers_dir / theme_source.theme.id
+        theme_dir.mkdir(parents=True, exist_ok=True)
+        wallpaper_path = theme_dir / MANAGED_WALLPAPER_FILENAME
+        wallpaper_path.write_bytes(render_solid_wallpaper_png(theme_source))
+        written_files.append(wallpaper_path)
+        expected_files.add(wallpaper_path)
+
+    for theme_dir in sorted(path for path in resolved_wallpapers_dir.iterdir() if path.is_dir()):
+        stale_file = theme_dir / MANAGED_WALLPAPER_FILENAME
+        if stale_file.exists() and stale_file not in expected_files:
+            stale_file.unlink()
+
+    return written_files
+
+
+def run_generate_wallpapers_mode(
+    sources_dir: str | Path | None = None,
+    wallpapers_dir: str | Path | None = None,
+    output: TextIO | None = None,
+) -> int:
+    resolved_output = output if output is not None else sys.stdout
+    try:
+        written_files = generate_theme_wallpaper_files(
+            sources_dir=sources_dir,
+            wallpapers_dir=wallpapers_dir,
+        )
+    except ThemeSourceError as error:
+        print(f"theme-build generate-wallpapers: FAIL ({error})", file=resolved_output)
+        return 1
+
+    resolved_wallpapers_dir = Path(wallpapers_dir).resolve() if wallpapers_dir else default_wallpapers_dir()
+    print(
+        "theme-build generate-wallpapers: OK "
+        f"({len(written_files)} file(s) written to {resolved_wallpapers_dir})",
+        file=resolved_output,
+    )
+    return 0
+
+
 def render_theme_meta_env(theme_source: ThemeSource) -> str:
     identifiers = theme_source.identifiers
     palette = theme_source.palette
@@ -1360,6 +1430,11 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         help="Generate themes/configs/<theme-id> app config files from source TOML values.",
     )
     parser.add_argument(
+        "--generate-wallpapers",
+        action="store_true",
+        help="Generate themes/wallpapers/<theme-id>/1-solid.png from source TOML values.",
+    )
+    parser.add_argument(
         "--sources-dir",
         type=Path,
         default=default_sources_dir(),
@@ -1376,6 +1451,12 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         type=Path,
         default=default_configs_dir(),
         help="Directory for generated per-theme app config files.",
+    )
+    parser.add_argument(
+        "--wallpapers-dir",
+        type=Path,
+        default=default_wallpapers_dir(),
+        help="Directory for generated per-theme wallpaper artifacts.",
     )
     parser.add_argument(
         "--themes-json-path",
@@ -1395,10 +1476,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         bool(args.generate_meta),
         bool(args.generate_themes_json),
         bool(args.generate_configs),
+        bool(args.generate_wallpapers),
     ]
     if sum(selected_modes) > 1:
         parser.error(
-            "--check, --generate-meta, --generate-themes-json, and --generate-configs are mutually exclusive"
+            "--check, --generate-meta, --generate-themes-json, --generate-configs, and --generate-wallpapers are mutually exclusive"
         )
 
     if args.check:
@@ -1409,6 +1491,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return run_generate_themes_json_mode(args.sources_dir, args.themes_json_path)
     if args.generate_configs:
         return run_generate_configs_mode(args.sources_dir, args.configs_dir)
+    if args.generate_wallpapers:
+        return run_generate_wallpapers_mode(args.sources_dir, args.wallpapers_dir)
     parser.print_help(sys.stderr)
     return 2
 
@@ -1525,13 +1609,36 @@ def _hex_to_argb(hex_color: str, alpha: str) -> str:
 
 
 def _hex_to_rgb_triplet(hex_color: str) -> str:
+    red, green, blue = _hex_to_rgb_channels(hex_color)
+    return f"{red}, {green}, {blue}"
+
+
+def _hex_to_rgb_channels(hex_color: str) -> tuple[int, int, int]:
     value = hex_color.removeprefix("#")
     if len(value) != 6:
         raise ValueError(f"hex color must be 6 characters, got '{hex_color}'")
     red = int(value[0:2], 16)
     green = int(value[2:4], 16)
     blue = int(value[4:6], 16)
-    return f"{red}, {green}, {blue}"
+    return red, green, blue
+
+
+def _png_chunk(chunk_type: bytes, data: bytes) -> bytes:
+    chunk_length = struct.pack(">I", len(data))
+    chunk_crc = struct.pack(">I", zlib.crc32(chunk_type + data) & 0xFFFFFFFF)
+    return chunk_length + chunk_type + data + chunk_crc
+
+
+def _render_solid_png(width: int, height: int, red: int, green: int, blue: int) -> bytes:
+    signature = b"\x89PNG\r\n\x1a\n"
+    ihdr_data = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
+    ihdr_chunk = _png_chunk(b"IHDR", ihdr_data)
+
+    row = bytes([0] + [red, green, blue] * width)
+    compressed_data = zlib.compress(row * height, 9)
+    idat_chunk = _png_chunk(b"IDAT", compressed_data)
+    iend_chunk = _png_chunk(b"IEND", b"")
+    return signature + ihdr_chunk + idat_chunk + iend_chunk
 
 
 def _default_neovim_background_variable(theme_source: ThemeSource) -> str:
