@@ -63,6 +63,9 @@ MANAGED_THEME_CONFIG_FILENAMES = (
     "neovim.lua",
     "obsidian-snippet.css",
 )
+MANAGED_OPTIONAL_THEME_CONFIG_EXTENSIONS = (".json",)
+OPENCODE_THEME_SCHEMA_URL = "https://opencode.ai/theme.json"
+OPENCODE_THEME_DEF_KEY_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9]*$")
 MANAGED_WALLPAPER_FILENAME = "1-solid.png"
 DEFAULT_WALLPAPER_WIDTH = 5120
 DEFAULT_WALLPAPER_HEIGHT = 2880
@@ -1145,8 +1148,100 @@ def render_obsidian_snippet(theme_source: ThemeSource) -> str:
     return "\n".join(lines) + "\n"
 
 
+def render_opencode_theme(theme_source: ThemeSource) -> tuple[str, str] | None:
+    overrides = _extract_overrides_for_target(theme_source, "opencode_theme")
+    if not overrides:
+        return None
+
+    _assert_allowed_override_keys(
+        theme_source,
+        "opencode_theme",
+        overrides,
+        {"file", "defs", "theme"},
+    )
+
+    output_filename = _resolve_string_override(
+        theme_source,
+        "opencode_theme",
+        overrides,
+        "file",
+        f"{theme_source.theme.id}.json",
+    )
+    _normalize_opencode_theme_filename(theme_source, output_filename)
+
+    defs = _build_default_opencode_theme_defs(theme_source)
+    defs_overrides = overrides.get("defs", {})
+    if not isinstance(defs_overrides, dict):
+        raise ThemeSourceError(theme_source.file_path, "overrides.opencode_theme.defs must be a TOML table")
+
+    extra_defs: dict[str, str] = {}
+    for key in sorted(defs_overrides.keys()):
+        if not isinstance(key, str):
+            raise ThemeSourceError(theme_source.file_path, "overrides.opencode_theme.defs keys must be strings")
+        if not OPENCODE_THEME_DEF_KEY_PATTERN.fullmatch(key):
+            raise ThemeSourceError(
+                theme_source.file_path,
+                f"overrides.opencode_theme.defs.{key} must match {OPENCODE_THEME_DEF_KEY_PATTERN.pattern}",
+            )
+        normalized_value = _normalize_hex_color(
+            theme_source.file_path,
+            f"overrides.opencode_theme.defs.{key}",
+            defs_overrides[key],
+        )
+        if key in defs:
+            defs[key] = normalized_value
+        else:
+            extra_defs[key] = normalized_value
+
+    defs.update(extra_defs)
+    theme_tokens = _build_default_opencode_theme_tokens(defs)
+    theme_overrides = overrides.get("theme", {})
+    if not isinstance(theme_overrides, dict):
+        raise ThemeSourceError(theme_source.file_path, "overrides.opencode_theme.theme must be a TOML table")
+
+    unknown_theme_keys = sorted(set(theme_overrides.keys()) - set(theme_tokens.keys()))
+    if unknown_theme_keys:
+        unknown_display = ", ".join(unknown_theme_keys)
+        raise ThemeSourceError(
+            theme_source.file_path,
+            f"Unknown key(s) in overrides.opencode_theme.theme: {unknown_display}",
+        )
+
+    for token in sorted(theme_overrides.keys()):
+        token_overrides = theme_overrides[token]
+        if not isinstance(token_overrides, dict):
+            raise ThemeSourceError(
+                theme_source.file_path,
+                f"overrides.opencode_theme.theme.{token} must be a TOML table",
+            )
+        unknown_modes = sorted(set(token_overrides.keys()) - {"dark", "light"})
+        if unknown_modes:
+            unknown_display = ", ".join(unknown_modes)
+            raise ThemeSourceError(
+                theme_source.file_path,
+                f"Unknown key(s) in overrides.opencode_theme.theme.{token}: {unknown_display}",
+            )
+
+        for mode in ("dark", "light"):
+            if mode not in token_overrides:
+                continue
+            theme_tokens[token][mode] = _normalize_opencode_theme_token_value(
+                theme_source,
+                f"overrides.opencode_theme.theme.{token}.{mode}",
+                token_overrides[mode],
+                defs,
+            )
+
+    payload = {
+        "$schema": OPENCODE_THEME_SCHEMA_URL,
+        "defs": defs,
+        "theme": theme_tokens,
+    }
+    return output_filename, json.dumps(payload, indent=2) + "\n"
+
+
 def render_theme_app_configs(theme_source: ThemeSource) -> dict[str, str]:
-    return {
+    rendered = {
         "sketchybar-colors.lua": render_sketchybar_colors(theme_source),
         "bordersrc": render_borders_config(theme_source),
         "tmux.conf": render_tmux_config(theme_source),
@@ -1154,6 +1249,11 @@ def render_theme_app_configs(theme_source: ThemeSource) -> dict[str, str]:
         "neovim.lua": render_neovim_config(theme_source),
         "obsidian-snippet.css": render_obsidian_snippet(theme_source),
     }
+    opencode_theme = render_opencode_theme(theme_source)
+    if opencode_theme is not None:
+        filename, content = opencode_theme
+        rendered[filename] = content
+    return rendered
 
 
 def generate_theme_config_files(
@@ -1172,7 +1272,7 @@ def generate_theme_config_files(
         theme_dir.mkdir(parents=True, exist_ok=True)
         rendered_configs = render_theme_app_configs(theme_source)
 
-        for filename in MANAGED_THEME_CONFIG_FILENAMES:
+        for filename in sorted(rendered_configs.keys()):
             config_path = theme_dir / filename
             config_path.write_text(rendered_configs[filename], encoding="utf-8")
             written_files.append(config_path)
@@ -1183,6 +1283,10 @@ def generate_theme_config_files(
             stale_file = theme_dir / filename
             if stale_file.exists() and stale_file not in expected_files:
                 stale_file.unlink()
+        for extension in MANAGED_OPTIONAL_THEME_CONFIG_EXTENSIONS:
+            stale_optional_file = theme_dir / f"{theme_dir.name}{extension}"
+            if stale_optional_file.exists() and stale_optional_file not in expected_files:
+                stale_optional_file.unlink()
 
     return written_files
 
@@ -1700,6 +1804,186 @@ def _default_ghostty_header_title(theme_source: ThemeSource) -> str:
         if suffix and suffix.lower() not in title.lower():
             title = f"{title} {suffix}"
     return title
+
+
+def _normalize_opencode_theme_filename(theme_source: ThemeSource, value: str) -> str:
+    if "/" in value or "\\" in value:
+        raise ThemeSourceError(
+            theme_source.file_path,
+            "overrides.opencode_theme.file must be a filename without path separators",
+        )
+    if not value.endswith(".json"):
+        raise ThemeSourceError(
+            theme_source.file_path,
+            "overrides.opencode_theme.file must end with .json",
+        )
+    expected_filename = f"{theme_source.theme.id}.json"
+    if value != expected_filename:
+        raise ThemeSourceError(
+            theme_source.file_path,
+            f"overrides.opencode_theme.file must be {expected_filename}",
+        )
+    return value
+
+
+def _build_default_opencode_theme_defs(theme_source: ThemeSource) -> dict[str, str]:
+    palette = theme_source.palette
+    dark_bg3 = _mix_hex_colors(palette.bg2, palette.fg, 0.14)
+    dark_fg1 = _mix_hex_colors(palette.fg, palette.bg0, 0.2)
+    dark_yellow = _mix_hex_colors(palette.green, palette.yellow, 0.1)
+    dark_white = _mix_hex_colors(palette.fg, palette.yellow, 0.32)
+    dark_red_bright = _mix_hex_colors(palette.red, palette.fg, 0.45)
+    dark_green_bright = _mix_hex_colors(palette.green, palette.fg, 0.22)
+    dark_blue_bright = _mix_hex_colors(palette.blue, palette.fg, 0.55)
+    dark_magenta_bright = _mix_hex_colors(palette.magenta, palette.cyan, 0.45)
+    dark_cyan_bright = _mix_hex_colors(palette.cyan, palette.fg, 0.45)
+
+    light_bg0 = dark_white
+    light_bg1 = _mix_hex_colors(light_bg0, palette.bg1, 0.08)
+    light_bg2 = _mix_hex_colors(light_bg0, palette.bg2, 0.16)
+    light_bg3 = _mix_hex_colors(light_bg0, palette.bg2, 0.38)
+    light_red = _mix_hex_colors(palette.red, palette.bg0, 0.23)
+    light_green = _mix_hex_colors(palette.green, palette.bg0, 0.23)
+    light_yellow = _mix_hex_colors(palette.yellow, palette.bg0, 0.23)
+    light_blue = _mix_hex_colors(palette.blue, palette.bg0, 0.23)
+    light_magenta = _mix_hex_colors(palette.magenta, palette.bg0, 0.23)
+    light_cyan = _mix_hex_colors(palette.cyan, palette.bg0, 0.23)
+
+    return {
+        "darkBg0": palette.bg0,
+        "darkBg1": palette.bg1,
+        "darkBg2": palette.bg2,
+        "darkBg3": dark_bg3,
+        "darkFg0": palette.fg,
+        "darkFg1": dark_fg1,
+        "darkGray": palette.grey,
+        "darkRed": palette.red,
+        "darkGreen": palette.green,
+        "darkYellow": dark_yellow,
+        "darkBlue": palette.blue,
+        "darkMagenta": palette.magenta,
+        "darkCyan": palette.cyan,
+        "darkWhite": dark_white,
+        "darkRedBright": dark_red_bright,
+        "darkGreenBright": dark_green_bright,
+        "darkYellowBright": palette.yellow,
+        "darkBlueBright": dark_blue_bright,
+        "darkMagentaBright": dark_magenta_bright,
+        "darkCyanBright": dark_cyan_bright,
+        "lightBg0": light_bg0,
+        "lightBg1": light_bg1,
+        "lightBg2": light_bg2,
+        "lightBg3": light_bg3,
+        "lightFg0": palette.bg0,
+        "lightFg1": palette.bg1,
+        "lightGray": palette.grey,
+        "lightRed": light_red,
+        "lightGreen": light_green,
+        "lightYellow": light_yellow,
+        "lightBlue": light_blue,
+        "lightMagenta": light_magenta,
+        "lightCyan": light_cyan,
+    }
+
+
+def _build_default_opencode_theme_tokens(defs: Mapping[str, str]) -> dict[str, dict[str, str]]:
+    return {
+        "primary": {"dark": "darkCyan", "light": "lightCyan"},
+        "secondary": {"dark": "darkMagenta", "light": "lightMagenta"},
+        "accent": {"dark": "darkGreen", "light": "lightGreen"},
+        "error": {"dark": "darkRed", "light": "lightRed"},
+        "warning": {"dark": "darkYellowBright", "light": "lightYellow"},
+        "success": {"dark": "darkGreen", "light": "lightGreen"},
+        "info": {"dark": "darkCyan", "light": "lightCyan"},
+        "text": {"dark": "darkFg0", "light": "lightFg0"},
+        "textMuted": {"dark": "darkGray", "light": "lightGray"},
+        "background": {"dark": "darkBg0", "light": "lightBg0"},
+        "backgroundPanel": {"dark": "darkBg1", "light": "lightBg1"},
+        "backgroundElement": {"dark": "darkBg2", "light": "lightBg2"},
+        "border": {"dark": "darkBg3", "light": "lightBg3"},
+        "borderActive": {"dark": "darkCyan", "light": "lightCyan"},
+        "borderSubtle": {"dark": "darkBg2", "light": "lightBg2"},
+        "diffAdded": {"dark": "darkGreen", "light": "lightGreen"},
+        "diffRemoved": {"dark": "darkRed", "light": "lightRed"},
+        "diffContext": {"dark": "darkGray", "light": "lightGray"},
+        "diffHunkHeader": {"dark": "darkCyan", "light": "lightCyan"},
+        "diffHighlightAdded": {"dark": "darkGreenBright", "light": "lightGreen"},
+        "diffHighlightRemoved": {"dark": "darkRedBright", "light": "lightRed"},
+        "diffAddedBg": {
+            "dark": _mix_hex_colors(defs["darkBg0"], defs["darkGreen"], 0.18),
+            "light": _mix_hex_colors(defs["lightBg0"], defs["lightGreen"], 0.18),
+        },
+        "diffRemovedBg": {
+            "dark": _mix_hex_colors(defs["darkBg0"], defs["darkRed"], 0.18),
+            "light": _mix_hex_colors(defs["lightBg0"], defs["lightRed"], 0.18),
+        },
+        "diffContextBg": {"dark": "darkBg1", "light": "lightBg1"},
+        "diffLineNumber": {"dark": "darkBg3", "light": "lightBg3"},
+        "diffAddedLineNumberBg": {
+            "dark": _mix_hex_colors(defs["darkBg0"], defs["darkGreen"], 0.12),
+            "light": _mix_hex_colors(defs["lightBg0"], defs["lightGreen"], 0.12),
+        },
+        "diffRemovedLineNumberBg": {
+            "dark": _mix_hex_colors(defs["darkBg0"], defs["darkRed"], 0.12),
+            "light": _mix_hex_colors(defs["lightBg0"], defs["lightRed"], 0.12),
+        },
+        "markdownText": {"dark": "darkFg0", "light": "lightFg0"},
+        "markdownHeading": {"dark": "darkCyan", "light": "lightCyan"},
+        "markdownLink": {"dark": "darkCyanBright", "light": "lightCyan"},
+        "markdownLinkText": {"dark": "darkGreen", "light": "lightGreen"},
+        "markdownCode": {"dark": "darkGreenBright", "light": "lightGreen"},
+        "markdownBlockQuote": {"dark": "darkGray", "light": "lightGray"},
+        "markdownEmph": {"dark": "darkMagenta", "light": "lightMagenta"},
+        "markdownStrong": {"dark": "darkYellow", "light": "lightYellow"},
+        "markdownHorizontalRule": {"dark": "darkGray", "light": "lightGray"},
+        "markdownListItem": {"dark": "darkCyan", "light": "lightCyan"},
+        "markdownListEnumeration": {"dark": "darkCyanBright", "light": "lightCyan"},
+        "markdownImage": {"dark": "darkCyanBright", "light": "lightCyan"},
+        "markdownImageText": {"dark": "darkGreen", "light": "lightGreen"},
+        "markdownCodeBlock": {"dark": "darkFg0", "light": "lightFg0"},
+        "syntaxComment": {"dark": "darkGray", "light": "lightGray"},
+        "syntaxKeyword": {"dark": "darkCyan", "light": "lightCyan"},
+        "syntaxFunction": {"dark": "darkBlue", "light": "lightBlue"},
+        "syntaxVariable": {"dark": "darkFg0", "light": "lightFg0"},
+        "syntaxString": {"dark": "darkGreenBright", "light": "lightGreen"},
+        "syntaxNumber": {"dark": "darkMagenta", "light": "lightMagenta"},
+        "syntaxType": {"dark": "darkGreen", "light": "lightGreen"},
+        "syntaxOperator": {"dark": "darkYellow", "light": "lightYellow"},
+        "syntaxPunctuation": {"dark": "darkFg0", "light": "lightFg0"},
+    }
+
+
+def _normalize_opencode_theme_token_value(
+    theme_source: ThemeSource,
+    key_path: str,
+    value: Any,
+    defs: Mapping[str, str],
+) -> str:
+    resolved = _normalize_required_string(theme_source.file_path, key_path, value)
+    if HEX_COLOR_PATTERN.fullmatch(resolved):
+        return resolved.lower()
+    if resolved in defs:
+        return resolved
+    raise ThemeSourceError(
+        theme_source.file_path,
+        f"{key_path} must be a #RRGGBB color or a known defs key",
+    )
+
+
+def _mix_hex_colors(hex_a: str, hex_b: str, ratio: float) -> str:
+    if ratio < 0.0 or ratio > 1.0:
+        raise ValueError(f"ratio must be in [0, 1], got {ratio}")
+    red_a, green_a, blue_a = _hex_to_rgb_channels(hex_a)
+    red_b, green_b, blue_b = _hex_to_rgb_channels(hex_b)
+    red = _mix_rgb_channel(red_a, red_b, ratio)
+    green = _mix_rgb_channel(green_a, green_b, ratio)
+    blue = _mix_rgb_channel(blue_a, blue_b, ratio)
+    return f"#{red:02x}{green:02x}{blue:02x}"
+
+
+def _mix_rgb_channel(channel_a: int, channel_b: int, ratio: float) -> int:
+    mixed = channel_a * (1.0 - ratio) + channel_b * ratio
+    return max(0, min(255, round(mixed)))
 
 
 def _normalize_overrides(source_file: Path, overrides: Any) -> dict[str, dict[str, Any]]:

@@ -483,6 +483,96 @@ class ThemeBuildTests(unittest.TestCase):
             self.assertTrue((configs_dir / "sample-theme" / "neovim.lua").exists())
             self.assertTrue((configs_dir / "sample-theme" / "obsidian-snippet.css").exists())
 
+    def test_generate_theme_config_files_writes_optional_opencode_theme(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            sources_dir = root / "sources"
+            configs_dir = root / "configs"
+            sources_dir.mkdir()
+            configs_dir.mkdir()
+
+            source_file = sources_dir / "sample-theme.toml"
+            source_file.write_text(
+                VALID_THEME_TOML
+                + textwrap.dedent(
+                    """
+
+                    [overrides.opencode_theme]
+                    file = "sample-theme.json"
+                    """
+                ),
+                encoding="utf-8",
+            )
+            stale_file = configs_dir / "sample-theme" / "sample-theme.json"
+            stale_file.parent.mkdir()
+            stale_file.write_text("stale=true\n", encoding="utf-8")
+
+            written_files = theme_build.generate_theme_config_files(
+                sources_dir=sources_dir,
+                configs_dir=configs_dir,
+            )
+
+            self.assertIn("sample-theme.json", [path.name for path in written_files])
+            payload = json.loads((configs_dir / "sample-theme" / "sample-theme.json").read_text(encoding="utf-8"))
+            self.assertEqual(payload["$schema"], "https://opencode.ai/theme.json")
+            self.assertIn("defs", payload)
+            self.assertIn("theme", payload)
+
+    def test_render_opencode_theme_applies_overrides(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source_file = Path(temp_dir) / "sample-theme.toml"
+            source_file.write_text(
+                VALID_THEME_TOML
+                + textwrap.dedent(
+                    """
+
+                    [overrides.opencode_theme]
+                    file = "sample-theme.json"
+
+                    [overrides.opencode_theme.defs]
+                    darkCyan = "#00ffaa"
+
+                    [overrides.opencode_theme.theme.primary]
+                    dark = "darkCyan"
+                    light = "#00ddaa"
+                    """
+                ),
+                encoding="utf-8",
+            )
+            theme_source = theme_build.load_theme_source(source_file)
+
+        rendered = theme_build.render_opencode_theme(theme_source)
+        self.assertIsNotNone(rendered)
+        if rendered is None:
+            self.fail("expected opencode theme render")
+        filename, content = rendered
+        payload = json.loads(content)
+        self.assertEqual(filename, "sample-theme.json")
+        self.assertEqual(payload["defs"]["darkCyan"], "#00ffaa")
+        self.assertEqual(payload["theme"]["primary"]["dark"], "darkCyan")
+        self.assertEqual(payload["theme"]["primary"]["light"], "#00ddaa")
+
+    def test_render_opencode_theme_rejects_invalid_file_name(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source_file = Path(temp_dir) / "sample-theme.toml"
+            source_file.write_text(
+                VALID_THEME_TOML
+                + textwrap.dedent(
+                    """
+
+                    [overrides.opencode_theme]
+                    file = "other-name.json"
+                    """
+                ),
+                encoding="utf-8",
+            )
+            theme_source = theme_build.load_theme_source(source_file)
+
+            with self.assertRaises(theme_build.ThemeSourceError) as caught:
+                theme_build.render_opencode_theme(theme_source)
+
+        self.assertIn("overrides.opencode_theme.file must be sample-theme.json", str(caught.exception))
+
     def test_render_neovim_config_applies_plugin_overrides(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             source_file = Path(temp_dir) / "sample-theme.toml"

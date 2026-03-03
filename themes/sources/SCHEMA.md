@@ -107,6 +107,15 @@ the canonical palette or identifiers:
 | `active_file_accent` | hex `#RRGGBB` | `palette.blue` | Active file/folder highlight accent. |
 | `active_file_alpha` | number (`0..1`) | `0.15` | Alpha used in active row `rgba(...)` background. |
 
+### `overrides.opencode_theme` Keys
+
+| Key | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `file` | string | `<theme-id>.json` | Must match `<theme-id>.json`; enables generation of optional OpenCode custom theme file. |
+| `defs.<name>` | hex `#RRGGBB` | generated from palette transforms | Override generated OpenCode color defs by key. |
+| `theme.<token>.dark` | string | generated semantic token mapping | Value must be a defs key or a hex color. |
+| `theme.<token>.light` | string | generated semantic token mapping | Value must be a defs key or a hex color. |
+
 ## Concrete Example (`themes/sources/tokyo-night.toml`)
 
 ```toml
