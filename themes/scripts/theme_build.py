@@ -3,11 +3,13 @@
 
 from __future__ import annotations
 
+import argparse
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping
 import re
+import sys
 import tomllib
+from typing import Any, Mapping, Sequence, TextIO
 
 THEME_ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 HEX_COLOR_PATTERN = re.compile(r"^#[0-9a-fA-F]{6}$")
@@ -139,6 +141,27 @@ class ThemeSource:
         if self.identifiers.nvim_plugin is not None:
             data["identifiers"]["nvim_plugin"] = self.identifiers.nvim_plugin
         return data
+
+
+@dataclass(frozen=True, slots=True)
+class ValidationIssue:
+    source_file: Path
+    message: str
+
+    def format(self) -> str:
+        return f"{self.source_file}: {self.message}"
+
+
+@dataclass(frozen=True, slots=True)
+class ValidationReport:
+    sources_dir: Path
+    checked_files: int
+    valid_files: int
+    issues: tuple[ValidationIssue, ...]
+
+    @property
+    def is_valid(self) -> bool:
+        return not self.issues
 
 
 def default_sources_dir() -> Path:
@@ -274,6 +297,58 @@ def load_theme_sources(sources_dir: str | Path | None = None) -> list[ThemeSourc
     return themes
 
 
+def validate_theme_sources(sources_dir: str | Path | None = None) -> ValidationReport:
+    resolved_sources_dir = Path(sources_dir).resolve() if sources_dir else default_sources_dir()
+    issues: list[ValidationIssue] = []
+
+    if not resolved_sources_dir.exists():
+        issues.append(ValidationIssue(resolved_sources_dir, "Sources directory does not exist"))
+        return ValidationReport(
+            sources_dir=resolved_sources_dir,
+            checked_files=0,
+            valid_files=0,
+            issues=tuple(issues),
+        )
+    if not resolved_sources_dir.is_dir():
+        issues.append(ValidationIssue(resolved_sources_dir, "Sources path is not a directory"))
+        return ValidationReport(
+            sources_dir=resolved_sources_dir,
+            checked_files=0,
+            valid_files=0,
+            issues=tuple(issues),
+        )
+
+    source_files = sorted(resolved_sources_dir.glob("*.toml"))
+    valid_files = 0
+    seen: dict[str, Path] = {}
+
+    for source_file in source_files:
+        try:
+            theme_source = load_theme_source(source_file)
+        except ThemeSourceError as error:
+            issues.append(ValidationIssue(source_file, _extract_theme_source_error_message(error)))
+            continue
+
+        previous = seen.get(theme_source.theme.id)
+        if previous is not None:
+            issues.append(
+                ValidationIssue(
+                    theme_source.file_path,
+                    f"Duplicate theme.id '{theme_source.theme.id}' already defined in '{previous}'",
+                )
+            )
+            continue
+        seen[theme_source.theme.id] = theme_source.file_path
+        valid_files += 1
+
+    return ValidationReport(
+        sources_dir=resolved_sources_dir,
+        checked_files=len(source_files),
+        valid_files=valid_files,
+        issues=tuple(issues),
+    )
+
+
 def load_theme_source_by_id(theme_id: str, sources_dir: str | Path | None = None) -> ThemeSource:
     normalized_theme_id = _normalize_theme_id(
         source_file=Path("<input>"),
@@ -282,6 +357,64 @@ def load_theme_source_by_id(theme_id: str, sources_dir: str | Path | None = None
     )
     resolved_sources_dir = Path(sources_dir).resolve() if sources_dir else default_sources_dir()
     return load_theme_source(resolved_sources_dir / f"{normalized_theme_id}.toml")
+
+
+def run_check_mode(
+    sources_dir: str | Path | None = None,
+    output: TextIO | None = None,
+) -> int:
+    resolved_output = output if output is not None else sys.stdout
+    report = validate_theme_sources(sources_dir)
+    if report.is_valid:
+        print(
+            f"theme-build check: OK ({report.checked_files} file(s) validated in {report.sources_dir})",
+            file=resolved_output,
+        )
+        return 0
+
+    print(
+        (
+            "theme-build check: FAIL "
+            f"({len(report.issues)} issue(s) across {report.checked_files} file(s) in {report.sources_dir})"
+        ),
+        file=resolved_output,
+    )
+    for issue in report.issues:
+        print(f"- {issue.format()}", file=resolved_output)
+    return 1
+
+
+def _build_arg_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Build and validate canonical theme TOML sources.")
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Validate all source TOML files and exit non-zero on violations.",
+    )
+    parser.add_argument(
+        "--sources-dir",
+        type=Path,
+        default=default_sources_dir(),
+        help="Directory containing canonical source TOML files.",
+    )
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = _build_arg_parser()
+    args = parser.parse_args(argv)
+    if args.check:
+        return run_check_mode(args.sources_dir)
+    parser.print_help(sys.stderr)
+    return 2
+
+
+def _extract_theme_source_error_message(error: ThemeSourceError) -> str:
+    raw_message = str(error)
+    prefix = f"{error.source_file}: "
+    if raw_message.startswith(prefix):
+        return raw_message[len(prefix) :]
+    return raw_message
 
 
 def _normalize_overrides(source_file: Path, overrides: Any) -> dict[str, dict[str, Any]]:
@@ -383,3 +516,7 @@ def _normalize_hex_color(source_file: Path, key_path: str, value: Any) -> str:
     if not HEX_COLOR_PATTERN.fullmatch(normalized):
         raise ThemeSourceError(source_file, f"{key_path} must match #RRGGBB")
     return normalized.lower()
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
