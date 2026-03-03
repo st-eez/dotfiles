@@ -149,6 +149,92 @@ class ThemeBuildTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertIn("theme-build check: OK", output.getvalue())
 
+    def test_render_theme_meta_env_uses_stable_field_order(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source_file = Path(temp_dir) / "sample-theme.toml"
+            source_file.write_text(VALID_THEME_TOML, encoding="utf-8")
+            theme_source = theme_build.load_theme_source(source_file)
+
+        rendered = theme_build.render_theme_meta_env(theme_source)
+
+        expected_lines = [
+            "# Sample Theme Theme Metadata",
+            "# Generated from canonical TOML source. Do not edit manually.",
+            '# Canonical source: https://example.com/sample-theme',
+            "",
+            'THEME_NAME="Sample Theme"',
+            'THEME_VARIANT="night"',
+            "",
+            "# App-specific theme identifiers",
+            'GHOSTTY_THEME="Sample"',
+            'NVIM_COLORSCHEME="sample-theme"',
+            'NVIM_PLUGIN=""',
+            'ANTIGRAVITY_THEME="Sample Theme"',
+            'OPENCODE_THEME="sample-theme"',
+            'OBSIDIAN_THEME="Sample Theme"',
+            "",
+            "# Core palette (canonical #RRGGBB format)",
+            'BG_COLOR="#1a1b26"',
+            'BG_HIGHLIGHT="#24283b"',
+            'FG_COLOR="#c0caf5"',
+            'RED="#f7768e"',
+            'ORANGE="#ff9e64"',
+            'YELLOW="#e0af68"',
+            'GREEN="#9ece6a"',
+            'AQUA="#7dcfff"',
+            'CYAN="#7dcfff"',
+            'BLUE="#7aa2f7"',
+            'MAGENTA="#bb9af7"',
+            'COMMENT="#565f89"',
+            'BLACK="#414868"',
+            "",
+        ]
+        self.assertEqual(rendered, "\n".join(expected_lines))
+
+    def test_generate_theme_meta_files_writes_and_prunes(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            sources_dir = root / "sources"
+            meta_dir = root / "meta"
+            sources_dir.mkdir()
+            meta_dir.mkdir()
+
+            (sources_dir / "sample-theme.toml").write_text(VALID_THEME_TOML, encoding="utf-8")
+            stale_file = meta_dir / "stale-theme.env"
+            stale_file.write_text("stale=true\n", encoding="utf-8")
+
+            written_files = theme_build.generate_theme_meta_files(sources_dir=sources_dir, meta_dir=meta_dir)
+
+            self.assertEqual([path.name for path in written_files], ["sample-theme.env"])
+            self.assertFalse(stale_file.exists())
+            generated = (meta_dir / "sample-theme.env").read_text(encoding="utf-8")
+            self.assertIn('THEME_NAME="Sample Theme"', generated)
+            self.assertIn('BG_HIGHLIGHT="#24283b"', generated)
+
+    def test_main_generate_meta_mode_writes_env_files(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            sources_dir = root / "sources"
+            meta_dir = root / "meta"
+            sources_dir.mkdir()
+            (sources_dir / "sample-theme.toml").write_text(VALID_THEME_TOML, encoding="utf-8")
+
+            captured_output = io.StringIO()
+            with contextlib.redirect_stdout(captured_output):
+                exit_code = theme_build.main(
+                    [
+                        "--generate-meta",
+                        "--sources-dir",
+                        str(sources_dir),
+                        "--meta-dir",
+                        str(meta_dir),
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            self.assertIn("theme-build generate-meta: OK", captured_output.getvalue())
+            self.assertTrue((meta_dir / "sample-theme.env").exists())
+
     def test_main_check_mode_returns_non_zero_with_diagnostics(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             source_file = Path(temp_dir) / "sample-theme.toml"

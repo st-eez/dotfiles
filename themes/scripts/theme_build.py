@@ -168,6 +168,10 @@ def default_sources_dir() -> Path:
     return Path(__file__).resolve().parent.parent / "sources"
 
 
+def default_meta_dir() -> Path:
+    return Path(__file__).resolve().parent.parent / "meta"
+
+
 def load_theme_source(source_file: str | Path) -> ThemeSource:
     path = Path(source_file).resolve()
     try:
@@ -384,6 +388,88 @@ def run_check_mode(
     return 1
 
 
+def render_theme_meta_env(theme_source: ThemeSource) -> str:
+    identifiers = theme_source.identifiers
+    palette = theme_source.palette
+
+    lines = [
+        f"# {theme_source.theme.name} Theme Metadata",
+        "# Generated from canonical TOML source. Do not edit manually.",
+        f"# Canonical source: {theme_source.theme.source}",
+        "",
+        f"THEME_NAME={_shell_double_quote(theme_source.theme.name)}",
+        f"THEME_VARIANT={_shell_double_quote(theme_source.theme.variant)}",
+        "",
+        "# App-specific theme identifiers",
+        f"GHOSTTY_THEME={_shell_double_quote(identifiers.ghostty)}",
+        f"NVIM_COLORSCHEME={_shell_double_quote(identifiers.nvim_colorscheme)}",
+        f"NVIM_PLUGIN={_shell_double_quote(identifiers.nvim_plugin or '')}",
+        f"ANTIGRAVITY_THEME={_shell_double_quote(identifiers.antigravity)}",
+        f"OPENCODE_THEME={_shell_double_quote(identifiers.opencode)}",
+        f"OBSIDIAN_THEME={_shell_double_quote(identifiers.obsidian)}",
+        "",
+        "# Core palette (canonical #RRGGBB format)",
+        f"BG_COLOR={_shell_double_quote(palette.bg0)}",
+        f"BG_HIGHLIGHT={_shell_double_quote(palette.bg1)}",
+        f"FG_COLOR={_shell_double_quote(palette.fg)}",
+        f"RED={_shell_double_quote(palette.red)}",
+        f"ORANGE={_shell_double_quote(palette.orange)}",
+        f"YELLOW={_shell_double_quote(palette.yellow)}",
+        f"GREEN={_shell_double_quote(palette.green)}",
+        f"AQUA={_shell_double_quote(palette.cyan)}",
+        f"CYAN={_shell_double_quote(palette.cyan)}",
+        f"BLUE={_shell_double_quote(palette.blue)}",
+        f"MAGENTA={_shell_double_quote(palette.magenta)}",
+        f"COMMENT={_shell_double_quote(palette.grey)}",
+        f"BLACK={_shell_double_quote(palette.bg2)}",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def generate_theme_meta_files(
+    sources_dir: str | Path | None = None,
+    meta_dir: str | Path | None = None,
+) -> list[Path]:
+    resolved_meta_dir = Path(meta_dir).resolve() if meta_dir else default_meta_dir()
+    resolved_meta_dir.mkdir(parents=True, exist_ok=True)
+
+    theme_sources = load_theme_sources(sources_dir)
+    written_files: list[Path] = []
+    expected_files: set[Path] = set()
+
+    for theme_source in theme_sources:
+        meta_file = resolved_meta_dir / f"{theme_source.theme.id}.env"
+        meta_file.write_text(render_theme_meta_env(theme_source), encoding="utf-8")
+        written_files.append(meta_file)
+        expected_files.add(meta_file)
+
+    stale_meta_files = sorted(path for path in resolved_meta_dir.glob("*.env") if path not in expected_files)
+    for stale_meta_file in stale_meta_files:
+        stale_meta_file.unlink()
+
+    return written_files
+
+
+def run_generate_meta_mode(
+    sources_dir: str | Path | None = None,
+    meta_dir: str | Path | None = None,
+    output: TextIO | None = None,
+) -> int:
+    resolved_output = output if output is not None else sys.stdout
+    try:
+        written_files = generate_theme_meta_files(sources_dir, meta_dir)
+    except ThemeSourceError as error:
+        print(f"theme-build generate-meta: FAIL ({error})", file=resolved_output)
+        return 1
+
+    resolved_meta_dir = Path(meta_dir).resolve() if meta_dir else default_meta_dir()
+    print(
+        f"theme-build generate-meta: OK ({len(written_files)} file(s) written to {resolved_meta_dir})",
+        file=resolved_output,
+    )
+    return 0
+
+
 def _build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Build and validate canonical theme TOML sources.")
     parser.add_argument(
@@ -392,10 +478,21 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         help="Validate all source TOML files and exit non-zero on violations.",
     )
     parser.add_argument(
+        "--generate-meta",
+        action="store_true",
+        help="Generate themes/meta/*.env files from source TOML values.",
+    )
+    parser.add_argument(
         "--sources-dir",
         type=Path,
         default=default_sources_dir(),
         help="Directory containing canonical source TOML files.",
+    )
+    parser.add_argument(
+        "--meta-dir",
+        type=Path,
+        default=default_meta_dir(),
+        help="Directory for generated theme metadata env files.",
     )
     return parser
 
@@ -403,8 +500,14 @@ def _build_arg_parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     parser = _build_arg_parser()
     args = parser.parse_args(argv)
+
+    if args.check and args.generate_meta:
+        parser.error("--check and --generate-meta are mutually exclusive")
+
     if args.check:
         return run_check_mode(args.sources_dir)
+    if args.generate_meta:
+        return run_generate_meta_mode(args.sources_dir, args.meta_dir)
     parser.print_help(sys.stderr)
     return 2
 
@@ -516,6 +619,14 @@ def _normalize_hex_color(source_file: Path, key_path: str, value: Any) -> str:
     if not HEX_COLOR_PATTERN.fullmatch(normalized):
         raise ThemeSourceError(source_file, f"{key_path} must match #RRGGBB")
     return normalized.lower()
+
+
+def _shell_double_quote(value: str) -> str:
+    escaped = value.replace("\\", "\\\\")
+    escaped = escaped.replace('"', '\\"')
+    escaped = escaped.replace("$", "\\$")
+    escaped = escaped.replace("`", "\\`")
+    return f'"{escaped}"'
 
 
 if __name__ == "__main__":
