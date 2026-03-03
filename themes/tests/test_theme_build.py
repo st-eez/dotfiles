@@ -311,6 +311,81 @@ class ThemeBuildTests(unittest.TestCase):
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
             self.assertEqual(manifest["themes"][0]["name"], "Sample Theme")
 
+    def test_generate_theme_config_files_writes_and_prunes(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            sources_dir = root / "sources"
+            configs_dir = root / "configs"
+            sources_dir.mkdir()
+            configs_dir.mkdir()
+
+            (sources_dir / "sample-theme.toml").write_text(VALID_THEME_TOML, encoding="utf-8")
+            stale_file = configs_dir / "stale-theme" / "tmux.conf"
+            stale_file.parent.mkdir()
+            stale_file.write_text("stale=true\n", encoding="utf-8")
+
+            written_files = theme_build.generate_theme_config_files(
+                sources_dir=sources_dir,
+                configs_dir=configs_dir,
+            )
+
+            expected_files = [
+                "bordersrc",
+                "ghostty.conf",
+                "sketchybar-colors.lua",
+                "tmux.conf",
+            ]
+            self.assertEqual(
+                sorted(path.name for path in written_files),
+                expected_files,
+            )
+            self.assertFalse(stale_file.exists())
+
+            tmux_contents = (configs_dir / "sample-theme" / "tmux.conf").read_text(encoding="utf-8")
+            self.assertIn('set -g @thm_bg "#24283b"', tmux_contents)
+            self.assertIn('set -g @thm_teal "#7dcfff"', tmux_contents)
+
+    def test_main_generate_configs_mode_writes_configs(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            sources_dir = root / "sources"
+            configs_dir = root / "configs"
+            sources_dir.mkdir()
+            (sources_dir / "sample-theme.toml").write_text(VALID_THEME_TOML, encoding="utf-8")
+
+            captured_output = io.StringIO()
+            with contextlib.redirect_stdout(captured_output):
+                exit_code = theme_build.main(
+                    [
+                        "--generate-configs",
+                        "--sources-dir",
+                        str(sources_dir),
+                        "--configs-dir",
+                        str(configs_dir),
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            self.assertIn("theme-build generate-configs: OK", captured_output.getvalue())
+            self.assertTrue((configs_dir / "sample-theme" / "sketchybar-colors.lua").exists())
+            self.assertTrue((configs_dir / "sample-theme" / "bordersrc").exists())
+            self.assertTrue((configs_dir / "sample-theme" / "tmux.conf").exists())
+            self.assertTrue((configs_dir / "sample-theme" / "ghostty.conf").exists())
+
+    def test_render_app_configs_match_repo_artifacts(self) -> None:
+        sources_dir = DOTFILES_ROOT / "themes" / "sources"
+        configs_dir = DOTFILES_ROOT / "themes" / "configs"
+        theme_sources = theme_build.load_theme_sources(sources_dir)
+
+        for theme_source in theme_sources:
+            rendered = theme_build.render_theme_app_configs(theme_source)
+            theme_dir = configs_dir / theme_source.theme.id
+            for filename, expected_content in rendered.items():
+                artifact_path = theme_dir / filename
+                self.assertTrue(artifact_path.exists(), f"missing artifact {artifact_path}")
+                actual_content = artifact_path.read_text(encoding="utf-8")
+                self.assertEqual(actual_content, expected_content, f"artifact mismatch: {artifact_path}")
+
     def test_main_check_mode_returns_non_zero_with_diagnostics(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             source_file = Path(temp_dir) / "sample-theme.toml"

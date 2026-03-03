@@ -30,3 +30,19 @@ magenta = "#bb9af7"
 
 [overrides.obsidian]
 active_file_accent = "#7aa2f7"
+
+[overrides.sketchybar]
+red = "#fc5d7c"
+green = "#3aa99f"
+blue = "#5abdac"
+yellow = "#e7c664"
+orange = "#f39660"
+magenta = "#b39df3"
+
+[overrides.tmux]
+thm_teal = "#73daca"
+thm_sky = "#7dcfff"
+thm_sapphire = "#73daca"
+thm_lavender = "#c0caf5"
+thm_flamingo = "#ff9e64"
+pane_active_border_style_fg = "#7aa2f7"

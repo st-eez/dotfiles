@@ -31,5 +31,20 @@ magenta = "#d2689c"
 [overrides.neovim]
 dev = true
 
+[overrides.sketchybar]
+highlight = "#549e6a"
+
+[overrides.tmux]
+thm_maroon = "#75bbb3"
+thm_sky = "#8cd3cb"
+thm_blue = "#acd4cf"
+thm_lavender = "#75bbb3"
+thm_mauve = "#2dd5b7"
+thm_pink = "#d2689c"
+thm_flamingo = "#db9f9c"
+thm_rosewater = "#f6f5dd"
+catppuccin_session_color = "#{?client_prefix,#{E:@thm_pink},#{E:@thm_green}}"
+catppuccin_status_application_icon_bg = "#75bbb3"
+
 [overrides.opencode_theme]
 file = "osaka-jade.json"

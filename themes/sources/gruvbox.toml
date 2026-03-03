@@ -30,3 +30,8 @@ magenta = "#d3869b"
 
 [overrides.neovim]
 contrast = "hard"
+
+[overrides.tmux]
+thm_bg = "#282828"
+thm_surface_0 = "#3c3836"
+thm_surface_1 = "#3c3836"

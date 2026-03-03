@@ -52,6 +52,12 @@ THEME_JSON_COLOR_KEYS = (
     "cyan",
     "orange",
 )
+MANAGED_THEME_CONFIG_FILENAMES = (
+    "sketchybar-colors.lua",
+    "bordersrc",
+    "tmux.conf",
+    "ghostty.conf",
+)
 
 ALLOWED_TOP_LEVEL_KEYS = {"schema_version", "theme", "identifiers", "palette", "overrides"}
 ALLOWED_OVERRIDE_TARGETS = {
@@ -185,6 +191,10 @@ def default_sources_dir() -> Path:
 
 def default_meta_dir() -> Path:
     return Path(__file__).resolve().parent.parent / "meta"
+
+
+def default_configs_dir() -> Path:
+    return Path(__file__).resolve().parent.parent / "configs"
 
 
 def default_themes_json_path() -> Path:
@@ -407,6 +417,374 @@ def run_check_mode(
     return 1
 
 
+def render_sketchybar_colors(theme_source: ThemeSource) -> str:
+    palette = theme_source.palette
+    overrides = _extract_overrides_for_target(theme_source, "sketchybar")
+    _assert_allowed_override_keys(
+        theme_source,
+        "sketchybar",
+        overrides,
+        {
+            "black",
+            "white",
+            "red",
+            "green",
+            "blue",
+            "yellow",
+            "orange",
+            "magenta",
+            "grey",
+            "highlight",
+            "bg0",
+            "bg1",
+            "bg2",
+            "border",
+            "bar_border",
+            "popup_border",
+        },
+    )
+
+    black = _resolve_hex_override(theme_source, "sketchybar", overrides, "black", palette.bg2)
+    white = _resolve_hex_override(theme_source, "sketchybar", overrides, "white", palette.fg)
+    red = _resolve_hex_override(theme_source, "sketchybar", overrides, "red", palette.red)
+    green = _resolve_hex_override(theme_source, "sketchybar", overrides, "green", palette.green)
+    blue = _resolve_hex_override(theme_source, "sketchybar", overrides, "blue", palette.blue)
+    yellow = _resolve_hex_override(theme_source, "sketchybar", overrides, "yellow", palette.yellow)
+    orange = _resolve_hex_override(theme_source, "sketchybar", overrides, "orange", palette.orange)
+    magenta = _resolve_hex_override(theme_source, "sketchybar", overrides, "magenta", palette.magenta)
+    grey = _resolve_hex_override(theme_source, "sketchybar", overrides, "grey", palette.grey)
+    highlight = _resolve_hex_override(theme_source, "sketchybar", overrides, "highlight", palette.blue)
+    bg0 = _resolve_hex_override(theme_source, "sketchybar", overrides, "bg0", palette.bg0)
+    bg1 = _resolve_hex_override(theme_source, "sketchybar", overrides, "bg1", palette.bg1)
+    bg2 = _resolve_hex_override(theme_source, "sketchybar", overrides, "bg2", palette.bg2)
+
+    default_border = _resolve_hex_override(theme_source, "sketchybar", overrides, "border", palette.cyan)
+    bar_border = _resolve_hex_override(
+        theme_source,
+        "sketchybar",
+        overrides,
+        "bar_border",
+        default_border,
+    )
+    popup_border = _resolve_hex_override(
+        theme_source,
+        "sketchybar",
+        overrides,
+        "popup_border",
+        default_border,
+    )
+
+    lines = [
+        "local colors = {",
+        f"  black = {_hex_to_argb(black, 'ff')},",
+        f"  white = {_hex_to_argb(white, 'ff')},",
+        f"  red = {_hex_to_argb(red, 'ff')},",
+        f"  green = {_hex_to_argb(green, 'ff')},",
+        f"  blue = {_hex_to_argb(blue, 'ff')},",
+        f"  yellow = {_hex_to_argb(yellow, 'ff')},",
+        f"  orange = {_hex_to_argb(orange, 'ff')},",
+        f"  magenta = {_hex_to_argb(magenta, 'ff')},",
+        f"  grey = {_hex_to_argb(grey, 'ff')},",
+        "  transparent = 0x00000000,",
+        f"  highlight = {_hex_to_argb(highlight, '33')},",
+        f"  bg0 = {_hex_to_argb(bg0, 'ff')},",
+        f"  bg1 = {_hex_to_argb(bg1, 'ff')},",
+        f"  bg2 = {_hex_to_argb(bg2, 'ff')},",
+        "}",
+        "",
+        "colors.bar = {",
+        "  bg = colors.bg0,",
+        f"  border = {_hex_to_argb(bar_border, 'ff')},",
+        "}",
+        "",
+        "colors.popup = {",
+        "  bg = colors.bg0,",
+        f"  border = {_hex_to_argb(popup_border, 'ff')},",
+        "}",
+        "",
+        "return colors",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def render_borders_config(theme_source: ThemeSource) -> str:
+    palette = theme_source.palette
+    overrides = _extract_overrides_for_target(theme_source, "borders")
+    _assert_allowed_override_keys(
+        theme_source,
+        "borders",
+        overrides,
+        {
+            "active_color",
+            "inactive_color",
+        },
+    )
+
+    active_color = _resolve_hex_override(theme_source, "borders", overrides, "active_color", palette.fg)
+    inactive_color = _resolve_hex_override(theme_source, "borders", overrides, "inactive_color", palette.bg2)
+
+    lines = [
+        "#!/usr/bin/env bash",
+        "options=(",
+        "  style=round",
+        "  width=5.0",
+        "  hidpi=off",
+        f"  active_color={_hex_to_argb(active_color, 'ff')}",
+        f"  inactive_color={_hex_to_argb(inactive_color, 'b3')}",
+        "  ax_focus=off",
+        ")",
+        'borders "${options[@]}"',
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def render_tmux_config(theme_source: ThemeSource) -> str:
+    palette = theme_source.palette
+    overrides = _extract_overrides_for_target(theme_source, "tmux")
+    tmux_color_defaults: dict[str, str] = {
+        "thm_bg": palette.bg1,
+        "thm_fg": palette.fg,
+        "thm_crust": palette.bg0,
+        "thm_mantle": palette.bg0,
+        "thm_surface_0": palette.bg2,
+        "thm_surface_1": palette.bg2,
+        "thm_surface_2": palette.grey,
+        "thm_overlay_0": palette.grey,
+        "thm_overlay_1": palette.grey,
+        "thm_overlay_2": palette.grey,
+        "thm_subtext_0": palette.fg,
+        "thm_subtext_1": palette.fg,
+        "thm_red": palette.red,
+        "thm_maroon": palette.orange,
+        "thm_peach": palette.orange,
+        "thm_yellow": palette.yellow,
+        "thm_green": palette.green,
+        "thm_teal": palette.cyan,
+        "thm_sky": palette.blue,
+        "thm_sapphire": palette.cyan,
+        "thm_blue": palette.blue,
+        "thm_lavender": palette.magenta,
+        "thm_mauve": palette.magenta,
+        "thm_pink": palette.red,
+        "thm_flamingo": palette.red,
+        "thm_rosewater": palette.fg,
+    }
+    special_override_keys = {
+        "catppuccin_session_color",
+        "catppuccin_status_application_icon_bg",
+        "catppuccin_status_uptime_icon_bg",
+        "pane_border_style_fg",
+        "pane_active_border_style_fg",
+    }
+    _assert_allowed_override_keys(
+        theme_source,
+        "tmux",
+        overrides,
+        set(tmux_color_defaults.keys()).union(special_override_keys),
+    )
+
+    resolved_tmux_colors = {
+        key: _resolve_hex_override(theme_source, "tmux", overrides, key, value)
+        for key, value in tmux_color_defaults.items()
+    }
+    session_color = _resolve_string_override(
+        theme_source,
+        "tmux",
+        overrides,
+        "catppuccin_session_color",
+        "#{?client_prefix,#{E:@thm_mauve},#{E:@thm_green}}",
+    )
+    status_application_icon_bg = _resolve_hex_override(
+        theme_source,
+        "tmux",
+        overrides,
+        "catppuccin_status_application_icon_bg",
+        resolved_tmux_colors["thm_sky"],
+    )
+    status_uptime_icon_bg = _resolve_hex_override(
+        theme_source,
+        "tmux",
+        overrides,
+        "catppuccin_status_uptime_icon_bg",
+        resolved_tmux_colors["thm_yellow"],
+    )
+    pane_border_style_fg = _resolve_hex_override(
+        theme_source,
+        "tmux",
+        overrides,
+        "pane_border_style_fg",
+        resolved_tmux_colors["thm_overlay_2"],
+    )
+    pane_active_border_style_fg = _resolve_hex_override(
+        theme_source,
+        "tmux",
+        overrides,
+        "pane_active_border_style_fg",
+        resolved_tmux_colors["thm_green"],
+    )
+
+    theme_title = _title_case_theme_id(theme_source.theme.id)
+    lines = [
+        f"# {theme_title} theme - Catppuccin color overrides",
+        "# Managed by theme-set - do not edit manually",
+        "",
+        "# Base",
+        f'set -g @thm_bg "{resolved_tmux_colors["thm_bg"]}"',
+        f'set -g @thm_fg "{resolved_tmux_colors["thm_fg"]}"',
+        f'set -g @thm_crust "{resolved_tmux_colors["thm_crust"]}"',
+        f'set -g @thm_mantle "{resolved_tmux_colors["thm_mantle"]}"',
+        "",
+        "# Surfaces",
+        f'set -g @thm_surface_0 "{resolved_tmux_colors["thm_surface_0"]}"',
+        f'set -g @thm_surface_1 "{resolved_tmux_colors["thm_surface_1"]}"',
+        f'set -g @thm_surface_2 "{resolved_tmux_colors["thm_surface_2"]}"',
+        "",
+        "# Overlays",
+        f'set -g @thm_overlay_0 "{resolved_tmux_colors["thm_overlay_0"]}"',
+        f'set -g @thm_overlay_1 "{resolved_tmux_colors["thm_overlay_1"]}"',
+        f'set -g @thm_overlay_2 "{resolved_tmux_colors["thm_overlay_2"]}"',
+        "",
+        "# Text",
+        f'set -g @thm_subtext_0 "{resolved_tmux_colors["thm_subtext_0"]}"',
+        f'set -g @thm_subtext_1 "{resolved_tmux_colors["thm_subtext_1"]}"',
+        "",
+        "# Accents",
+        f'set -g @thm_red "{resolved_tmux_colors["thm_red"]}"',
+        f'set -g @thm_maroon "{resolved_tmux_colors["thm_maroon"]}"',
+        f'set -g @thm_peach "{resolved_tmux_colors["thm_peach"]}"',
+        f'set -g @thm_yellow "{resolved_tmux_colors["thm_yellow"]}"',
+        f'set -g @thm_green "{resolved_tmux_colors["thm_green"]}"',
+        f'set -g @thm_teal "{resolved_tmux_colors["thm_teal"]}"',
+        f'set -g @thm_sky "{resolved_tmux_colors["thm_sky"]}"',
+        f'set -g @thm_sapphire "{resolved_tmux_colors["thm_sapphire"]}"',
+        f'set -g @thm_blue "{resolved_tmux_colors["thm_blue"]}"',
+        f'set -g @thm_lavender "{resolved_tmux_colors["thm_lavender"]}"',
+        f'set -g @thm_mauve "{resolved_tmux_colors["thm_mauve"]}"',
+        f'set -g @thm_pink "{resolved_tmux_colors["thm_pink"]}"',
+        f'set -g @thm_flamingo "{resolved_tmux_colors["thm_flamingo"]}"',
+        f'set -g @thm_rosewater "{resolved_tmux_colors["thm_rosewater"]}"',
+        "",
+        "# Window overrides",
+        'set -g @catppuccin_window_current_number_color "#{@thm_teal}"',
+        'set -g @catppuccin_window_number_color "#{@thm_overlay_2}"',
+        "",
+        "# Status module overrides (bypasses plugin -o caching on reload)",
+        f'set -g @catppuccin_session_color "{session_color}"',
+        f'set -g @catppuccin_status_application_icon_bg "{status_application_icon_bg}"',
+        f'set -g @catppuccin_status_uptime_icon_bg "{status_uptime_icon_bg}"',
+        "",
+        "# Pane borders",
+        f'set -g pane-border-style "fg={pane_border_style_fg}"',
+        f'set -g pane-active-border-style "fg={pane_active_border_style_fg}"',
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def render_ghostty_config(theme_source: ThemeSource) -> str:
+    palette = theme_source.palette
+    overrides = _extract_overrides_for_target(theme_source, "ghostty")
+    _assert_allowed_override_keys(
+        theme_source,
+        "ghostty",
+        overrides,
+        {
+            "theme",
+            "header_title",
+            "split_divider_color",
+        },
+    )
+
+    header_title = _resolve_string_override(
+        theme_source,
+        "ghostty",
+        overrides,
+        "header_title",
+        _default_ghostty_header_title(theme_source),
+    )
+    ghostty_theme_name = _resolve_string_override(
+        theme_source,
+        "ghostty",
+        overrides,
+        "theme",
+        theme_source.identifiers.ghostty,
+    )
+    split_divider_color = _resolve_hex_override(
+        theme_source,
+        "ghostty",
+        overrides,
+        "split_divider_color",
+        palette.fg,
+    )
+
+    lines = [
+        f"# {header_title} theme for Ghostty",
+        "# Managed by theme-set - do not edit manually",
+        f"theme = {ghostty_theme_name}",
+        f"split-divider-color = {split_divider_color}",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def render_theme_app_configs(theme_source: ThemeSource) -> dict[str, str]:
+    return {
+        "sketchybar-colors.lua": render_sketchybar_colors(theme_source),
+        "bordersrc": render_borders_config(theme_source),
+        "tmux.conf": render_tmux_config(theme_source),
+        "ghostty.conf": render_ghostty_config(theme_source),
+    }
+
+
+def generate_theme_config_files(
+    sources_dir: str | Path | None = None,
+    configs_dir: str | Path | None = None,
+) -> list[Path]:
+    resolved_configs_dir = Path(configs_dir).resolve() if configs_dir else default_configs_dir()
+    resolved_configs_dir.mkdir(parents=True, exist_ok=True)
+
+    theme_sources = load_theme_sources(sources_dir)
+    written_files: list[Path] = []
+    expected_files: set[Path] = set()
+
+    for theme_source in theme_sources:
+        theme_dir = resolved_configs_dir / theme_source.theme.id
+        theme_dir.mkdir(parents=True, exist_ok=True)
+        rendered_configs = render_theme_app_configs(theme_source)
+
+        for filename in MANAGED_THEME_CONFIG_FILENAMES:
+            config_path = theme_dir / filename
+            config_path.write_text(rendered_configs[filename], encoding="utf-8")
+            written_files.append(config_path)
+            expected_files.add(config_path)
+
+    for theme_dir in sorted(path for path in resolved_configs_dir.iterdir() if path.is_dir()):
+        for filename in MANAGED_THEME_CONFIG_FILENAMES:
+            stale_file = theme_dir / filename
+            if stale_file.exists() and stale_file not in expected_files:
+                stale_file.unlink()
+
+    return written_files
+
+
+def run_generate_configs_mode(
+    sources_dir: str | Path | None = None,
+    configs_dir: str | Path | None = None,
+    output: TextIO | None = None,
+) -> int:
+    resolved_output = output if output is not None else sys.stdout
+    try:
+        written_files = generate_theme_config_files(sources_dir=sources_dir, configs_dir=configs_dir)
+    except ThemeSourceError as error:
+        print(f"theme-build generate-configs: FAIL ({error})", file=resolved_output)
+        return 1
+
+    resolved_configs_dir = Path(configs_dir).resolve() if configs_dir else default_configs_dir()
+    print(
+        f"theme-build generate-configs: OK ({len(written_files)} file(s) written to {resolved_configs_dir})",
+        file=resolved_output,
+    )
+    return 0
+
+
 def render_theme_meta_env(theme_source: ThemeSource) -> str:
     identifiers = theme_source.identifiers
     palette = theme_source.palette
@@ -564,6 +942,11 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         help="Generate themes/themes.json from source TOML values.",
     )
     parser.add_argument(
+        "--generate-configs",
+        action="store_true",
+        help="Generate themes/configs/<theme-id> app config files from source TOML values.",
+    )
+    parser.add_argument(
         "--sources-dir",
         type=Path,
         default=default_sources_dir(),
@@ -574,6 +957,12 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         type=Path,
         default=default_meta_dir(),
         help="Directory for generated theme metadata env files.",
+    )
+    parser.add_argument(
+        "--configs-dir",
+        type=Path,
+        default=default_configs_dir(),
+        help="Directory for generated per-theme app config files.",
     )
     parser.add_argument(
         "--themes-json-path",
@@ -592,9 +981,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         bool(args.check),
         bool(args.generate_meta),
         bool(args.generate_themes_json),
+        bool(args.generate_configs),
     ]
     if sum(selected_modes) > 1:
-        parser.error("--check, --generate-meta, and --generate-themes-json are mutually exclusive")
+        parser.error(
+            "--check, --generate-meta, --generate-themes-json, and --generate-configs are mutually exclusive"
+        )
 
     if args.check:
         return run_check_mode(args.sources_dir)
@@ -602,6 +994,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return run_generate_meta_mode(args.sources_dir, args.meta_dir)
     if args.generate_themes_json:
         return run_generate_themes_json_mode(args.sources_dir, args.themes_json_path)
+    if args.generate_configs:
+        return run_generate_configs_mode(args.sources_dir, args.configs_dir)
     parser.print_help(sys.stderr)
     return 2
 
@@ -612,6 +1006,73 @@ def _extract_theme_source_error_message(error: ThemeSourceError) -> str:
     if raw_message.startswith(prefix):
         return raw_message[len(prefix) :]
     return raw_message
+
+
+def _extract_overrides_for_target(theme_source: ThemeSource, target: str) -> Mapping[str, Any]:
+    target_overrides = theme_source.overrides.get(target, {})
+    if not isinstance(target_overrides, dict):
+        raise ThemeSourceError(theme_source.file_path, f"overrides.{target} must be a TOML table")
+    return target_overrides
+
+
+def _assert_allowed_override_keys(
+    theme_source: ThemeSource,
+    target: str,
+    overrides: Mapping[str, Any],
+    allowed_keys: set[str],
+) -> None:
+    unknown = sorted(set(overrides.keys()) - allowed_keys)
+    if unknown:
+        unknown_display = ", ".join(unknown)
+        raise ThemeSourceError(
+            theme_source.file_path,
+            f"Unknown key(s) in overrides.{target}: {unknown_display}",
+        )
+
+
+def _resolve_hex_override(
+    theme_source: ThemeSource,
+    target: str,
+    overrides: Mapping[str, Any],
+    key: str,
+    default: str,
+) -> str:
+    value = overrides.get(key, default)
+    key_path = f"overrides.{target}.{key}" if key in overrides else f"default.{target}.{key}"
+    return _normalize_hex_color(theme_source.file_path, key_path, value)
+
+
+def _resolve_string_override(
+    theme_source: ThemeSource,
+    target: str,
+    overrides: Mapping[str, Any],
+    key: str,
+    default: str,
+) -> str:
+    if key not in overrides:
+        return default
+    return _normalize_required_string(theme_source.file_path, f"overrides.{target}.{key}", overrides[key])
+
+
+def _hex_to_argb(hex_color: str, alpha: str) -> str:
+    resolved_alpha = alpha.lower()
+    if not re.fullmatch(r"[0-9a-f]{2}", resolved_alpha):
+        raise ValueError(f"alpha must be two lowercase hex chars, got '{alpha}'")
+    return f"0x{resolved_alpha}{hex_color.removeprefix('#').lower()}"
+
+
+def _title_case_theme_id(theme_id: str) -> str:
+    return " ".join(part.capitalize() for part in theme_id.split("-"))
+
+
+def _default_ghostty_header_title(theme_source: ThemeSource) -> str:
+    title = theme_source.theme.name
+    variant = theme_source.theme.variant
+    if "-" in variant:
+        suffix = variant.split("-")[-1].capitalize()
+        if suffix and suffix.lower() not in title.lower():
+            title = f"{title} {suffix}"
+    return title
 
 
 def _normalize_overrides(source_file: Path, overrides: Any) -> dict[str, dict[str, Any]]:
