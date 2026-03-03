@@ -74,17 +74,35 @@ PY
 load_themes() {
     local manifest_themes=""
 
-    if [[ -f "$THEMES_MANIFEST" ]] && manifest_themes="$(load_themes_from_manifest "$THEMES_MANIFEST" 2>/dev/null)" && [[ -n "$manifest_themes" ]]; then
-        mapfile -t THEMES <<< "$manifest_themes"
-        return
+    if [[ ! -f "$THEMES_MANIFEST" ]]; then
+        echo "Missing generated theme manifest: $THEMES_MANIFEST" >&2
+        return 1
     fi
 
-    if [[ -d "$THEMES_DIR/configs" ]]; then
-        mapfile -t THEMES < <(
-            find "$THEMES_DIR/configs" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; \
-                | LC_ALL=C sort
-        )
+    if ! manifest_themes="$(load_themes_from_manifest "$THEMES_MANIFEST" 2>/dev/null)" || [[ -z "$manifest_themes" ]]; then
+        echo "Failed to load themes from generated manifest: $THEMES_MANIFEST" >&2
+        return 1
     fi
+
+    mapfile -t THEMES <<< "$manifest_themes"
+}
+
+validate_generated_artifacts() {
+    local theme_id
+    local missing_artifacts=0
+
+    for theme_id in "${THEMES[@]}"; do
+        if [[ ! -d "$THEMES_DIR/configs/$theme_id" ]]; then
+            echo "Missing generated config directory: $THEMES_DIR/configs/$theme_id" >&2
+            missing_artifacts=1
+        fi
+        if [[ ! -f "$THEMES_DIR/meta/$theme_id.env" ]]; then
+            echo "Missing generated metadata file: $THEMES_DIR/meta/$theme_id.env" >&2
+            missing_artifacts=1
+        fi
+    done
+
+    return "$missing_artifacts"
 }
 
 theme_exists() {
@@ -99,11 +117,13 @@ theme_exists() {
 }
 
 default_theme() {
-    if theme_exists "tokyo-night"; then
-        echo "tokyo-night"
-    else
-        echo "${THEMES[0]}"
+    local configured_default="${THEME_SET_DEFAULT_THEME:-}"
+    if [[ -n "$configured_default" ]] && theme_exists "$configured_default"; then
+        echo "$configured_default"
+        return
     fi
+
+    echo "${THEMES[0]}"
 }
 
 show_status() {
@@ -156,9 +176,16 @@ cycle_theme() {
     echo "${THEMES[$idx]}"
 }
 
-load_themes
+if ! load_themes; then
+    echo "Run theme artifact generation before switching themes." >&2
+    exit 1
+fi
 if [[ ${#THEMES[@]} -eq 0 ]]; then
-    echo "No themes found from $THEMES_MANIFEST or $THEMES_DIR/configs" >&2
+    echo "No themes found in generated manifest: $THEMES_MANIFEST" >&2
+    exit 1
+fi
+if ! validate_generated_artifacts; then
+    echo "Run theme artifact generation before switching themes." >&2
     exit 1
 fi
 
@@ -225,10 +252,12 @@ if ! theme_exists "$THEME"; then
     error "Unknown theme: $THEME"
 fi
 [[ ! -d "$THEMES_DIR/configs/$THEME" ]] && error "Missing generated config directory for theme: $THEME"
+THEME_META_FILE="$THEMES_DIR/meta/$THEME.env"
+[[ ! -f "$THEME_META_FILE" ]] && error "Missing generated metadata file for theme: $THEME"
 
 # Load theme metadata
 # shellcheck source=/dev/null
-source "$THEMES_DIR/meta/$THEME.env"
+source "$THEME_META_FILE"
 
 echo ""
 echo -e "${BLUE}Setting theme:${NC} $THEME_NAME"
