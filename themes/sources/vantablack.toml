@@ -1,0 +1,88 @@
+schema_version = 1
+
+[theme]
+id = "vantablack"
+name = "Vantablack"
+variant = "dark"
+source = "https://github.com/basecamp/omarchy"
+
+[identifiers]
+ghostty = "Vantablack"
+nvim_colorscheme = "vantablack"
+nvim_plugin = "bjarneo/vantablack.nvim"
+antigravity = "Vantablack"
+opencode = "vantablack"
+obsidian = "Vantablack"
+
+[palette]
+bg0 = "#0d0d0d"
+bg1 = "#1a1a1a"
+bg2 = "#2a2a2a"
+fg = "#ffffff"
+grey = "#8d8d8d"
+red = "#a4a4a4"
+orange = "#cecece"
+yellow = "#cecece"
+green = "#b6b6b6"
+cyan = "#b0b0b0"
+blue = "#8d8d8d"
+magenta = "#9b9b9b"
+
+[overrides.obsidian]
+active_file_accent = "#8d8d8d"
+
+[overrides.sketchybar]
+highlight = "#8d8d8d"
+
+[overrides.ghostty]
+split_divider_color = "#8d8d8d"
+
+[overrides.ghostty_theme]
+file = "vantablack.ghostty"
+background = "#0d0d0d"
+foreground = "#ffffff"
+cursor_color = "#ffffff"
+cursor_text = "#0d0d0d"
+selection_background = "#ffffff"
+selection_foreground = "#0d0d0d"
+color0 = "#0d0d0d"
+color1 = "#a4a4a4"
+color2 = "#b6b6b6"
+color3 = "#cecece"
+color4 = "#8d8d8d"
+color5 = "#9b9b9b"
+color6 = "#b0b0b0"
+color7 = "#ececec"
+color8 = "#fdfdfd"
+color9 = "#a4a4a4"
+color10 = "#b6b6b6"
+color11 = "#cecece"
+color12 = "#8d8d8d"
+color13 = "#9b9b9b"
+color14 = "#b0b0b0"
+color15 = "#ffffff"
+
+[overrides.opencode_theme]
+file = "vantablack.json"
+
+[overrides.opencode_theme.defs]
+darkBg0 = "#0d0d0d"
+darkBg1 = "#161616"
+darkBg2 = "#202020"
+darkBg3 = "#2c2c2c"
+darkFg0 = "#ffffff"
+darkFg1 = "#ececec"
+darkGray = "#9b9b9b"
+darkRed = "#a4a4a4"
+darkGreen = "#b6b6b6"
+darkYellow = "#cecece"
+darkBlue = "#8d8d8d"
+darkMagenta = "#9b9b9b"
+darkCyan = "#b0b0b0"
+darkWhite = "#fdfdfd"
+darkRedBright = "#a4a4a4"
+darkGreenBright = "#b6b6b6"
+darkYellowBright = "#cecece"
+darkBlueBright = "#8d8d8d"
+darkMagentaBright = "#9b9b9b"
+darkCyanBright = "#b0b0b0"

@@ -60,7 +60,7 @@ class ThemeBuildTests(unittest.TestCase):
         theme_sources = theme_build.load_theme_sources(DOTFILES_ROOT / "themes" / "sources")
         ids = [theme_source.theme.id for theme_source in theme_sources]
         self.assertEqual(ids, sorted(ids))
-        self.assertEqual(ids, ["everforest", "gruvbox", "osaka-jade", "tokyo-night"])
+        self.assertEqual(ids, ["everforest", "gruvbox", "osaka-jade", "tokyo-night", "vantablack"])
 
     def test_load_theme_source_normalizes_hex_to_lowercase(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -572,6 +572,58 @@ class ThemeBuildTests(unittest.TestCase):
                 theme_build.render_opencode_theme(theme_source)
 
         self.assertIn("overrides.opencode_theme.file must be sample-theme.json", str(caught.exception))
+
+    def test_generate_theme_config_files_writes_optional_ghostty_theme(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            sources_dir = root / "sources"
+            configs_dir = root / "configs"
+            sources_dir.mkdir()
+            configs_dir.mkdir()
+
+            source_file = sources_dir / "sample-theme.toml"
+            source_file.write_text(
+                VALID_THEME_TOML
+                + textwrap.dedent(
+                    """
+
+                    [overrides.ghostty_theme]
+                    file = "sample-theme.ghostty"
+                    color3 = "#ffaa00"
+                    """
+                ),
+                encoding="utf-8",
+            )
+            written_files = theme_build.generate_theme_config_files(
+                sources_dir=sources_dir,
+                configs_dir=configs_dir,
+            )
+
+            self.assertIn("sample-theme.ghostty", [path.name for path in written_files])
+            generated = (configs_dir / "sample-theme" / "sample-theme.ghostty").read_text(encoding="utf-8")
+            self.assertIn("background = 1a1b26", generated)
+            self.assertIn("palette = 3=#ffaa00", generated)
+
+    def test_render_ghostty_theme_rejects_invalid_file_name(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source_file = Path(temp_dir) / "sample-theme.toml"
+            source_file.write_text(
+                VALID_THEME_TOML
+                + textwrap.dedent(
+                    """
+
+                    [overrides.ghostty_theme]
+                    file = "other-name.ghostty"
+                    """
+                ),
+                encoding="utf-8",
+            )
+            theme_source = theme_build.load_theme_source(source_file)
+
+            with self.assertRaises(theme_build.ThemeSourceError) as caught:
+                theme_build.render_ghostty_theme(theme_source)
+
+        self.assertIn("overrides.ghostty_theme.file must be sample-theme.ghostty", str(caught.exception))
 
     def test_render_neovim_config_applies_plugin_overrides(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

@@ -11,6 +11,7 @@ supported theme and the pinning policy for reproducible generation.
 | `gruvbox` | `https://github.com/morhetz/gruvbox` | `colors/gruvbox.vim` | `dark-hard` | `697c00291db857ca0af00ec154e5bd514a79191f` | Pin exact commit SHA from upstream default branch. Never pin a branch name. |
 | `everforest` | `https://github.com/sainnhe/everforest` | `palette.md`, `autoload/everforest.vim` | `dark-medium` | `b03a03148c8b34c24c96960b93da9c8883d11f54` | Pin exact commit SHA from upstream default branch. Never pin a branch name. |
 | `osaka-jade` | `https://github.com/basecamp/omarchy` | `themes/osaka-jade/colors.toml` | `dark` | `5e516be5447064352ea8188cba9f13508b04c3c0` | Pin exact commit SHA from Omarchy default branch because the palette is Omarchy-native. |
+| `vantablack` | `https://github.com/basecamp/omarchy` | `themes/vantablack/colors.toml` | `dark` | `e1ee8e8561c5c1ccfd953d4cf5e311dd1f810aed` | Pin exact commit SHA from Omarchy `dev` branch because the palette is Omarchy-native. |
 
 ## Canonical-Source Selection Rule
 

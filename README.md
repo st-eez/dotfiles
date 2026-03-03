@@ -98,6 +98,8 @@ Switch themes across all apps with one command:
 theme-set tokyo-night    # Default
 theme-set gruvbox
 theme-set everforest
+theme-set osaka-jade
+theme-set vantablack
 ```
 
 Applies to: SketchyBar, Ghostty, Borders, Neovim, Obsidian, wallpaper.
@@ -107,6 +109,8 @@ Applies to: SketchyBar, Ghostty, Borders, Neovim, Obsidian, wallpaper.
 | Tokyo Night | `#1a1b26`  | Blue   |
 | Gruvbox     | `#1d2021`  | Orange |
 | Everforest  | `#2d353b`  | Green  |
+| Osaka Jade  | `#111c18`  | Jade   |
+| Vantablack  | `#0d0d0d`  | Silver |
 
 Theme authoring source of truth is `themes/sources/<theme-id>.toml`; generated artifacts in `themes/meta/`, `themes/configs/`, `themes/themes.json`, and `themes/wallpapers/<theme-id>/1-solid.png` should not be edited by hand.
 

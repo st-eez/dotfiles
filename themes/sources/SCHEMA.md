@@ -74,7 +74,8 @@ the canonical palette or identifiers:
 
 - Namespace shape: `overrides.<target>.<key> = <value>`
 - `<target>` is the artifact/app key (examples: `neovim`, `ghostty`, `obsidian`,
-  `sketchybar`, `borders`, `tmux`, `wallpaper`, `antigravity`, `opencode`)
+  `sketchybar`, `borders`, `tmux`, `wallpaper`, `antigravity`, `opencode`,
+  `ghostty_theme`)
 - `<key>` is target-specific and interpreted only by that target generator
 - Unknown targets are invalid unless explicitly supported by the generator set
 - Overrides must be additive; core required fields remain authoritative
@@ -106,6 +107,20 @@ the canonical palette or identifiers:
 | `folder_color` | hex `#RRGGBB` | `palette.blue` | Folder title/icon color variable. |
 | `active_file_accent` | hex `#RRGGBB` | `palette.blue` | Active file/folder highlight accent. |
 | `active_file_alpha` | number (`0..1`) | `0.15` | Alpha used in active row `rgba(...)` background. |
+
+### `overrides.ghostty_theme` Keys
+
+| Key | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `file` | string | `<theme-id>.ghostty` | Must match `<theme-id>.ghostty`; enables generation of optional custom Ghostty user theme file. |
+| `header_title` | string | `theme.name` | Comment title in generated theme file. |
+| `background` | hex `#RRGGBB` | `palette.bg0` | Main background color. |
+| `foreground` | hex `#RRGGBB` | `palette.fg` | Main foreground color. |
+| `cursor_color` | hex `#RRGGBB` | `palette.fg` | Cursor color. |
+| `cursor_text` | hex `#RRGGBB` | `palette.bg0` | Cursor text color. |
+| `selection_background` | hex `#RRGGBB` | `palette.fg` | Selection background color. |
+| `selection_foreground` | hex `#RRGGBB` | `palette.bg0` | Selection foreground color. |
+| `color0..color15` | hex `#RRGGBB` | mapped from canonical palette defaults | Override ANSI color slots used in `palette = <index>=<hex>` lines. |
 
 ### `overrides.opencode_theme` Keys
 

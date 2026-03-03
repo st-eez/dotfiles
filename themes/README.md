@@ -12,6 +12,8 @@ theme-set
 theme-set tokyo-night    # Default
 theme-set gruvbox
 theme-set everforest
+theme-set osaka-jade
+theme-set vantablack
 
 # Cycle themes
 theme-set --next         # or -n
@@ -44,7 +46,7 @@ Wallpapers are stored in per-theme directories: `themes/wallpapers/<theme-name>/
 | App         | Method               | Auto-reload      |
 | ----------- | -------------------- | ---------------- |
 | SketchyBar  | Symlink colors.lua   | Yes              |
-| Ghostty     | Symlink theme.conf   | Yes (SIGUSR2)    |
+| Ghostty     | Symlink theme.conf + optional custom user theme file | Yes (SIGUSR2)    |
 | Borders     | Symlink bordersrc    | Yes              |
 | Tmux        | Symlink theme.conf   | Yes (`source-file`) |
 | Wallpaper   | osascript            | Yes              |
@@ -62,6 +64,8 @@ Wallpapers are stored in per-theme directories: `themes/wallpapers/<theme-name>/
 | Tokyo Night | `#1a1b26`  | Blue   | [folke/tokyonight.nvim](https://github.com/folke/tokyonight.nvim) |
 | Gruvbox     | `#1d2021`  | Orange | [morhetz/gruvbox](https://github.com/morhetz/gruvbox)             |
 | Everforest  | `#2d353b`  | Green  | [sainnhe/everforest](https://github.com/sainnhe/everforest)       |
+| Osaka Jade  | `#111c18`  | Jade   | [basecamp/omarchy](https://github.com/basecamp/omarchy)           |
+| Vantablack  | `#0d0d0d`  | Silver | [basecamp/omarchy](https://github.com/basecamp/omarchy)           |
 
 Canonical upstream file + ref pinning decisions are tracked in
 `themes/sources/CANONICAL_UPSTREAMS.md`.

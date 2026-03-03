@@ -63,9 +63,10 @@ MANAGED_THEME_CONFIG_FILENAMES = (
     "neovim.lua",
     "obsidian-snippet.css",
 )
-MANAGED_OPTIONAL_THEME_CONFIG_EXTENSIONS = (".json",)
+MANAGED_OPTIONAL_THEME_CONFIG_EXTENSIONS = (".json", ".ghostty")
 OPENCODE_THEME_SCHEMA_URL = "https://opencode.ai/theme.json"
 OPENCODE_THEME_DEF_KEY_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9]*$")
+GHOSTTY_THEME_COLOR_KEYS = tuple(f"color{i}" for i in range(16))
 MANAGED_WALLPAPER_FILENAME = "1-solid.png"
 DEFAULT_WALLPAPER_WIDTH = 5120
 DEFAULT_WALLPAPER_HEIGHT = 2880
@@ -82,6 +83,7 @@ ALLOWED_OVERRIDE_TARGETS = {
     "antigravity",
     "opencode",
     "opencode_theme",
+    "ghostty_theme",
 }
 
 
@@ -1240,6 +1242,130 @@ def render_opencode_theme(theme_source: ThemeSource) -> tuple[str, str] | None:
     return output_filename, json.dumps(payload, indent=2) + "\n"
 
 
+def render_ghostty_theme(theme_source: ThemeSource) -> tuple[str, str] | None:
+    palette = theme_source.palette
+    overrides = _extract_overrides_for_target(theme_source, "ghostty_theme")
+    if not overrides:
+        return None
+
+    _assert_allowed_override_keys(
+        theme_source,
+        "ghostty_theme",
+        overrides,
+        {
+            "file",
+            "header_title",
+            "background",
+            "foreground",
+            "cursor_color",
+            "cursor_text",
+            "selection_background",
+            "selection_foreground",
+        }.union(GHOSTTY_THEME_COLOR_KEYS),
+    )
+
+    output_filename = _resolve_string_override(
+        theme_source,
+        "ghostty_theme",
+        overrides,
+        "file",
+        f"{theme_source.theme.id}.ghostty",
+    )
+    _normalize_ghostty_theme_filename(theme_source, output_filename)
+
+    header_title = _resolve_string_override(
+        theme_source,
+        "ghostty_theme",
+        overrides,
+        "header_title",
+        theme_source.theme.name,
+    )
+
+    background = _resolve_hex_override(
+        theme_source,
+        "ghostty_theme",
+        overrides,
+        "background",
+        palette.bg0,
+    )
+    foreground = _resolve_hex_override(
+        theme_source,
+        "ghostty_theme",
+        overrides,
+        "foreground",
+        palette.fg,
+    )
+    cursor_color = _resolve_hex_override(
+        theme_source,
+        "ghostty_theme",
+        overrides,
+        "cursor_color",
+        palette.fg,
+    )
+    cursor_text = _resolve_hex_override(
+        theme_source,
+        "ghostty_theme",
+        overrides,
+        "cursor_text",
+        palette.bg0,
+    )
+    selection_background = _resolve_hex_override(
+        theme_source,
+        "ghostty_theme",
+        overrides,
+        "selection_background",
+        palette.fg,
+    )
+    selection_foreground = _resolve_hex_override(
+        theme_source,
+        "ghostty_theme",
+        overrides,
+        "selection_foreground",
+        palette.bg0,
+    )
+
+    palette_defaults = {
+        "color0": palette.bg0,
+        "color1": palette.red,
+        "color2": palette.green,
+        "color3": palette.yellow,
+        "color4": palette.blue,
+        "color5": palette.magenta,
+        "color6": palette.cyan,
+        "color7": palette.fg,
+        "color8": palette.grey,
+        "color9": palette.red,
+        "color10": palette.green,
+        "color11": palette.yellow,
+        "color12": palette.blue,
+        "color13": palette.magenta,
+        "color14": palette.cyan,
+        "color15": palette.fg,
+    }
+    resolved_palette = {
+        key: _resolve_hex_override(theme_source, "ghostty_theme", overrides, key, default_value)
+        for key, default_value in palette_defaults.items()
+    }
+
+    lines = [
+        f"# {header_title}",
+        "# Managed by theme-set - do not edit manually",
+        f"background = {_hex_without_prefix(background)}",
+        f"foreground = {_hex_without_prefix(foreground)}",
+        f"cursor-color = {_hex_without_prefix(cursor_color)}",
+        f"cursor-text = {_hex_without_prefix(cursor_text)}",
+        f"selection-background = {_hex_without_prefix(selection_background)}",
+        f"selection-foreground = {_hex_without_prefix(selection_foreground)}",
+        "",
+        "# Normal colors (palette 0-7)",
+    ]
+    lines.extend(f"palette = {index}={resolved_palette[f'color{index}']}" for index in range(8))
+    lines.extend(["", "# Bright colors (palette 8-15)"])
+    lines.extend(f"palette = {index}={resolved_palette[f'color{index}']}" for index in range(8, 16))
+
+    return output_filename, "\n".join(lines) + "\n"
+
+
 def render_theme_app_configs(theme_source: ThemeSource) -> dict[str, str]:
     rendered = {
         "sketchybar-colors.lua": render_sketchybar_colors(theme_source),
@@ -1252,6 +1378,10 @@ def render_theme_app_configs(theme_source: ThemeSource) -> dict[str, str]:
     opencode_theme = render_opencode_theme(theme_source)
     if opencode_theme is not None:
         filename, content = opencode_theme
+        rendered[filename] = content
+    ghostty_theme = render_ghostty_theme(theme_source)
+    if ghostty_theme is not None:
+        filename, content = ghostty_theme
         rendered[filename] = content
     return rendered
 
@@ -1826,6 +1956,26 @@ def _normalize_opencode_theme_filename(theme_source: ThemeSource, value: str) ->
     return value
 
 
+def _normalize_ghostty_theme_filename(theme_source: ThemeSource, value: str) -> str:
+    if "/" in value or "\\" in value:
+        raise ThemeSourceError(
+            theme_source.file_path,
+            "overrides.ghostty_theme.file must be a filename without path separators",
+        )
+    if not value.endswith(".ghostty"):
+        raise ThemeSourceError(
+            theme_source.file_path,
+            "overrides.ghostty_theme.file must end with .ghostty",
+        )
+    expected_filename = f"{theme_source.theme.id}.ghostty"
+    if value != expected_filename:
+        raise ThemeSourceError(
+            theme_source.file_path,
+            f"overrides.ghostty_theme.file must be {expected_filename}",
+        )
+    return value
+
+
 def _build_default_opencode_theme_defs(theme_source: ThemeSource) -> dict[str, str]:
     palette = theme_source.palette
     dark_bg3 = _mix_hex_colors(palette.bg2, palette.fg, 0.14)
@@ -1979,6 +2129,10 @@ def _mix_hex_colors(hex_a: str, hex_b: str, ratio: float) -> str:
     green = _mix_rgb_channel(green_a, green_b, ratio)
     blue = _mix_rgb_channel(blue_a, blue_b, ratio)
     return f"#{red:02x}{green:02x}{blue:02x}"
+
+
+def _hex_without_prefix(value: str) -> str:
+    return value[1:]
 
 
 def _mix_rgb_channel(channel_a: int, channel_b: int, ratio: float) -> int:

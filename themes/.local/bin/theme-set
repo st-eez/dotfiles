@@ -282,12 +282,17 @@ elif [[ -f "$THEMES_DIR/configs/$THEME/sketchybar-colors.lua" ]]; then
 fi
 
 # =============================================================================
-# 2. Ghostty - symlink theme.conf + reload via SIGUSR2
+# 2. Ghostty - symlink theme.conf + optional custom theme + reload via SIGUSR2
 # =============================================================================
 if ! is_installed ghostty; then
     skip "Ghostty"
 elif [[ -f "$THEMES_DIR/configs/$THEME/ghostty.conf" ]]; then
     mkdir -p ~/.config/ghostty
+    GHOSTTY_CUSTOM_THEME="$THEMES_DIR/configs/$THEME/$THEME.ghostty"
+    if [[ -f "$GHOSTTY_CUSTOM_THEME" ]]; then
+        mkdir -p ~/.config/ghostty/themes
+        ln -sfn "$GHOSTTY_CUSTOM_THEME" "$HOME/.config/ghostty/themes/$GHOSTTY_THEME"
+    fi
     ln -sfn "$THEMES_DIR/configs/$THEME/ghostty.conf" ~/.config/ghostty/theme.conf
     if pgrep -x ghostty >/dev/null 2>&1; then
         killall -SIGUSR2 ghostty 2>/dev/null && log "Ghostty" || log "Ghostty (config ready)"
