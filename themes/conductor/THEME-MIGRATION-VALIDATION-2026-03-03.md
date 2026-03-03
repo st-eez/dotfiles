@@ -84,3 +84,22 @@ Resolution in this bead:
 - Updated `themes/.local/bin/theme-set` to replace `mapfile` with a Bash 3-compatible `while read` loader.
 
 No additional follow-up issues are required from this validation run.
+
+## Closeout Verification (`dot-6hq.6`)
+
+Re-ran the primary guardrails before closing the parent verification bead.
+
+```bash
+python3 /Users/stevedimakos/Projects/Personal/dotfiles/themes/scripts/theme_build.py --check
+python3 -m unittest /Users/stevedimakos/Projects/Personal/dotfiles/themes/tests/test_theme_build.py
+```
+
+Result:
+
+```text
+theme-build check: OK (4 file(s) validated in /Users/stevedimakos/Projects/Personal/dotfiles/themes/sources)
+Ran 30 tests in 0.865s
+OK
+```
+
+Outcome: guardrails remain green after migration/docs changes; no additional regressions found.
