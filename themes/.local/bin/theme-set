@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # theme-set - Switch macOS theme across all configured apps
 # Usage: theme-set <theme> | --next | --prev
-# Available themes: tokyo-night, gruvbox, everforest, osaka-jade
 
 set -euo pipefail
 
@@ -25,9 +24,8 @@ SCRIPT_DIR="$(resolve_symlink "${BASH_SOURCE[0]}")"
 DOTFILES="${DOTFILES:-$(cd "$SCRIPT_DIR/../../.." && pwd)}"
 THEMES_DIR="$DOTFILES/themes"
 STATE_FILE="$HOME/.config/current-theme"
-
-# Theme cycle order
-THEMES=(everforest gruvbox tokyo-night osaka-jade)
+THEMES_MANIFEST="$THEMES_DIR/themes.json"
+THEMES=()
 
 # Colors for output
 RED='\033[0;31m'
@@ -44,10 +42,68 @@ usage() {
     echo "  --prev, -p    Cycle to previous theme"
     echo ""
     echo "Available themes:"
-    for d in "$THEMES_DIR/configs"/*/; do
-        echo "  - $(basename "$d")"
+    for t in "${THEMES[@]}"; do
+        echo "  - $t"
     done
     exit 1
+}
+
+load_themes_from_manifest() {
+    local manifest_path="$1"
+    python3 - "$manifest_path" << 'PY'
+import json
+import sys
+
+manifest_path = sys.argv[1]
+with open(manifest_path, "r", encoding="utf-8") as handle:
+    manifest = json.load(handle)
+
+themes = manifest.get("themes")
+if not isinstance(themes, list):
+    raise ValueError("themes.json is missing a themes array")
+
+for theme in themes:
+    if not isinstance(theme, dict):
+        continue
+    theme_id = theme.get("id")
+    if isinstance(theme_id, str) and theme_id.strip():
+        print(theme_id.strip())
+PY
+}
+
+load_themes() {
+    local manifest_themes=""
+
+    if [[ -f "$THEMES_MANIFEST" ]] && manifest_themes="$(load_themes_from_manifest "$THEMES_MANIFEST" 2>/dev/null)" && [[ -n "$manifest_themes" ]]; then
+        mapfile -t THEMES <<< "$manifest_themes"
+        return
+    fi
+
+    if [[ -d "$THEMES_DIR/configs" ]]; then
+        mapfile -t THEMES < <(
+            find "$THEMES_DIR/configs" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; \
+                | LC_ALL=C sort
+        )
+    fi
+}
+
+theme_exists() {
+    local theme_id="$1"
+    local candidate
+    for candidate in "${THEMES[@]}"; do
+        if [[ "$candidate" == "$theme_id" ]]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+default_theme() {
+    if theme_exists "tokyo-night"; then
+        echo "tokyo-night"
+    else
+        echo "${THEMES[0]}"
+    fi
 }
 
 show_status() {
@@ -66,11 +122,19 @@ show_status() {
 }
 
 get_current_theme() {
+    local fallback
+    fallback=$(default_theme)
+
     if [[ -f "$STATE_FILE" ]]; then
-        cat "$STATE_FILE"
-    else
-        echo "tokyo-night"
+        local state_theme
+        state_theme=$(cat "$STATE_FILE")
+        if theme_exists "$state_theme"; then
+            echo "$state_theme"
+            return
+        fi
     fi
+
+    echo "$fallback"
 }
 
 cycle_theme() {
@@ -91,6 +155,12 @@ cycle_theme() {
     
     echo "${THEMES[$idx]}"
 }
+
+load_themes
+if [[ ${#THEMES[@]} -eq 0 ]]; then
+    echo "No themes found from $THEMES_MANIFEST or $THEMES_DIR/configs" >&2
+    exit 1
+fi
 
 # Handle arguments
 THEME="${1:-}"
@@ -151,7 +221,10 @@ backup_file() {
 
 # Validate arguments
 [[ -z "$THEME" ]] && usage
-[[ ! -d "$THEMES_DIR/configs/$THEME" ]] && error "Unknown theme: $THEME"
+if ! theme_exists "$THEME"; then
+    error "Unknown theme: $THEME"
+fi
+[[ ! -d "$THEMES_DIR/configs/$THEME" ]] && error "Missing generated config directory for theme: $THEME"
 
 # Load theme metadata
 # shellcheck source=/dev/null
