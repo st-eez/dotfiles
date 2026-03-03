@@ -1,0 +1,35 @@
+schema_version = 1
+
+[theme]
+id = "osaka-jade"
+name = "Osaka Jade"
+variant = "dark"
+source = "https://github.com/basecamp/omarchy"
+
+[identifiers]
+ghostty = "Osaka Jade"
+nvim_colorscheme = "osaka-jade"
+nvim_plugin = "st-eez/osaka-jade.nvim"
+antigravity = "Ocean Green: Dark"
+opencode = "osaka-jade"
+obsidian = "Osaka Jade"
+
+[palette]
+bg0 = "#111c18"
+bg1 = "#1a2520"
+bg2 = "#23372b"
+fg = "#c1c497"
+grey = "#53685b"
+red = "#ff5345"
+orange = "#e5c736"
+yellow = "#e5c736"
+green = "#549e6a"
+cyan = "#2dd5b7"
+blue = "#509475"
+magenta = "#d2689c"
+
+[overrides.neovim]
+dev = true
+
+[overrides.opencode_theme]
+file = "osaka-jade.json"

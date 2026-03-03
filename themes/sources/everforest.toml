@@ -1,0 +1,32 @@
+schema_version = 1
+
+[theme]
+id = "everforest"
+name = "Everforest Dark"
+variant = "dark-medium"
+source = "https://github.com/sainnhe/everforest"
+
+[identifiers]
+ghostty = "everforest-dark-medium"
+nvim_colorscheme = "everforest"
+nvim_plugin = "sainnhe/everforest"
+antigravity = "Everforest Dark"
+opencode = "everforest"
+obsidian = "Everforest"
+
+[palette]
+bg0 = "#2d353b"
+bg1 = "#3d484d"
+bg2 = "#4f585e"
+fg = "#d3c6aa"
+grey = "#859289"
+red = "#e67e80"
+orange = "#e69875"
+yellow = "#dbbc7f"
+green = "#a7c080"
+cyan = "#83c092"
+blue = "#7fbbb3"
+magenta = "#d699b6"
+
+[overrides.neovim]
+background = "medium"
