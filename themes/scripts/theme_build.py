@@ -14,6 +14,7 @@ from typing import Any, Mapping, Sequence, TextIO
 
 THEME_ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 HEX_COLOR_PATTERN = re.compile(r"^#[0-9a-fA-F]{6}$")
+CSS_IDENTIFIER_PATTERN = re.compile(r"^[a-z0-9_-]+$")
 
 REQUIRED_THEME_KEYS = ("id", "name", "variant", "source")
 REQUIRED_IDENTIFIER_KEYS = (
@@ -57,6 +58,8 @@ MANAGED_THEME_CONFIG_FILENAMES = (
     "bordersrc",
     "tmux.conf",
     "ghostty.conf",
+    "neovim.lua",
+    "obsidian-snippet.css",
 )
 
 ALLOWED_TOP_LEVEL_KEYS = {"schema_version", "theme", "identifiers", "palette", "overrides"}
@@ -725,12 +728,422 @@ def render_ghostty_config(theme_source: ThemeSource) -> str:
     return "\n".join(lines) + "\n"
 
 
+def render_neovim_config(theme_source: ThemeSource) -> str:
+    overrides = _extract_overrides_for_target(theme_source, "neovim")
+    _assert_allowed_override_keys(
+        theme_source,
+        "neovim",
+        overrides,
+        {
+            "plugin",
+            "lazy",
+            "priority",
+            "dev",
+            "background",
+            "background_variable",
+            "contrast",
+            "setup_module",
+            "config_lua",
+            "header_title",
+        },
+    )
+
+    plugin = _resolve_string_override(
+        theme_source,
+        "neovim",
+        overrides,
+        "plugin",
+        theme_source.identifiers.nvim_plugin or "",
+    )
+    plugin = plugin if plugin else None
+
+    plugin_scoped_keys = {
+        "plugin",
+        "lazy",
+        "priority",
+        "dev",
+        "background",
+        "background_variable",
+        "contrast",
+        "setup_module",
+        "config_lua",
+    }
+    if plugin is None:
+        plugin_override_keys = sorted(set(overrides.keys()).intersection(plugin_scoped_keys))
+        if plugin_override_keys:
+            overrides_display = ", ".join(plugin_override_keys)
+            raise ThemeSourceError(
+                theme_source.file_path,
+                (
+                    "identifiers.nvim_plugin is required when using "
+                    f"plugin-scoped neovim overrides ({overrides_display})"
+                ),
+            )
+
+    header_title = _resolve_string_override(
+        theme_source,
+        "neovim",
+        overrides,
+        "header_title",
+        theme_source.theme.name,
+    )
+
+    plugin_lazy = _resolve_bool_override(
+        theme_source,
+        "neovim",
+        overrides,
+        "lazy",
+        False,
+    )
+    plugin_priority = _resolve_int_override(
+        theme_source,
+        "neovim",
+        overrides,
+        "priority",
+        1000,
+    )
+    plugin_dev = _resolve_bool_override(
+        theme_source,
+        "neovim",
+        overrides,
+        "dev",
+        False,
+    )
+
+    config_lua_lines: list[str] = []
+    if "background" in overrides:
+        background_value = _resolve_string_override(
+            theme_source,
+            "neovim",
+            overrides,
+            "background",
+            "",
+        )
+        background_variable = _resolve_string_override(
+            theme_source,
+            "neovim",
+            overrides,
+            "background_variable",
+            _default_neovim_background_variable(theme_source),
+        )
+        background_variable = _normalize_lua_identifier(
+            theme_source.file_path,
+            "overrides.neovim.background_variable",
+            background_variable,
+        )
+        config_lua_lines.append(
+            f'vim.g.{background_variable} = "{_escape_lua_string(background_value)}"'
+        )
+
+    if "contrast" in overrides:
+        contrast_value = _resolve_string_override(
+            theme_source,
+            "neovim",
+            overrides,
+            "contrast",
+            "",
+        )
+        setup_module = _resolve_string_override(
+            theme_source,
+            "neovim",
+            overrides,
+            "setup_module",
+            _default_neovim_setup_module(theme_source, plugin),
+        )
+        config_lua_lines.extend(
+            [
+                f'require("{_escape_lua_string(setup_module)}").setup({{',
+                f'  contrast = "{_escape_lua_string(contrast_value)}",',
+                "})",
+            ]
+        )
+
+    if "config_lua" in overrides:
+        config_lua = _resolve_string_override(
+            theme_source,
+            "neovim",
+            overrides,
+            "config_lua",
+            "",
+        )
+        config_lua_lines.extend(config_lua.splitlines())
+
+    lines = [
+        f"-- {header_title} theme for Neovim (LazyVim)",
+        "-- Managed by theme-set, symlinked to ~/.config/nvim/lua/plugins/theme.lua",
+        "return {",
+    ]
+
+    if plugin is not None:
+        lines.extend(
+            [
+                "  {",
+                f'    "{plugin}",',
+                f"    lazy = {_lua_bool(plugin_lazy)},",
+                f"    priority = {plugin_priority},",
+            ]
+        )
+        if plugin_dev:
+            lines.append("    dev = true,")
+        if config_lua_lines:
+            lines.append("    config = function()")
+            for lua_line in config_lua_lines:
+                if lua_line:
+                    lines.append(f"      {lua_line}")
+                else:
+                    lines.append("")
+            lines.append("    end,")
+        lines.append("  },")
+
+    lines.extend(
+        [
+            "  {",
+            '    "LazyVim/LazyVim",',
+            "    opts = {",
+            f'      colorscheme = "{_escape_lua_string(theme_source.identifiers.nvim_colorscheme)}",',
+            "    },",
+            "  },",
+            "}",
+        ]
+    )
+    return "\n".join(lines) + "\n"
+
+
+def render_obsidian_snippet(theme_source: ThemeSource) -> str:
+    palette = theme_source.palette
+    overrides = _extract_overrides_for_target(theme_source, "obsidian")
+    _assert_allowed_override_keys(
+        theme_source,
+        "obsidian",
+        overrides,
+        {
+            "variable_prefix",
+            "sidebar_color",
+            "editor_color",
+            "foreground_color",
+            "muted_color",
+            "folder_color",
+            "active_file_accent",
+            "active_file_alpha",
+        },
+    )
+
+    default_prefix = theme_source.theme.id.replace("-", "")
+    prefix = _resolve_string_override(
+        theme_source,
+        "obsidian",
+        overrides,
+        "variable_prefix",
+        default_prefix,
+    )
+    prefix_key_path = (
+        "overrides.obsidian.variable_prefix"
+        if "variable_prefix" in overrides
+        else "default.obsidian.variable_prefix"
+    )
+    variable_prefix = _normalize_css_identifier(theme_source.file_path, prefix_key_path, prefix)
+
+    sidebar_color = _resolve_hex_override(
+        theme_source,
+        "obsidian",
+        overrides,
+        "sidebar_color",
+        palette.bg0,
+    )
+    editor_color = _resolve_hex_override(
+        theme_source,
+        "obsidian",
+        overrides,
+        "editor_color",
+        palette.bg1,
+    )
+    foreground_color = _resolve_hex_override(
+        theme_source,
+        "obsidian",
+        overrides,
+        "foreground_color",
+        palette.fg,
+    )
+    muted_color = _resolve_hex_override(
+        theme_source,
+        "obsidian",
+        overrides,
+        "muted_color",
+        palette.grey,
+    )
+    folder_color = _resolve_hex_override(
+        theme_source,
+        "obsidian",
+        overrides,
+        "folder_color",
+        palette.blue,
+    )
+    active_file_accent = _resolve_hex_override(
+        theme_source,
+        "obsidian",
+        overrides,
+        "active_file_accent",
+        palette.blue,
+    )
+    active_file_alpha = _resolve_float_override(
+        theme_source,
+        "obsidian",
+        overrides,
+        "active_file_alpha",
+        0.15,
+        minimum=0.0,
+        maximum=1.0,
+    )
+    active_file_alpha_literal = _format_decimal(active_file_alpha)
+    active_file_accent_rgb = _hex_to_rgb_triplet(active_file_accent)
+
+    lines = [
+        ":root {",
+        f"  --{variable_prefix}-sidebar: {sidebar_color};",
+        f"  --{variable_prefix}-editor: {editor_color};",
+        f"  --{variable_prefix}-fg: {foreground_color};",
+        f"  --{variable_prefix}-muted: {muted_color};",
+        f"  --{variable_prefix}-folder: {folder_color};",
+        f"  --{variable_prefix}-accent: {active_file_accent};",
+        f"  --nav-item-color-active: var(--{variable_prefix}-fg);",
+        "  --nav-item-weight-active: 600;",
+        "}",
+        "",
+        "body,",
+        ".app-container,",
+        ".workspace {",
+        f"  background-color: var(--{variable_prefix}-sidebar) !important;",
+        "}",
+        "",
+        ".workspace-split.mod-left-split,",
+        ".workspace-split.mod-left-split .workspace-leaf-content,",
+        ".workspace-split.mod-left-split .view-content,",
+        ".workspace-drawer.mod-left,",
+        ".nav-files-container,",
+        ".workspace-ribbon.mod-left {",
+        f"  background-color: var(--{variable_prefix}-sidebar) !important;",
+        "}",
+        "",
+        ".workspace-split.mod-root .workspace-leaf-content,",
+        ".workspace-split.mod-root .view-content,",
+        ".workspace-split.mod-root .view-header,",
+        ".workspace-split.mod-root .markdown-source-view.mod-cm6 .cm-scroller,",
+        ".workspace-split.mod-root .markdown-preview-view,",
+        ".workspace-split.mod-root .empty-state,",
+        ".workspace-split.mod-root .empty-state-container {",
+        f"  background-color: var(--{variable_prefix}-editor) !important;",
+        "}",
+        "",
+        ".view-header-breadcrumb,",
+        ".view-header-breadcrumb-separator,",
+        ".view-header-title {",
+        f"  color: var(--{variable_prefix}-fg) !important;",
+        "}",
+        "",
+        ".workspace-tab-header-container {",
+        f"  background-color: var(--{variable_prefix}-sidebar) !important;",
+        "  border-bottom: none !important;",
+        "}",
+        "",
+        ".workspace-tab-header {",
+        f"  color: var(--{variable_prefix}-muted) !important;",
+        "  background-color: transparent !important;",
+        "}",
+        "",
+        ".workspace-tab-header.is-active {",
+        f"  color: var(--{variable_prefix}-fg) !important;",
+        f"  background-color: var(--{variable_prefix}-editor) !important;",
+        "  box-shadow: none !important;",
+        "  border: none !important;",
+        "}",
+        "",
+        ".workspace-tab-header.is-active::before,",
+        ".workspace-tab-header.is-active::after {",
+        "  display: none !important;",
+        "}",
+        "",
+        ".nav-file-title,",
+        ".nav-file-title-content {",
+        f"  color: var(--{variable_prefix}-fg) !important;",
+        "}",
+        "",
+        "body:not(.is-grabbing) .nav-file-title.is-active,",
+        "body:not(.is-grabbing) .nav-folder-title.is-active,",
+        ".nav-file-title.is-active,",
+        ".nav-folder-title.is-active {",
+        f"  color: var(--{variable_prefix}-fg) !important;",
+        f"  background-color: rgba({active_file_accent_rgb}, {active_file_alpha_literal}) !important;",
+        "  font-weight: 600 !important;",
+        "}",
+        "",
+        ".nav-file-title.is-active .nav-file-title-content::before,",
+        ".nav-folder-title.is-active .nav-folder-title-content::before {",
+        '  content: "\\2726 ";',
+        f"  color: var(--{variable_prefix}-fg);",
+        "  font-weight: 700;",
+        "}",
+        "",
+        ".nav-folder-title .nav-folder-title-content {",
+        f"  color: var(--{variable_prefix}-folder);",
+        "  font-weight: 800;",
+        "}",
+        "",
+        ".nav-folder-title.is-active .nav-folder-title-content {",
+        f"  color: var(--{variable_prefix}-folder) !important;",
+        "  font-weight: 800;",
+        "}",
+        "",
+        ".nav-file-title.is-active .nav-file-title-content,",
+        ".nav-folder-title.is-active .nav-folder-title-content {",
+        f"  color: var(--{variable_prefix}-fg) !important;",
+        f"  caret-color: var(--{variable_prefix}-fg);",
+        "}",
+        "",
+        ".nav-folder.is-collapsed > .nav-folder-title .nav-folder-title-content::before {",
+        '  content: "\\f07b ";',
+        '  font-family: "JetBrainsMono Nerd Font";',
+        f"  color: var(--{variable_prefix}-folder);",
+        "  padding-right: 8px;",
+        "}",
+        "",
+        ".nav-folder:not(.is-collapsed)",
+        "  > .nav-folder-title",
+        "  .nav-folder-title-content::before {",
+        '  content: "\\f07c ";',
+        '  font-family: "JetBrainsMono Nerd Font";',
+        f"  color: var(--{variable_prefix}-folder);",
+        "  padding-right: 8px;",
+        "}",
+        "",
+        ".markdown-source-view.mod-cm6,",
+        ".markdown-preview-view {",
+        "  --checklist-done-decoration: none !important;",
+        f"  --checklist-done-color: var(--{variable_prefix}-muted) !important;",
+        "}",
+        "",
+        '.markdown-source-view.mod-cm6 .HyperMD-task-line[data-task="x"],',
+        '.markdown-source-view.mod-cm6 .HyperMD-task-line[data-task="X"],',
+        ".markdown-source-view.mod-cm6 .task-list-item.is-checked,",
+        ".markdown-source-view.mod-cm6 .task-list-item.is-checked .task-list-label,",
+        ".markdown-preview-view .task-list-item.is-checked,",
+        ".markdown-preview-view .task-list-item.is-checked .task-list-label {",
+        "  text-decoration: none !important;",
+        "  text-decoration-line: none !important;",
+        f"  color: var(--{variable_prefix}-muted) !important;",
+        "  opacity: 1 !important;",
+        "}",
+    ]
+    return "\n".join(lines) + "\n"
+
+
 def render_theme_app_configs(theme_source: ThemeSource) -> dict[str, str]:
     return {
         "sketchybar-colors.lua": render_sketchybar_colors(theme_source),
         "bordersrc": render_borders_config(theme_source),
         "tmux.conf": render_tmux_config(theme_source),
         "ghostty.conf": render_ghostty_config(theme_source),
+        "neovim.lua": render_neovim_config(theme_source),
+        "obsidian-snippet.css": render_obsidian_snippet(theme_source),
     }
 
 
@@ -1054,11 +1467,118 @@ def _resolve_string_override(
     return _normalize_required_string(theme_source.file_path, f"overrides.{target}.{key}", overrides[key])
 
 
+def _resolve_bool_override(
+    theme_source: ThemeSource,
+    target: str,
+    overrides: Mapping[str, Any],
+    key: str,
+    default: bool,
+) -> bool:
+    value = overrides.get(key, default)
+    if isinstance(value, bool):
+        return value
+    key_path = f"overrides.{target}.{key}" if key in overrides else f"default.{target}.{key}"
+    raise ThemeSourceError(theme_source.file_path, f"{key_path} must be a boolean")
+
+
+def _resolve_int_override(
+    theme_source: ThemeSource,
+    target: str,
+    overrides: Mapping[str, Any],
+    key: str,
+    default: int,
+) -> int:
+    value = overrides.get(key, default)
+    key_path = f"overrides.{target}.{key}" if key in overrides else f"default.{target}.{key}"
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ThemeSourceError(theme_source.file_path, f"{key_path} must be an integer")
+    return value
+
+
+def _resolve_float_override(
+    theme_source: ThemeSource,
+    target: str,
+    overrides: Mapping[str, Any],
+    key: str,
+    default: float,
+    *,
+    minimum: float | None = None,
+    maximum: float | None = None,
+) -> float:
+    value = overrides.get(key, default)
+    key_path = f"overrides.{target}.{key}" if key in overrides else f"default.{target}.{key}"
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ThemeSourceError(theme_source.file_path, f"{key_path} must be a number")
+    resolved = float(value)
+    if minimum is not None and resolved < minimum:
+        raise ThemeSourceError(theme_source.file_path, f"{key_path} must be >= {minimum}")
+    if maximum is not None and resolved > maximum:
+        raise ThemeSourceError(theme_source.file_path, f"{key_path} must be <= {maximum}")
+    return resolved
+
+
 def _hex_to_argb(hex_color: str, alpha: str) -> str:
     resolved_alpha = alpha.lower()
     if not re.fullmatch(r"[0-9a-f]{2}", resolved_alpha):
         raise ValueError(f"alpha must be two lowercase hex chars, got '{alpha}'")
     return f"0x{resolved_alpha}{hex_color.removeprefix('#').lower()}"
+
+
+def _hex_to_rgb_triplet(hex_color: str) -> str:
+    value = hex_color.removeprefix("#")
+    if len(value) != 6:
+        raise ValueError(f"hex color must be 6 characters, got '{hex_color}'")
+    red = int(value[0:2], 16)
+    green = int(value[2:4], 16)
+    blue = int(value[4:6], 16)
+    return f"{red}, {green}, {blue}"
+
+
+def _default_neovim_background_variable(theme_source: ThemeSource) -> str:
+    colorscheme_name = theme_source.identifiers.nvim_colorscheme
+    normalized = re.sub(r"[^a-zA-Z0-9_]", "_", colorscheme_name)
+    return f"{normalized}_background"
+
+
+def _default_neovim_setup_module(theme_source: ThemeSource, plugin: str | None) -> str:
+    if plugin:
+        repository = plugin.rsplit("/", 1)[-1]
+        if repository.endswith(".nvim"):
+            repository = repository[: -len(".nvim")]
+        if repository:
+            return repository
+    return re.sub(r"[^a-zA-Z0-9_]", "_", theme_source.identifiers.nvim_colorscheme)
+
+
+def _normalize_lua_identifier(source_file: Path, key_path: str, value: str) -> str:
+    if not re.fullmatch(r"^[a-zA-Z_][a-zA-Z0-9_]*$", value):
+        raise ThemeSourceError(
+            source_file,
+            f"{key_path} must match ^[a-zA-Z_][a-zA-Z0-9_]*$",
+        )
+    return value
+
+
+def _normalize_css_identifier(source_file: Path, key_path: str, value: str) -> str:
+    if not CSS_IDENTIFIER_PATTERN.fullmatch(value):
+        raise ThemeSourceError(
+            source_file,
+            f"{key_path} must match ^[a-z0-9_-]+$",
+        )
+    return value
+
+
+def _escape_lua_string(value: str) -> str:
+    return value.replace("\\", "\\\\").replace('"', '\\"')
+
+
+def _lua_bool(value: bool) -> str:
+    return "true" if value else "false"
+
+
+def _format_decimal(value: float) -> str:
+    formatted = f"{value:.6f}".rstrip("0").rstrip(".")
+    return formatted if formatted else "0"
 
 
 def _title_case_theme_id(theme_id: str) -> str:

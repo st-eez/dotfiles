@@ -79,6 +79,34 @@ the canonical palette or identifiers:
 - Unknown targets are invalid unless explicitly supported by the generator set
 - Overrides must be additive; core required fields remain authoritative
 
+### `overrides.neovim` Keys
+
+| Key | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `plugin` | string | `identifiers.nvim_plugin` | Override plugin repo for generated plugin spec. |
+| `lazy` | boolean | `false` | Plugin lazy-loading flag in generated Lua table. |
+| `priority` | integer | `1000` | Plugin priority in generated Lua table. |
+| `dev` | boolean | `false` | Enables local-dev plugin mode (`dev = true`). |
+| `background` | string | unset | Sets `vim.g.<colorscheme>_background` unless `background_variable` is set. |
+| `background_variable` | string | `<colorscheme>_background` | Lua global name used with `background`. |
+| `contrast` | string | unset | Emits `require(<setup_module>).setup({ contrast = ... })`. |
+| `setup_module` | string | derived from plugin repo | Lua module passed to `require()` for contrast setup. |
+| `config_lua` | string | unset | Raw Lua snippet appended inside plugin `config = function() ... end`. |
+| `header_title` | string | `theme.name` | Header text in generated `neovim.lua` comment. |
+
+### `overrides.obsidian` Keys
+
+| Key | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `variable_prefix` | string | `theme.id` with `-` removed | Prefix used for CSS custom properties. |
+| `sidebar_color` | hex `#RRGGBB` | `palette.bg0` | Sidebar/background color variable. |
+| `editor_color` | hex `#RRGGBB` | `palette.bg1` | Editor/background color variable. |
+| `foreground_color` | hex `#RRGGBB` | `palette.fg` | Primary text color variable. |
+| `muted_color` | hex `#RRGGBB` | `palette.grey` | Muted text color variable. |
+| `folder_color` | hex `#RRGGBB` | `palette.blue` | Folder title/icon color variable. |
+| `active_file_accent` | hex `#RRGGBB` | `palette.blue` | Active file/folder highlight accent. |
+| `active_file_alpha` | number (`0..1`) | `0.15` | Alpha used in active row `rgba(...)` background. |
+
 ## Concrete Example (`themes/sources/tokyo-night.toml`)
 
 ```toml

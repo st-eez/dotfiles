@@ -30,6 +30,7 @@ VALID_THEME_TOML = textwrap.dedent(
     [identifiers]
     ghostty = "Sample"
     nvim_colorscheme = "sample-theme"
+    nvim_plugin = "author/sample.nvim"
     antigravity = "Sample Theme"
     opencode = "sample-theme"
     obsidian = "Sample Theme"
@@ -169,7 +170,7 @@ class ThemeBuildTests(unittest.TestCase):
             "# App-specific theme identifiers",
             'GHOSTTY_THEME="Sample"',
             'NVIM_COLORSCHEME="sample-theme"',
-            'NVIM_PLUGIN=""',
+            'NVIM_PLUGIN="author/sample.nvim"',
             'ANTIGRAVITY_THEME="Sample Theme"',
             'OPENCODE_THEME="sample-theme"',
             'OBSIDIAN_THEME="Sample Theme"',
@@ -332,6 +333,8 @@ class ThemeBuildTests(unittest.TestCase):
             expected_files = [
                 "bordersrc",
                 "ghostty.conf",
+                "neovim.lua",
+                "obsidian-snippet.css",
                 "sketchybar-colors.lua",
                 "tmux.conf",
             ]
@@ -371,6 +374,60 @@ class ThemeBuildTests(unittest.TestCase):
             self.assertTrue((configs_dir / "sample-theme" / "bordersrc").exists())
             self.assertTrue((configs_dir / "sample-theme" / "tmux.conf").exists())
             self.assertTrue((configs_dir / "sample-theme" / "ghostty.conf").exists())
+            self.assertTrue((configs_dir / "sample-theme" / "neovim.lua").exists())
+            self.assertTrue((configs_dir / "sample-theme" / "obsidian-snippet.css").exists())
+
+    def test_render_neovim_config_applies_plugin_overrides(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source_file = Path(temp_dir) / "sample-theme.toml"
+            source_file.write_text(VALID_THEME_TOML, encoding="utf-8")
+            theme_source = theme_build.load_theme_source(source_file)
+
+        rendered = theme_build.render_neovim_config(theme_source)
+
+        self.assertIn('"author/sample.nvim"', rendered)
+        self.assertIn('require("sample").setup({', rendered)
+        self.assertIn('contrast = "soft"', rendered)
+        self.assertIn('colorscheme = "sample-theme"', rendered)
+
+    def test_render_obsidian_snippet_applies_overrides(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source_file = Path(temp_dir) / "sample-theme.toml"
+            source_file.write_text(
+                VALID_THEME_TOML
+                + textwrap.dedent(
+                    """
+
+                    [overrides.obsidian]
+                    variable_prefix = "sample"
+                    editor_color = "#414868"
+                    active_file_accent = "#ff9e64"
+                    active_file_alpha = 0.2
+                    """
+                ),
+                encoding="utf-8",
+            )
+            theme_source = theme_build.load_theme_source(source_file)
+
+        rendered = theme_build.render_obsidian_snippet(theme_source)
+
+        self.assertIn("--sample-editor: #414868;", rendered)
+        self.assertIn("--sample-accent: #ff9e64;", rendered)
+        self.assertIn("background-color: rgba(255, 158, 100, 0.2) !important;", rendered)
+
+    def test_render_neovim_config_rejects_unknown_override_keys(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source_file = Path(temp_dir) / "sample-theme.toml"
+            source_file.write_text(
+                VALID_THEME_TOML.replace('contrast = "soft"', 'unknown_key = "value"'),
+                encoding="utf-8",
+            )
+            theme_source = theme_build.load_theme_source(source_file)
+
+            with self.assertRaises(theme_build.ThemeSourceError) as caught:
+                theme_build.render_neovim_config(theme_source)
+
+        self.assertIn("Unknown key(s) in overrides.neovim", str(caught.exception))
 
     def test_render_app_configs_match_repo_artifacts(self) -> None:
         sources_dir = DOTFILES_ROOT / "themes" / "sources"
