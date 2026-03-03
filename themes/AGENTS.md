@@ -2,399 +2,159 @@
 
 ## OVERVIEW
 
-Symlink-based cross-app theme switcher using `theme-set` CLI and `.env` metadata. Supports 9 apps with automatic or manual reload.
+The theme system is source-driven:
+
+- Edit canonical files in `themes/sources/<theme-id>.toml`.
+- Generate artifacts into `themes/meta/`, `themes/configs/`, `themes/themes.json`, and `themes/wallpapers/<theme-id>/1-solid.png`.
+- `theme-set` consumes generated artifacts and updates runtime files/symlinks.
+
+Generated artifacts are not hand-edited.
 
 ## COMMANDS
 
 ```bash
+DOTFILES="$HOME/Projects/Personal/dotfiles"
+
 # Show current theme and available options
 theme-set
 
-# Switch to specific theme
+# Switch/cycle themes
 theme-set tokyo-night
 theme-set gruvbox
 theme-set everforest
-
-# Cycle through themes
 theme-set --next    # or -n
 theme-set --prev    # or -p
 
-# Check current theme
-cat ~/.config/current-theme
-
-# Verify symlinks
-ls -la ~/.config/sketchybar/colors.lua
-ls -la ~/.config/nvim/lua/plugins/theme.lua
-
-# Configure Starship prompt (not yet theme-integrated)
-starship config
-```
-
-## WALLPAPER CYCLING
-
-```bash
-# Cycle wallpapers (within current theme)
+# Wallpaper cycling
+wallpaper-set
 wallpaper-set --next    # or -n
 wallpaper-set --prev    # or -p
 wallpaper-set --random  # or -r
-wallpaper-set 3         # set specific (1-indexed)
+wallpaper-set 3
 
-# Show current wallpaper
-wallpaper-set
+# Validate canonical sources
+python3 "$DOTFILES/themes/scripts/theme_build.py" --check
+
+# Regenerate all managed artifacts
+python3 "$DOTFILES/themes/scripts/theme_build.py" --generate-meta
+python3 "$DOTFILES/themes/scripts/theme_build.py" --generate-themes-json
+python3 "$DOTFILES/themes/scripts/theme_build.py" --generate-configs
+python3 "$DOTFILES/themes/scripts/theme_build.py" --generate-wallpapers
+
+# Guardrail: fail if generated outputs drift after regeneration
+git diff --exit-code -- "$DOTFILES/themes/meta" "$DOTFILES/themes/themes.json" "$DOTFILES/themes/configs" "$DOTFILES/themes/wallpapers"
 ```
+
+## DRIFT-PREVENTION WORKFLOW
+
+1. Edit only canonical source files in `themes/sources/` (and optional wallpaper assets `2-*`, `3-*`, etc.).
+2. Run `theme_build.py --check`.
+3. Regenerate all artifacts (`--generate-meta`, `--generate-themes-json`, `--generate-configs`, `--generate-wallpapers`).
+4. Run `python3 -m unittest "$HOME/Projects/Personal/dotfiles/themes/tests/test_theme_build.py"`.
+5. Run scoped drift check:
+   `git diff --exit-code -- "$HOME/Projects/Personal/dotfiles/themes/meta" "$HOME/Projects/Personal/dotfiles/themes/themes.json" "$HOME/Projects/Personal/dotfiles/themes/configs" "$HOME/Projects/Personal/dotfiles/themes/wallpapers"`.
+6. Smoke test runtime behavior with `theme-set <theme-id>`.
 
 ## RAYCAST INTEGRATION
 
-The **Theme Switcher** Raycast extension provides visual theme selection:
-
-- Grid view with SVG-generated color stripe previews
-- Calls `~/.local/bin/theme-set <theme-id>` under the hood
-- **Data-driven**: Reads themes dynamically from `themes/themes.json`
-- **No code changes needed** when adding themes — just update `themes.json`
-
-### How It Works
-
-```
-themes/themes.json  -->  src/themes.ts (loadThemes())  -->  UI components
-                                                                  |
-                                                                  v
-                                                      ~/.local/bin/theme-set
-```
-
-The extension uses `loadThemes()` which parses `themes.json` at runtime, so new themes appear automatically after adding them to the JSON file.
+The Theme Switcher Raycast extension reads `themes/themes.json` at runtime.
+Do not edit extension code for normal theme additions; edit source TOML and regenerate `themes/themes.json`.
 
 ## WHERE TO LOOK
 
-| Task             | Location                                |
-| ---------------- | --------------------------------------- |
-| CLI Logic        | `.local/bin/theme-set`                  |
-| Theme Metadata   | `meta/<theme>.env`                      |
-| App Configs      | `configs/<theme>/`                      |
-| Color Palettes   | `palettes/<theme>.lua` (reference only) |
-| Wallpapers       | `wallpapers/<theme>/`                   |
-| Wallpaper Script | `scripts/generate-wallpaper.py`         |
-| Wallpaper CLI    | `.local/bin/wallpaper-set`              |
-| Raycast Data     | `themes.json`                           |
-| State File       | `~/.config/current-theme`               |
-| Backups          | `~/.config/theme-backups/`              |
-
-## SUPPORTED APPS (8 total)
-
-| App         | Config Method        | Reload             | Manual Action |
-| ----------- | -------------------- | ------------------ | ------------- |
-| SketchyBar  | Symlink `colors.lua` | Auto (`--reload`)  | None          |
-| Ghostty     | Symlink `theme.conf` | Auto (SIGUSR2)     | None          |
-| Borders     | Symlink `bordersrc`  | Auto (script exec) | None          |
-| Wallpaper   | osascript            | Auto               | None          |
-| Antigravity | JSON edit            | Auto (watched)     | None          |
-| Obsidian    | JSON edit + CSS copy | Auto (watched)     | None          |
-| Neovim      | Symlink `theme.lua`  | **Manual**         | Quit & reopen |
-| OpenCode    | JSON edit            | **Manual**         | Restart       |
-
-> **Note**: Starship prompt theming pending (Phase 3). Configure manually with `starship config`.
-
----
-
-## ADDING A NEW THEME — COMPLETE CHECKLIST
-
-### Prerequisites
-
-- [ ] Choose a theme with existing support in: Neovim, Ghostty, Obsidian, Antigravity (VS Code themes work)
-- [ ] Gather the canonical color palette (bg, fg, accents)
-- [ ] Note app-specific theme identifiers
-
-### Step 1: Create Metadata File
-
-Create `themes/meta/<theme-name>.env`:
-
-```bash
-# <Theme Name> Theme Metadata
-# Canonical source: <URL to theme repo>
-
-THEME_NAME="Display Name"
-THEME_VARIANT="variant"  # e.g., "night", "dark-hard", "dark-medium"
-
-# App-specific theme identifiers
-GHOSTTY_THEME="ThemeName"           # Must exist in Ghostty themes
-NVIM_COLORSCHEME="colorscheme-name" # Exact vim colorscheme name
-NVIM_PLUGIN="author/plugin.nvim"    # Plugin that provides colorscheme
-ANTIGRAVITY_THEME="VS Code Theme"   # Exact VS Code theme name
-OPENCODE_THEME="opencode-theme"     # OpenCode theme identifier
-OBSIDIAN_THEME="Obsidian Theme"     # Obsidian community theme name
-
-# Core palette (canonical #RRGGBB format)
-BG_COLOR="#rrggbb"       # Primary background
-BG_HIGHLIGHT="#rrggbb"   # Selection/highlight
-FG_COLOR="#rrggbb"       # Primary foreground
-RED="#rrggbb"
-ORANGE="#rrggbb"
-YELLOW="#rrggbb"
-GREEN="#rrggbb"
-CYAN="#rrggbb"
-BLUE="#rrggbb"
-MAGENTA="#rrggbb"
-COMMENT="#rrggbb"        # Muted/grey color
-BLACK="#rrggbb"          # Dark accent
-```
-
-### Step 2: Create Config Files
-
-Create directory `themes/configs/<theme-name>/` with these 5 files:
-
-#### 2.1 SketchyBar Colors (`sketchybar-colors.lua`)
-
-```lua
-local colors = {
-  black = 0xffRRGGBB,      -- Note: 0xffRRGGBB format (ff = alpha)
-  white = 0xffRRGGBB,
-  red = 0xffRRGGBB,
-  green = 0xffRRGGBB,
-  blue = 0xffRRGGBB,
-  yellow = 0xffRRGGBB,
-  orange = 0xffRRGGBB,
-  magenta = 0xffRRGGBB,
-  grey = 0xffRRGGBB,
-  transparent = 0x00000000,
-  highlight = 0x33RRGGBB,  -- 33 = 20% alpha for highlight
-  bg0 = 0xffRRGGBB,        -- Primary background
-  bg1 = 0xffRRGGBB,        -- Secondary background
-  bg2 = 0xffRRGGBB,        -- Tertiary background
-}
-
-colors.bar = {
-  bg = colors.bg0,
-  border = 0xffRRGGBB,     -- Bar border accent color
-}
-
-colors.popup = {
-  bg = colors.bg0,
-  border = 0xffRRGGBB,     -- Popup border accent color
-}
-
-return colors
-```
-
-#### 2.2 Ghostty Theme (`ghostty.conf`)
-
-```conf
-# Theme: <Theme Name>
-theme = <GHOSTTY_THEME value from .env>
-```
-
-> **Note**: Ghostty theme must exist in Ghostty's built-in themes or `~/.config/ghostty/themes/`
-
-#### 2.3 Borders Config (`bordersrc`)
-
-```bash
-#!/usr/bin/env bash
-options=(
-  style=round
-  width=5.0
-  hidpi=off
-  active_color=0xffRRGGBB   # Foreground or accent color
-  inactive_color=0xb3RRGGBB # Background with ~70% alpha (b3)
-  ax_focus=off
-)
-borders "${options[@]}"
-```
-
-#### 2.4 Neovim Theme (`neovim.lua`)
-
-```lua
--- <Theme Name> theme for Neovim (LazyVim)
--- Managed by theme-set, symlinked to ~/.config/nvim/lua/plugins/theme.lua
-return {
-  { "<NVIM_PLUGIN>", lazy = false, priority = 1000 },
-  {
-    "LazyVim/LazyVim",
-    opts = {
-      colorscheme = "<NVIM_COLORSCHEME>",
-    },
-  },
-}
-```
-
-#### 2.5 Obsidian Snippet (`obsidian-snippet.css`)
-
-```css
-/* <Theme Name> - Active explorer file styling */
-.nav-file.is-active > .nav-file-title {
-  background-color: #RRGGBB !important; /* bg_highlight */
-  color: #RRGGBB !important; /* accent color */
-}
-
-.nav-folder.is-active > .nav-folder-title {
-  color: #RRGGBB !important; /* accent color */
-}
-
-/* Additional styling as needed */
-```
-
-### Step 3: Create Wallpapers
-
-Wallpapers are stored in `themes/wallpapers/<theme-name>/` and must follow the `N-<name>.<ext>` naming convention.
-
-1. Create the directory: `mkdir -p themes/wallpapers/<theme-name>`
-2. Generate the solid background (required as #1):
-   ```bash
-   cd ~/dotfiles/themes
-   python3 scripts/generate-wallpaper.py "#RRGGBB" wallpapers/<theme-name>/1-solid.png
-   ```
-3. Add additional wallpapers as `2-name.jpg`, `3-name.png`, etc.
-
-- Wallpaper 1 should always be the solid background color matching `BG_COLOR`
-- Supported formats: `.png`, `.jpg`, `.jpeg`
-- The `wallpaper-set` CLI cycles through these files in numerical order
-
-### Step 4: Update themes.json (for Raycast Extension)
-
-The Raycast extension reads themes dynamically from `themes/themes.json`. **No extension code changes needed** — just add your theme entry.
-
-Add entry to `themes/themes.json` in the `"themes"` array:
-
-```json
-{
-  "id": "<theme-name>",
-  "name": "Display Name",
-  "colors": {
-    "bg0": "#rrggbb",
-    "bg1": "#rrggbb",
-    "bg2": "#rrggbb",
-    "fg": "#rrggbb",
-    "grey": "#rrggbb",
-    "red": "#rrggbb",
-    "green": "#rrggbb",
-    "yellow": "#rrggbb",
-    "blue": "#rrggbb",
-    "magenta": "#rrggbb",
-    "cyan": "#rrggbb",
-    "orange": "#rrggbb"
-  }
-}
-```
-
-> **Note**: The `id` must match the theme directory name (e.g., `tokyo-night` matches `configs/tokyo-night/`). Colors are used to generate the visual preview stripe in the Raycast UI.
-
-### Step 5: Update theme-set Script
-
-Edit `.local/bin/theme-set` line ~24:
-
-```bash
-# Theme cycle order
-THEMES=(everforest gruvbox tokyo-night <new-theme>)
-```
-
-### Step 6: Create Palette Reference (Optional)
-
-Create `themes/palettes/<theme-name>.lua`:
-
-```lua
--- <Theme Name> color palette
--- FOR REFERENCE ONLY - not used at runtime
-
-return {
-  bg = "#rrggbb",
-  fg = "#rrggbb",
-  -- ... all colors
-}
-```
-
-### Step 6: Verification Checklist
-
-Run these checks:
-
-```bash
-# Test theme switching
-theme-set <theme-name>
-
-# Verify all symlinks created
-ls -la ~/.config/sketchybar/colors.lua
-ls -la ~/.config/ghostty/theme.conf
-ls -la ~/.config/borders/bordersrc
-ls -la ~/.config/nvim/lua/plugins/theme.lua
-
-# Check state file
-cat ~/.config/current-theme
-
-# Verify apps updated
-# - SketchyBar: Check bar colors
-# - Ghostty: Open new terminal
-# - Borders: Check window borders
-# - Neovim: Quit and reopen
-# - Obsidian: Check sidebar styling
-# - Wallpaper: Check desktop background
-```
-
-### Step 7: Test Raycast Extension
-
-1. Open Raycast → "Switch Theme"
-2. Verify new theme appears in grid
-3. Select new theme, confirm it switches
-
----
-
-## FILE REFERENCE
-
-### Required Files Per Theme (7 total)
-
-| File                    | Location           | Purpose                    |
-| ----------------------- | ------------------ | -------------------------- |
-| `<theme>.env`           | `meta/`            | Metadata + app identifiers |
-| `sketchybar-colors.lua` | `configs/<theme>/` | SketchyBar colors          |
-| `ghostty.conf`          | `configs/<theme>/` | Ghostty theme reference    |
-| `bordersrc`             | `configs/<theme>/` | JankyBorders config        |
-| `neovim.lua`            | `configs/<theme>/` | LazyVim colorscheme        |
-| `obsidian-snippet.css`  | `configs/<theme>/` | Obsidian sidebar CSS       |
-| `wallpapers/<theme>/`   | `themes/`          | Desktop wallpapers         |
-
-### Optional Files
-
-| File          | Location    | Purpose                     |
-| ------------- | ----------- | --------------------------- |
-| `<theme>.lua` | `palettes/` | Color reference (docs only) |
-
-### System Files Modified
-
-| App         | Target File                                                    |
-| ----------- | -------------------------------------------------------------- |
-| SketchyBar  | `~/.config/sketchybar/colors.lua`                              |
-| Ghostty     | `~/.config/ghostty/theme.conf`                                 |
-| Borders     | `~/.config/borders/bordersrc`                                  |
-| Neovim      | `~/.config/nvim/lua/plugins/theme.lua`                         |
-| Obsidian    | `<vault>/.obsidian/appearance.json` + `snippets/`              |
-| Antigravity | `~/Library/Application Support/Antigravity/User/settings.json` |
-| OpenCode    | `~/.config/opencode/opencode.json`                             |
-
----
+| Task | Location |
+| --- | --- |
+| Canonical source schema | `sources/SCHEMA.md` |
+| Canonical source files | `sources/<theme-id>.toml` |
+| Upstream pinning records | `sources/CANONICAL_UPSTREAMS.md` |
+| Ownership boundaries | `sources/MIGRATION_MAPPING.md` |
+| Generator/validator logic | `scripts/theme_build.py` |
+| Generator tests | `tests/test_theme_build.py` |
+| Theme switch runtime | `.local/bin/theme-set` |
+| Wallpaper runtime | `.local/bin/wallpaper-set` |
+| Generated metadata | `meta/<theme-id>.env` |
+| Generated app configs | `configs/<theme-id>/` |
+| Generated Raycast manifest | `themes.json` |
+| Runtime state file | `~/.config/current-theme` |
+| Runtime backups | `~/.config/theme-backups/` |
+
+## SUPPORTED APPS (9 TOTAL)
+
+| App | Config Method | Reload | Manual Action |
+| --- | --- | --- | --- |
+| SketchyBar | Symlink `colors.lua` | Auto (`--reload`) | None |
+| Ghostty | Symlink `theme.conf` | Auto (SIGUSR2) | None |
+| Borders | Symlink `bordersrc` | Auto (script exec) | None |
+| Tmux | Symlink `theme.conf` | Auto (`tmux source-file`) | None |
+| Wallpaper | osascript | Auto | None |
+| Antigravity | JSON edit | Auto (watched) | None |
+| Obsidian | JSON edit + CSS copy | Auto (watched) | None |
+| Neovim | Symlink `theme.lua` | Manual | Quit/reopen |
+| OpenCode | JSON edit | Manual | Restart |
+
+## ADDING A NEW THEME
+
+1. Create `themes/sources/<theme-id>.toml` that matches `themes/sources/SCHEMA.md`.
+2. Add optional wallpaper assets in `themes/wallpapers/<theme-id>/` as `2-*.png|jpg` and higher.
+3. Run all generators:
+   - `python3 "$HOME/Projects/Personal/dotfiles/themes/scripts/theme_build.py" --generate-meta`
+   - `python3 "$HOME/Projects/Personal/dotfiles/themes/scripts/theme_build.py" --generate-themes-json`
+   - `python3 "$HOME/Projects/Personal/dotfiles/themes/scripts/theme_build.py" --generate-configs`
+   - `python3 "$HOME/Projects/Personal/dotfiles/themes/scripts/theme_build.py" --generate-wallpapers`
+4. Validate:
+   - `python3 "$HOME/Projects/Personal/dotfiles/themes/scripts/theme_build.py" --check`
+   - `python3 -m unittest "$HOME/Projects/Personal/dotfiles/themes/tests/test_theme_build.py"`
+5. Smoke test:
+   - `theme-set <theme-id>`
+   - `cat ~/.config/current-theme`
+   - `ls -la ~/.config/sketchybar/colors.lua`
+   - `ls -la ~/.config/nvim/lua/plugins/theme.lua`
+
+## FILE OWNERSHIP
+
+| Family | Location | Ownership |
+| --- | --- | --- |
+| Canonical sources | `themes/sources/*.toml` | Source-owned (edit directly) |
+| Generated metadata | `themes/meta/*.env` | Generated-owned (no manual edits) |
+| Generated configs | `themes/configs/<theme-id>/*` | Generated-owned (no manual edits) |
+| Generated manifest | `themes/themes.json` | Generated-owned (no manual edits) |
+| Generated wallpaper | `themes/wallpapers/<theme-id>/1-solid.png` | Generated-owned (no manual edits) |
+| Optional wallpapers | `themes/wallpapers/<theme-id>/2-*` and higher | Source-owned assets |
+| Runtime files | `$HOME/.config/*` + app settings files | Runtime-owned (updated by `theme-set`) |
 
 ## ANTI-PATTERNS
 
-| Pattern                                      | Why Bad                       | Alternative                       |
-| -------------------------------------------- | ----------------------------- | --------------------------------- |
-| Direct edits to `~/.config/<app>/colors.lua` | Symlink, will be overwritten  | Edit in `themes/configs/<theme>/` |
-| Adding theme colors to Stow packages         | Breaks theme switching        | Use theme system exclusively      |
-| Incomplete themes (missing files)            | theme-set silently skips      | Include all 5 config files        |
-| Editing palette files expecting changes      | Reference only, not loaded    | Edit config files directly        |
-| `~/.config/nvim/lua/plugins` as symlink      | Stow folding breaks theme.lua | Use `stow --no-folding nvim`      |
+| Pattern | Why Bad | Alternative |
+| --- | --- | --- |
+| Editing `themes/meta/*.env` directly | Overwritten by generator | Edit `themes/sources/<theme-id>.toml` and regenerate |
+| Editing `themes/configs/<theme-id>/*` directly | Overwritten by generator | Edit `themes/sources/<theme-id>.toml` and regenerate |
+| Editing `themes/themes.json` directly | Overwritten by generator | Edit source TOML and run `--generate-themes-json` |
+| Editing `themes/wallpapers/<theme-id>/1-solid.png` manually | Overwritten by generator | Change `palette.bg0` in source TOML and regenerate |
+| Direct edits to `~/.config/<app>/...` for theme values | Runtime drift and overwritten symlinks | Regenerate artifacts and run `theme-set` |
 
 ## TROUBLESHOOTING
 
 ```bash
+DOTFILES="$HOME/Projects/Personal/dotfiles"
+
+# Missing generated artifacts / theme-set complains about manifest
+python3 "$DOTFILES/themes/scripts/theme_build.py" --generate-meta
+python3 "$DOTFILES/themes/scripts/theme_build.py" --generate-themes-json
+python3 "$DOTFILES/themes/scripts/theme_build.py" --generate-configs
+python3 "$DOTFILES/themes/scripts/theme_build.py" --generate-wallpapers
+
 # "plugins/ is a symlink" error
-cd ~/dotfiles && stow -D nvim && stow --no-folding nvim
+cd "$DOTFILES" && stow -D nvim && stow --no-folding nvim
 
-# Theme not applied after install
-theme-set tokyo-night
-
-# Check current theme
+# Verify active theme and symlink targets
 cat ~/.config/current-theme
-
-# Verify symlinks point to correct theme
 ls -la ~/.config/sketchybar/colors.lua
+ls -la ~/.config/ghostty/theme.conf
+ls -la ~/.config/borders/bordersrc
+ls -la ~/.config/tmux/theme.conf
+ls -la ~/.config/nvim/lua/plugins/theme.lua
 
-# Force SketchyBar reload
+# Force app reloads if needed
 sketchybar --reload
-
-# Force Ghostty reload
 killall -SIGUSR2 ghostty
 ```

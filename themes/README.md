@@ -46,6 +46,7 @@ Wallpapers are stored in per-theme directories: `themes/wallpapers/<theme-name>/
 | SketchyBar  | Symlink colors.lua   | Yes              |
 | Ghostty     | Symlink theme.conf   | Yes (SIGUSR2)    |
 | Borders     | Symlink bordersrc    | Yes              |
+| Tmux        | Symlink theme.conf   | Yes (`source-file`) |
 | Wallpaper   | osascript            | Yes              |
 | Antigravity | Edit settings.json   | Yes              |
 | Obsidian    | Edit appearance.json | Yes              |
@@ -68,41 +69,64 @@ Canonical upstream file + ref pinning decisions are tracked in
 Migration ownership boundaries and generation targets are tracked in
 `themes/sources/MIGRATION_MAPPING.md`.
 
+## Source of Truth + Drift Prevention
+
+Per-theme source of truth is `themes/sources/<theme-id>.toml` (plus optional wallpaper assets `themes/wallpapers/<theme-id>/2-*`, `3-*`, etc.).
+
+Never hand-edit generated artifacts:
+
+- `themes/meta/<theme-id>.env`
+- `themes/configs/<theme-id>/*`
+- `themes/themes.json`
+- `themes/wallpapers/<theme-id>/1-solid.png`
+
+Recommended workflow before commit:
+
+```bash
+DOTFILES="$HOME/Projects/Personal/dotfiles"
+python3 "$DOTFILES/themes/scripts/theme_build.py" --check
+python3 "$DOTFILES/themes/scripts/theme_build.py" --generate-meta
+python3 "$DOTFILES/themes/scripts/theme_build.py" --generate-themes-json
+python3 "$DOTFILES/themes/scripts/theme_build.py" --generate-configs
+python3 "$DOTFILES/themes/scripts/theme_build.py" --generate-wallpapers
+python3 -m unittest "$DOTFILES/themes/tests/test_theme_build.py"
+git diff --exit-code -- "$DOTFILES/themes/meta" "$DOTFILES/themes/themes.json" "$DOTFILES/themes/configs" "$DOTFILES/themes/wallpapers"
+```
+
 ## Adding a New Theme
 
-1. Create metadata file `themes/meta/<name>.env`:
+1. Create `themes/sources/<name>.toml` using `themes/sources/SCHEMA.md`.
+2. Add optional wallpaper assets as `themes/wallpapers/<name>/2-*.png|jpg` and higher. `1-solid.png` is generated.
+3. Regenerate artifacts:
 
    ```bash
-   THEME_NAME="Display Name"
-   THEME_VARIANT="variant"
-   GHOSTTY_THEME="GhosttyThemeName"
-   NVIM_COLORSCHEME="colorscheme-name"
-   ANTIGRAVITY_THEME="VS Code Theme Name"
-   OPENCODE_THEME="opencode-theme"
-   OBSIDIAN_THEME="Obsidian Theme"
-   BG_COLOR="#rrggbb"
+   DOTFILES="$HOME/Projects/Personal/dotfiles"
+   python3 "$DOTFILES/themes/scripts/theme_build.py" --generate-meta
+   python3 "$DOTFILES/themes/scripts/theme_build.py" --generate-themes-json
+   python3 "$DOTFILES/themes/scripts/theme_build.py" --generate-configs
+   python3 "$DOTFILES/themes/scripts/theme_build.py" --generate-wallpapers
    ```
 
-2. Create config files in `themes/configs/<name>/`:
-   - `sketchybar-colors.lua` - SketchyBar color table
-   - `bordersrc` - JankyBorders config script
-   - `ghostty.conf` - Ghostty theme include
-   - `neovim.lua` - LazyVim colorscheme spec
-   - `obsidian-snippet.css` - Sidebar styling
+4. Validate:
 
-3. Create wallpapers in `themes/wallpapers/<name>/` following `N-<name>.<ext>` naming.
-
-4. Test: `theme-set <name>`
+   ```bash
+   DOTFILES="$HOME/Projects/Personal/dotfiles"
+   python3 "$DOTFILES/themes/scripts/theme_build.py" --check
+   python3 -m unittest "$DOTFILES/themes/tests/test_theme_build.py"
+   theme-set <name>
+   ```
 
 ## File Structure
 
 ```
 themes/
 ├── .local/bin/theme-set   # CLI script (Stow → ~/.local/bin/)
-├── meta/*.env             # Theme metadata
-├── configs/<theme>/       # Per-app configs
-├── palettes/*.lua         # Color reference (optional)
-└── wallpapers/<theme>/    # Desktop backgrounds
+├── sources/*.toml         # Canonical per-theme source of truth
+├── scripts/theme_build.py # Source validator + artifact generators
+├── meta/*.env             # Generated metadata for theme-set
+├── configs/<theme>/       # Generated per-app configs
+├── themes.json            # Generated manifest for Raycast + theme-set
+└── wallpapers/<theme>/    # 1-solid.png generated; N>1 assets optional/manual
 ```
 
 ## How It Works
@@ -110,12 +134,13 @@ themes/
 Theme-variable files are NOT in Stow packages. Instead:
 
 1. Stow creates symlinks for base configs (sketchybar items, nvim plugins, etc.)
-2. `theme-set` creates symlinks for theme files:
+2. `theme-set` reads generated `themes/themes.json` to discover available themes.
+3. `theme-set` creates symlinks for theme files:
    ```
    ~/.config/sketchybar/colors.lua -> themes/configs/<theme>/sketchybar-colors.lua
    ~/.config/nvim/lua/plugins/theme.lua -> themes/configs/<theme>/neovim.lua
    ```
-3. Apps reload automatically or require restart
+4. Apps reload automatically or require restart
 
 ## Backups
 
@@ -132,7 +157,7 @@ Only the last 5 backup directories are retained.
 **"plugins/ is a symlink" error**:
 
 ```bash
-cd ~/dotfiles
+cd "$HOME/Projects/Personal/dotfiles"
 stow -D nvim && stow --no-folding nvim
 ```
 

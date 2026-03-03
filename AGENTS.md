@@ -15,6 +15,15 @@ unlink <target-path>  # never rm -r on symlinked paths
 mkdir -p "$HOME/.claude/commands"
 cp "$HOME/Projects/Personal/dotfiles/claude/.claude/commands/"*.md "$HOME/.claude/commands/"
 
+# Validate canonical theme TOML sources
+python3 "$HOME/Projects/Personal/dotfiles/themes/scripts/theme_build.py" --check
+
+# Regenerate all managed theme artifacts from canonical sources
+python3 "$HOME/Projects/Personal/dotfiles/themes/scripts/theme_build.py" --generate-meta
+python3 "$HOME/Projects/Personal/dotfiles/themes/scripts/theme_build.py" --generate-themes-json
+python3 "$HOME/Projects/Personal/dotfiles/themes/scripts/theme_build.py" --generate-configs
+python3 "$HOME/Projects/Personal/dotfiles/themes/scripts/theme_build.py" --generate-wallpapers
+
 # Fix monitor ID drift
 aerospace list-monitors
 # Update monitor IDs in:
@@ -26,7 +35,7 @@ aerospace reload-config && sketchybar --reload
 ## Rules
 - Edit repo source files, never stow targets in `$HOME`.
 - Zsh uses ZDOTDIR (`~/.config/zsh/`) — edit there, not `~/.zshrc`.
-- Do not edit files marked `Managed by theme-set`; edit `themes/configs/<theme>/`.
+- Theme source of truth is `themes/sources/<theme>.toml` (plus optional wallpaper assets). Do not hand-edit generated files in `themes/meta/`, `themes/configs/`, `themes/themes.json`, or `themes/wallpapers/<theme>/1-solid.png`.
 - If keyboard shortcuts change, also update `raycast/extensions/keybinds/src/search-keybinds.tsx`.
 
 

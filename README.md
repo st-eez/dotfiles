@@ -108,6 +108,18 @@ Applies to: SketchyBar, Ghostty, Borders, Neovim, Obsidian, wallpaper.
 | Gruvbox     | `#1d2021`  | Orange |
 | Everforest  | `#2d353b`  | Green  |
 
+Theme authoring source of truth is `themes/sources/<theme-id>.toml`; generated artifacts in `themes/meta/`, `themes/configs/`, `themes/themes.json`, and `themes/wallpapers/<theme-id>/1-solid.png` should not be edited by hand.
+
+```bash
+DOTFILES="$HOME/Projects/Personal/dotfiles"
+python3 "$DOTFILES/themes/scripts/theme_build.py" --check
+python3 "$DOTFILES/themes/scripts/theme_build.py" --generate-meta
+python3 "$DOTFILES/themes/scripts/theme_build.py" --generate-themes-json
+python3 "$DOTFILES/themes/scripts/theme_build.py" --generate-configs
+python3 "$DOTFILES/themes/scripts/theme_build.py" --generate-wallpapers
+git diff --exit-code -- "$DOTFILES/themes/meta" "$DOTFILES/themes/themes.json" "$DOTFILES/themes/configs" "$DOTFILES/themes/wallpapers"
+```
+
 See [themes/README.md](themes/README.md) for adding custom themes.
 
 ---
