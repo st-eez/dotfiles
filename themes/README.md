@@ -62,6 +62,12 @@ Wallpapers are stored in per-theme directories: `themes/wallpapers/<theme-name>/
 | Gruvbox     | `#1d2021`  | Orange | [morhetz/gruvbox](https://github.com/morhetz/gruvbox)             |
 | Everforest  | `#2d353b`  | Green  | [sainnhe/everforest](https://github.com/sainnhe/everforest)       |
 
+Canonical upstream file + ref pinning decisions are tracked in
+`themes/sources/CANONICAL_UPSTREAMS.md`.
+
+Migration ownership boundaries and generation targets are tracked in
+`themes/sources/MIGRATION_MAPPING.md`.
+
 ## Adding a New Theme
 
 1. Create metadata file `themes/meta/<name>.env`:
