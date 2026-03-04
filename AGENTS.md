@@ -6,7 +6,7 @@
 stow --dir="$HOME/Projects/Personal/dotfiles" --target="$HOME" --restow <package>
 
 # Re-stow package that requires no-folding
-stow --dir="$HOME/Projects/Personal/dotfiles" --target="$HOME" --restow --no-folding <package>  # nvim | zsh | claude
+stow --dir="$HOME/Projects/Personal/dotfiles" --target="$HOME" --restow --no-folding <package>  # nvim | zsh | claude | ghostty
 
 # Remove stow symlink safely
 unlink <target-path>  # never rm -r on symlinked paths
