@@ -4,36 +4,36 @@
     "darkBg0": "#0d0d0d",
     "darkBg1": "#1a1a1a",
     "darkBg2": "#2a2a2a",
-    "darkBg3": "#464646",
-    "darkFg0": "#f2f2f2",
-    "darkFg1": "#c4c4c4",
-    "darkGray": "#8d8d8d",
-    "darkRed": "#d68392",
-    "darkGreen": "#9dbc7b",
-    "darkYellow": "#a1ba7b",
-    "darkBlue": "#859fd6",
-    "darkMagenta": "#af9ad6",
-    "darkCyan": "#87bcdc",
-    "darkWhite": "#e5dacc",
-    "darkRedBright": "#e3b5bd",
-    "darkGreenBright": "#b0c895",
-    "darkYellowBright": "#c8a87a",
-    "darkBlueBright": "#c1cde5",
-    "darkMagentaBright": "#9da9d9",
-    "darkCyanBright": "#b7d4e6",
-    "lightBg0": "#e5dacc",
-    "lightBg1": "#d5cbbe",
-    "lightBg2": "#c7beb2",
-    "lightBg3": "#9e978e",
+    "darkBg3": "#454545",
+    "darkFg0": "#eaeaea",
+    "darkFg1": "#bebebe",
+    "darkGray": "#8a8a8a",
+    "darkRed": "#c995a0",
+    "darkGreen": "#a3c8a0",
+    "darkYellow": "#a8c79e",
+    "darkBlue": "#8fa8d8",
+    "darkMagenta": "#b9a3d7",
+    "darkCyan": "#8fbfc8",
+    "darkWhite": "#e4ddcb",
+    "darkRedBright": "#d8bbc1",
+    "darkGreenBright": "#b3cfb0",
+    "darkYellowBright": "#d8c08a",
+    "darkBlueBright": "#c1cce2",
+    "darkMagentaBright": "#a6b0d0",
+    "darkCyanBright": "#b8d2d7",
+    "lightBg0": "#e4ddcb",
+    "lightBg1": "#d4cdbd",
+    "lightBg2": "#c6c0b1",
+    "lightBg3": "#9d998e",
     "lightFg0": "#0d0d0d",
     "lightFg1": "#1a1a1a",
-    "lightGray": "#8d8d8d",
-    "lightRed": "#a86873",
-    "lightGreen": "#7c9462",
-    "lightYellow": "#9d8461",
-    "lightBlue": "#697da8",
-    "lightMagenta": "#8a7aa8",
-    "lightCyan": "#6b94ac"
+    "lightGray": "#8a8a8a",
+    "lightRed": "#9e767e",
+    "lightGreen": "#809d7e",
+    "lightYellow": "#a9976d",
+    "lightBlue": "#7184a9",
+    "lightMagenta": "#9180a9",
+    "lightCyan": "#71969d"
   },
   "theme": {
     "primary": {
@@ -121,12 +121,12 @@
       "light": "lightRed"
     },
     "diffAddedBg": {
-      "dark": "#272c21",
-      "light": "#d2cdb9"
+      "dark": "#282f27",
+      "light": "#d2d1bd"
     },
     "diffRemovedBg": {
-      "dark": "#312225",
-      "light": "#dac5bc"
+      "dark": "#2f2527",
+      "light": "#d7cabd"
     },
     "diffContextBg": {
       "dark": "darkBg1",
@@ -137,12 +137,12 @@
       "light": "lightBg3"
     },
     "diffAddedLineNumberBg": {
-      "dark": "#1e221a",
-      "light": "#d8d2bf"
+      "dark": "#1f231f",
+      "light": "#d8d5c2"
     },
     "diffRemovedLineNumberBg": {
-      "dark": "#251b1d",
-      "light": "#deccc1"
+      "dark": "#241d1f",
+      "light": "#dcd1c2"
     },
     "markdownText": {
       "dark": "darkFg0",
