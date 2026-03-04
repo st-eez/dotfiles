@@ -1,0 +1,28 @@
+# Vantasteez
+# Managed by theme-set - do not edit manually
+background = 0d0d0d
+foreground = f2f2f2
+cursor-color = f2f2f2
+cursor-text = 0d0d0d
+selection-background = 2d3448
+selection-foreground = f2f2f2
+
+# Normal colors (palette 0-7)
+palette = 0=#0d0d0d
+palette = 1=#d68392
+palette = 2=#9dbc7b
+palette = 3=#c8a87a
+palette = 4=#859fd6
+palette = 5=#af9ad6
+palette = 6=#87bcdc
+palette = 7=#f2f2f2
+
+# Bright colors (palette 8-15)
+palette = 8=#5f5f5f
+palette = 9=#d68392
+palette = 10=#9dbc7b
+palette = 11=#c8a87a
+palette = 12=#859fd6
+palette = 13=#af9ad6
+palette = 14=#87bcdc
+palette = 15=#ffffff

@@ -1,0 +1,100 @@
+schema_version = 1
+
+[theme]
+id = "vantasteez"
+name = "Vantasteez"
+variant = "dark-chroma"
+source = "https://github.com/basecamp/omarchy"
+
+[identifiers]
+ghostty = "Vantasteez"
+nvim_colorscheme = "vantablack"
+nvim_plugin = "bjarneo/vantablack.nvim"
+antigravity = "Vantablack"
+opencode = "vantasteez"
+obsidian = "Vantablack"
+
+[palette]
+bg0 = "#0d0d0d"
+bg1 = "#1a1a1a"
+bg2 = "#2a2a2a"
+fg = "#f2f2f2"
+grey = "#8d8d8d"
+red = "#d68392"
+orange = "#dc9d77"
+yellow = "#c8a87a"
+green = "#9dbc7b"
+cyan = "#87bcdc"
+blue = "#859fd6"
+magenta = "#af9ad6"
+
+[overrides.neovim]
+config_lua = """
+require("vantablack").setup({
+  styles = {
+    comments = { italic = true },
+    keywords = { italic = true },
+    functions = {},
+    variables = {},
+  },
+  on_colors = function(colors)
+    colors.bg = "#0d0d0d"
+    colors.bg_dark = "#0d0d0d"
+    colors.bg_dark1 = "#0d0d0d"
+    colors.bg_highlight = "#1a1a1a"
+    colors.blue0 = "#2d3448"
+    colors.blue7 = "#202535"
+
+    colors.fg = "#f2f2f2"
+    colors.fg_dark = "#d8d8d8"
+    colors.fg_gutter = "#555555"
+    colors.comment = "#8d8d8d"
+    colors.dark3 = "#5f5f5f"
+    colors.dark5 = "#8a8a8a"
+    colors.terminal_black = "#505050"
+
+    colors.red = "#d68392"
+    colors.red1 = "#e09dac"
+    colors.orange = "#dc9d77"
+    colors.yellow = "#c8a87a"
+    colors.green = "#9dbc7b"
+    colors.green1 = "#a8c48b"
+    colors.green2 = "#a8c48b"
+    colors.cyan = "#87bcdc"
+    colors.teal = "#87bcdc"
+    colors.blue = "#859fd6"
+    colors.blue1 = "#9bb0e0"
+    colors.blue2 = "#87bcdc"
+    colors.blue5 = "#8d8d8d"
+    colors.blue6 = "#9bb0e0"
+    colors.magenta = "#af9ad6"
+    colors.magenta2 = "#b5a2d9"
+    colors.purple = "#af9ad6"
+    colors.special_char = "#b5a2d9"
+  end,
+})
+"""
+
+[overrides.obsidian]
+active_file_accent = "#859fd6"
+
+[overrides.sketchybar]
+highlight = "#859fd6"
+
+[overrides.ghostty]
+split_divider_color = "#8d8d8d"
+
+[overrides.ghostty_theme]
+file = "vantasteez.ghostty"
+background = "#0d0d0d"
+foreground = "#f2f2f2"
+cursor_color = "#f2f2f2"
+cursor_text = "#0d0d0d"
+selection_background = "#2d3448"
+selection_foreground = "#f2f2f2"
+color0 = "#0d0d0d"
+color8 = "#5f5f5f"
+color15 = "#ffffff"
+
+[overrides.opencode_theme]
+file = "vantasteez.json"

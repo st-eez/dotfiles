@@ -60,7 +60,7 @@ class ThemeBuildTests(unittest.TestCase):
         theme_sources = theme_build.load_theme_sources(DOTFILES_ROOT / "themes" / "sources")
         ids = [theme_source.theme.id for theme_source in theme_sources]
         self.assertEqual(ids, sorted(ids))
-        self.assertEqual(ids, ["everforest", "gruvbox", "osaka-jade", "tokyo-night", "vantablack"])
+        self.assertEqual(ids, ["everforest", "gruvbox", "osaka-jade", "tokyo-night", "vantablack", "vantasteez"])
 
     def test_load_theme_source_normalizes_hex_to_lowercase(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
