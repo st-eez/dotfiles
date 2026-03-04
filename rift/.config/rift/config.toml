@@ -19,9 +19,8 @@ default_disable = false
 auto_focus_blacklist = []
 
 # Start SketchyBar and JankyBorders alongside Rift
-# NOTE: SketchyBar workspace display requires updating spaces.lua to use
-# rift-cli commands instead of aerospace commands. For now, the bar will
-# render but workspace indicators won't update on workspace switch.
+# SketchyBar space rendering uses items/spaces_rift.lua and the
+# $HOME/.config/rift/scripts/global-workspace.sh helper.
 run_on_start = [
   "/opt/homebrew/opt/borders/bin/borders",
   "/opt/homebrew/opt/sketchybar/bin/sketchybar",
@@ -142,29 +141,32 @@ comb1 = "Alt + Shift"
 "comb1 + Right" = { move_node = "right" }
 
 # ── Switch workspace (Alt + number) ──
-# Rift uses 0-based indexing: Alt+1 → index 0 (named "1"), Alt+0 → index 9 (named "0")
-"Alt + 1" = { switch_to_workspace = 0 }
-"Alt + 2" = { switch_to_workspace = 1 }
-"Alt + 3" = { switch_to_workspace = 2 }
-"Alt + 4" = { switch_to_workspace = 3 }
-"Alt + 5" = { switch_to_workspace = 4 }
-"Alt + 6" = { switch_to_workspace = 5 }
-"Alt + 7" = { switch_to_workspace = 6 }
-"Alt + 8" = { switch_to_workspace = 7 }
-"Alt + 9" = { switch_to_workspace = 8 }
-"Alt + 0" = { switch_to_workspace = 9 }
+# Global mapping:
+# - display screen_id 3: workspaces 1-4 (local 0-3)
+# - display screen_id 2: workspaces 5-7 (local 0-2)
+# - display screen_id 1: workspaces 8-0 (local 0-2)
+"Alt + 1" = { exec = ["/bin/sh", "-lc", "$HOME/.config/rift/scripts/global-workspace.sh 1 switch"] }
+"Alt + 2" = { exec = ["/bin/sh", "-lc", "$HOME/.config/rift/scripts/global-workspace.sh 2 switch"] }
+"Alt + 3" = { exec = ["/bin/sh", "-lc", "$HOME/.config/rift/scripts/global-workspace.sh 3 switch"] }
+"Alt + 4" = { exec = ["/bin/sh", "-lc", "$HOME/.config/rift/scripts/global-workspace.sh 4 switch"] }
+"Alt + 5" = { exec = ["/bin/sh", "-lc", "$HOME/.config/rift/scripts/global-workspace.sh 5 switch"] }
+"Alt + 6" = { exec = ["/bin/sh", "-lc", "$HOME/.config/rift/scripts/global-workspace.sh 6 switch"] }
+"Alt + 7" = { exec = ["/bin/sh", "-lc", "$HOME/.config/rift/scripts/global-workspace.sh 7 switch"] }
+"Alt + 8" = { exec = ["/bin/sh", "-lc", "$HOME/.config/rift/scripts/global-workspace.sh 8 switch"] }
+"Alt + 9" = { exec = ["/bin/sh", "-lc", "$HOME/.config/rift/scripts/global-workspace.sh 9 switch"] }
+"Alt + 0" = { exec = ["/bin/sh", "-lc", "$HOME/.config/rift/scripts/global-workspace.sh 0 switch"] }
 
 # ── Move window to workspace (Alt + Shift + number) ──
-"comb1 + 1" = { move_window_to_workspace = 0 }
-"comb1 + 2" = { move_window_to_workspace = 1 }
-"comb1 + 3" = { move_window_to_workspace = 2 }
-"comb1 + 4" = { move_window_to_workspace = 3 }
-"comb1 + 5" = { move_window_to_workspace = 4 }
-"comb1 + 6" = { move_window_to_workspace = 5 }
-"comb1 + 7" = { move_window_to_workspace = 6 }
-"comb1 + 8" = { move_window_to_workspace = 7 }
-"comb1 + 9" = { move_window_to_workspace = 8 }
-"comb1 + 0" = { move_window_to_workspace = 9 }
+"comb1 + 1" = { exec = ["/bin/sh", "-lc", "$HOME/.config/rift/scripts/global-workspace.sh 1 move"] }
+"comb1 + 2" = { exec = ["/bin/sh", "-lc", "$HOME/.config/rift/scripts/global-workspace.sh 2 move"] }
+"comb1 + 3" = { exec = ["/bin/sh", "-lc", "$HOME/.config/rift/scripts/global-workspace.sh 3 move"] }
+"comb1 + 4" = { exec = ["/bin/sh", "-lc", "$HOME/.config/rift/scripts/global-workspace.sh 4 move"] }
+"comb1 + 5" = { exec = ["/bin/sh", "-lc", "$HOME/.config/rift/scripts/global-workspace.sh 5 move"] }
+"comb1 + 6" = { exec = ["/bin/sh", "-lc", "$HOME/.config/rift/scripts/global-workspace.sh 6 move"] }
+"comb1 + 7" = { exec = ["/bin/sh", "-lc", "$HOME/.config/rift/scripts/global-workspace.sh 7 move"] }
+"comb1 + 8" = { exec = ["/bin/sh", "-lc", "$HOME/.config/rift/scripts/global-workspace.sh 8 move"] }
+"comb1 + 9" = { exec = ["/bin/sh", "-lc", "$HOME/.config/rift/scripts/global-workspace.sh 9 move"] }
+"comb1 + 0" = { exec = ["/bin/sh", "-lc", "$HOME/.config/rift/scripts/global-workspace.sh 0 move"] }
 
 # ── Workspace navigation ──
 # Alt+Tab = last workspace (AeroSpace: ctrl-alt-tab back-and-forth)
