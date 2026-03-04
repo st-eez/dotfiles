@@ -309,8 +309,8 @@ if ! is_installed borders; then
 elif [[ -f "$THEMES_DIR/configs/$THEME/bordersrc" ]]; then
     mkdir -p ~/.config/borders
     ln -sfn "$THEMES_DIR/configs/$THEME/bordersrc" ~/.config/borders/bordersrc
-    # Hot-update: running bordersrc sends new config to running borders instance
-    if pgrep -x borders >/dev/null 2>&1 && ~/.config/borders/bordersrc >/dev/null 2>&1; then
+    # Hot-update: run via bash so reload still works if bordersrc is not executable.
+    if pgrep -x borders >/dev/null 2>&1 && bash "$HOME/.config/borders/bordersrc" >/dev/null 2>&1; then
         log "Borders"
     else
         log "Borders (config ready)"
