@@ -58,28 +58,6 @@ local settings = {
 			},
 		},
 	},
-	rift = {
-		enabled = true,
-		refresh_seconds = 2,
-		global_workspace_script = "$HOME/.config/rift/scripts/global-workspace.sh",
-		screen_to_sketchybar_display = {
-			[1] = 1,
-			[2] = 2,
-			[3] = 3,
-		},
-		workspace_assignments = {
-			{ global = "1", screen_id = 3, local_index = 0 },
-			{ global = "2", screen_id = 3, local_index = 1 },
-			{ global = "3", screen_id = 3, local_index = 2 },
-			{ global = "4", screen_id = 3, local_index = 3 },
-			{ global = "5", screen_id = 2, local_index = 0 },
-			{ global = "6", screen_id = 2, local_index = 1 },
-			{ global = "7", screen_id = 2, local_index = 2 },
-			{ global = "8", screen_id = 1, local_index = 0 },
-			{ global = "9", screen_id = 1, local_index = 1 },
-			{ global = "0", screen_id = 1, local_index = 2 },
-		},
-	},
 }
 
 return settings
