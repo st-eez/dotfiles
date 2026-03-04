@@ -100,6 +100,20 @@ active_file_accent = "#8fa8d8"
 [overrides.sketchybar]
 highlight = "#8fa8d8"
 
+[overrides.tmux]
+thm_red = "#d0d0d0"
+thm_green = "#6a6a6a"
+thm_surface_1 = "#343434"
+thm_overlay_2 = "#666666"
+thm_yellow = "#8a8a8a"
+thm_teal = "#d8d8d8"
+thm_maroon = "#8a8a8a"
+thm_sapphire = "#8a8a8a"
+thm_lavender = "#8a8a8a"
+thm_mauve = "#d0d0d0"
+catppuccin_status_application_icon_bg = "#8a8a8a"
+catppuccin_status_uptime_icon_bg = "#8a8a8a"
+
 [overrides.ghostty]
 split_divider_color = "#8a8a8a"
 
