@@ -33,4 +33,5 @@
 {"created_at":"2026-03-03T11:56:40Z","created_by":"steez","depends_on_id":"dot-6hq.6","issue_id":"dot-6hq.6.2","type":"parent-child"}
 {"created_at":"2026-03-03T11:56:41Z","created_by":"steez","depends_on_id":"dot-6hq.6.1","issue_id":"dot-6hq.6.2","type":"blocks"}
 {"created_at":"2026-03-03T11:57:08Z","created_by":"steez","depends_on_id":"dot-6hq.6","issue_id":"dot-9d9","type":"blocks"}
+{"created_at":"2026-03-04T13:52:32Z","created_by":"steez","depends_on_id":"dot-bws","issue_id":"dot-k9v","type":"discovered-from"}
 {"created_at":"2026-03-04T11:41:21Z","created_by":"steez","depends_on_id":"dot-ovx","issue_id":"dot-ni0","type":"discovered-from"}
