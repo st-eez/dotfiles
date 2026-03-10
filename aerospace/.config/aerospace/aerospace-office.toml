@@ -22,6 +22,10 @@ after-startup-command = [
   'exec-and-forget /opt/homebrew/opt/borders/bin/borders',
 ]
 
+# Catch focus changes triggered outside AeroSpace bindings, such as Raycast app shortcuts.
+# Fall back to monitor centering when focus changes to a workspace without a focused window yet.
+on-focus-changed = ['exec-and-forget /bin/bash -lc "aerospace move-mouse window-lazy-center || aerospace move-mouse monitor-lazy-center"']
+
 exec-on-workspace-change = [
   '/bin/bash',
   '-c',
