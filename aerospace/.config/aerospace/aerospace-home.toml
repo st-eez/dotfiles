@@ -22,14 +22,18 @@ after-startup-command = [
   'exec-and-forget /opt/homebrew/opt/borders/bin/borders',
 ]
 
-# Catch focus changes triggered outside AeroSpace bindings, such as Raycast app shortcuts.
-# Fall back to monitor centering when focus changes to a workspace without a focused window yet.
-on-focus-changed = ['exec-and-forget /bin/bash -lc "aerospace move-mouse window-lazy-center || aerospace move-mouse monitor-lazy-center"']
+# Temporary transition logging for cursor-jump debugging.
+on-focus-changed = [
+  'exec-and-forget /bin/bash -lc "$HOME/.config/aerospace/debug-focus-transitions.sh on-focus-changed"',
+  'exec-and-forget /bin/bash -lc "aerospace move-mouse window-lazy-center || aerospace move-mouse monitor-lazy-center"',
+]
+
+on-focused-monitor-changed = ['exec-and-forget /bin/bash -lc "$HOME/.config/aerospace/debug-focus-transitions.sh on-focused-monitor-changed"']
 
 exec-on-workspace-change = [
   '/bin/bash',
-  '-c',
-  '/opt/homebrew/opt/sketchybar/bin/sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE PREV_WORKSPACE=$AEROSPACE_PREV_WORKSPACE',
+  '-lc',
+  '/opt/homebrew/opt/sketchybar/bin/sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE PREV_WORKSPACE=$AEROSPACE_PREV_WORKSPACE; "$HOME/.config/aerospace/debug-focus-transitions.sh" exec-on-workspace-change',
 ]
 
 [gaps]
