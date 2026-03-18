@@ -7,16 +7,14 @@
 **Use conventional commit messages: `feat:` | `fix:` | `refactor:` | `docs:` | `chore:`**
 
 ```sh
-# Reminders (remindctl)
-remindctl lists | add | complete | edit   # Always pass --json
-remindctl edit <ID> ...                   # Use ID prefix, never numeric index
-
 # Playwright (browser automation)
 playwright-cli install --skills           # Setup (per-workspace)
 playwright-cli eval                       # Extract snapshot values
 
-# Use 'acli' for Jira tickets (Atlassian CLI)
-acli jira workitem search | view | edit   # Use ACLI for Jira tickets (`workitem`, not `issue`)
+# Jira (acli) — use `workitem`, not `issue`
+Always exclude terminal statuses: status NOT IN ("Done","Closed","Canceled")
+Use NOT IN, never != (shell escapes !)
+acli jira workitem search --jql '...'            # JQL only, no shorthand flags
 
 # Use 'bd' for Task tracking (beads)
 bd prime                                  # If not auto-injected by hooks
