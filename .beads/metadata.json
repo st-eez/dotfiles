@@ -2,6 +2,6 @@
   "database": "dolt",
   "backend": "dolt",
   "dolt_mode": "server",
-  "dolt_server_port": 13388,
+  "dolt_server_port": 23371,
   "dolt_database": "beads_dotfiles"
 }

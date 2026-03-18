@@ -226,3 +226,77 @@
 {"actor":"steez","comment":"Added label: main","created_at":"2026-03-11T10:02:05Z","event_type":"label_added","id":226,"issue_id":"dot-h4r","new_value":null,"old_value":null}
 {"actor":"steez","comment":null,"created_at":"2026-03-11T10:18:46Z","event_type":"status_changed","id":227,"issue_id":"dot-h4r","new_value":"{\"status\":\"in_progress\"}","old_value":"{\"id\":\"dot-h4r\",\"title\":\"Replace generic AeroSpace focus callback with source-aware cursor centering\",\"description\":\"Current experiments showed AeroSpace on-focus-changed callbacks cannot distinguish manual mouse/hover focus from keyboard-driven app/workspace switches. That makes callback-based cursor centering fundamentally wrong for the desired behavior: center on Raycast/cmd-tab style switches, but never steal the pointer during manual mouse movement. Investigate a source-aware approach instead: likely remove generic AeroSpace focus-centering callbacks, keep logging, and evaluate targeted mechanisms such as AutoRaise alt-task-switcher warp for cmd-tab, Raycast-specific wrapper scripts/hotkeys, or another tool that can identify keyboard/app-switch initiated focus changes. Capture the need to stop workspace 9 -\\u003e 1 -\\u003e 5 bounce regressions and preserve no-warp behavior for actual mouse movement.\",\"status\":\"open\",\"priority\":1,\"issue_type\":\"task\",\"owner\":\"stevedimakos97@gmail.com\",\"created_at\":\"2026-03-11T14:01:58Z\",\"created_by\":\"steez\",\"updated_at\":\"2026-03-11T14:01:58Z\"}"}
 {"actor":"steez","comment":"Added label: main","created_at":"2026-03-11T10:18:46Z","event_type":"label_added","id":228,"issue_id":"dot-h4r","new_value":null,"old_value":null}
+{"actor":"steez","comment":null,"created_at":"2026-03-16T00:18:22Z","event_type":"created","id":229,"issue_id":"dot-7nt","new_value":"","old_value":""}
+{"actor":"steez","comment":"Added label: main","created_at":"2026-03-16T00:18:22Z","event_type":"label_added","id":230,"issue_id":"dot-7nt","new_value":null,"old_value":null}
+{"actor":"steez","comment":"Added label: themes","created_at":"2026-03-16T00:18:22Z","event_type":"label_added","id":231,"issue_id":"dot-7nt","new_value":null,"old_value":null}
+{"actor":"steez","comment":null,"created_at":"2026-03-16T00:18:37Z","event_type":"closed","id":232,"issue_id":"dot-7nt","new_value":"Debug test cleanup","old_value":""}
+{"actor":"steez","comment":null,"created_at":"2026-03-16T00:19:32Z","event_type":"created","id":233,"issue_id":"dot-s31","new_value":"","old_value":""}
+{"actor":"steez","comment":"Added label: main","created_at":"2026-03-16T00:19:32Z","event_type":"label_added","id":234,"issue_id":"dot-s31","new_value":null,"old_value":null}
+{"actor":"steez","comment":"Added label: themes","created_at":"2026-03-16T00:19:32Z","event_type":"label_added","id":235,"issue_id":"dot-s31","new_value":null,"old_value":null}
+{"actor":"steez","comment":null,"created_at":"2026-03-16T00:19:32Z","event_type":"created","id":236,"issue_id":"dot-s31.1","new_value":"","old_value":""}
+{"actor":"steez","comment":"Added label: main","created_at":"2026-03-16T00:19:32Z","event_type":"label_added","id":237,"issue_id":"dot-s31.1","new_value":null,"old_value":null}
+{"actor":"steez","comment":"Added label: themes","created_at":"2026-03-16T00:19:32Z","event_type":"label_added","id":238,"issue_id":"dot-s31.1","new_value":null,"old_value":null}
+{"actor":"steez","comment":null,"created_at":"2026-03-16T00:19:33Z","event_type":"created","id":239,"issue_id":"dot-s31.2","new_value":"","old_value":""}
+{"actor":"steez","comment":"Added label: main","created_at":"2026-03-16T00:19:33Z","event_type":"label_added","id":240,"issue_id":"dot-s31.2","new_value":null,"old_value":null}
+{"actor":"steez","comment":"Added label: themes","created_at":"2026-03-16T00:19:33Z","event_type":"label_added","id":241,"issue_id":"dot-s31.2","new_value":null,"old_value":null}
+{"actor":"steez","comment":null,"created_at":"2026-03-16T00:19:33Z","event_type":"created","id":242,"issue_id":"dot-s31.2.1","new_value":"","old_value":""}
+{"actor":"steez","comment":"Added label: main","created_at":"2026-03-16T00:19:33Z","event_type":"label_added","id":243,"issue_id":"dot-s31.2.1","new_value":null,"old_value":null}
+{"actor":"steez","comment":"Added label: themes","created_at":"2026-03-16T00:19:33Z","event_type":"label_added","id":244,"issue_id":"dot-s31.2.1","new_value":null,"old_value":null}
+{"actor":"steez","comment":null,"created_at":"2026-03-16T00:19:33Z","event_type":"created","id":245,"issue_id":"dot-s31.2.2","new_value":"","old_value":""}
+{"actor":"steez","comment":"Added label: main","created_at":"2026-03-16T00:19:33Z","event_type":"label_added","id":246,"issue_id":"dot-s31.2.2","new_value":null,"old_value":null}
+{"actor":"steez","comment":"Added label: themes","created_at":"2026-03-16T00:19:34Z","event_type":"label_added","id":247,"issue_id":"dot-s31.2.2","new_value":null,"old_value":null}
+{"actor":"steez","comment":null,"created_at":"2026-03-16T00:19:34Z","event_type":"created","id":248,"issue_id":"dot-s31.3","new_value":"","old_value":""}
+{"actor":"steez","comment":"Added label: main","created_at":"2026-03-16T00:19:34Z","event_type":"label_added","id":249,"issue_id":"dot-s31.3","new_value":null,"old_value":null}
+{"actor":"steez","comment":"Added label: themes","created_at":"2026-03-16T00:19:34Z","event_type":"label_added","id":250,"issue_id":"dot-s31.3","new_value":null,"old_value":null}
+{"actor":"steez","comment":null,"created_at":"2026-03-16T00:19:34Z","event_type":"created","id":251,"issue_id":"dot-s31.3.1","new_value":"","old_value":""}
+{"actor":"steez","comment":"Added label: main","created_at":"2026-03-16T00:19:34Z","event_type":"label_added","id":252,"issue_id":"dot-s31.3.1","new_value":null,"old_value":null}
+{"actor":"steez","comment":"Added label: themes","created_at":"2026-03-16T00:19:34Z","event_type":"label_added","id":253,"issue_id":"dot-s31.3.1","new_value":null,"old_value":null}
+{"actor":"steez","comment":null,"created_at":"2026-03-16T00:19:34Z","event_type":"created","id":254,"issue_id":"dot-s31.4","new_value":"","old_value":""}
+{"actor":"steez","comment":"Added label: main","created_at":"2026-03-16T00:19:35Z","event_type":"label_added","id":255,"issue_id":"dot-s31.4","new_value":null,"old_value":null}
+{"actor":"steez","comment":"Added label: themes","created_at":"2026-03-16T00:19:35Z","event_type":"label_added","id":256,"issue_id":"dot-s31.4","new_value":null,"old_value":null}
+{"actor":"steez","comment":null,"created_at":"2026-03-16T00:19:35Z","event_type":"created","id":257,"issue_id":"dot-s31.4.1","new_value":"","old_value":""}
+{"actor":"steez","comment":"Added label: main","created_at":"2026-03-16T00:19:35Z","event_type":"label_added","id":258,"issue_id":"dot-s31.4.1","new_value":null,"old_value":null}
+{"actor":"steez","comment":"Added label: themes","created_at":"2026-03-16T00:19:35Z","event_type":"label_added","id":259,"issue_id":"dot-s31.4.1","new_value":null,"old_value":null}
+{"actor":"steez","comment":null,"created_at":"2026-03-16T00:19:35Z","event_type":"created","id":260,"issue_id":"dot-s31.4.2","new_value":"","old_value":""}
+{"actor":"steez","comment":"Added label: main","created_at":"2026-03-16T00:19:35Z","event_type":"label_added","id":261,"issue_id":"dot-s31.4.2","new_value":null,"old_value":null}
+{"actor":"steez","comment":"Added label: themes","created_at":"2026-03-16T00:19:35Z","event_type":"label_added","id":262,"issue_id":"dot-s31.4.2","new_value":null,"old_value":null}
+{"actor":"steez","comment":null,"created_at":"2026-03-16T00:19:36Z","event_type":"created","id":263,"issue_id":"dot-s31.4.3","new_value":"","old_value":""}
+{"actor":"steez","comment":"Added label: main","created_at":"2026-03-16T00:19:36Z","event_type":"label_added","id":264,"issue_id":"dot-s31.4.3","new_value":null,"old_value":null}
+{"actor":"steez","comment":"Added label: themes","created_at":"2026-03-16T00:19:36Z","event_type":"label_added","id":265,"issue_id":"dot-s31.4.3","new_value":null,"old_value":null}
+{"actor":"steez","comment":null,"created_at":"2026-03-16T00:19:36Z","event_type":"created","id":266,"issue_id":"dot-s31.5","new_value":"","old_value":""}
+{"actor":"steez","comment":"Added label: main","created_at":"2026-03-16T00:19:36Z","event_type":"label_added","id":267,"issue_id":"dot-s31.5","new_value":null,"old_value":null}
+{"actor":"steez","comment":"Added label: themes","created_at":"2026-03-16T00:19:36Z","event_type":"label_added","id":268,"issue_id":"dot-s31.5","new_value":null,"old_value":null}
+{"actor":"steez","comment":null,"created_at":"2026-03-16T00:19:36Z","event_type":"created","id":269,"issue_id":"dot-s31.5.1","new_value":"","old_value":""}
+{"actor":"steez","comment":"Added label: main","created_at":"2026-03-16T00:19:36Z","event_type":"label_added","id":270,"issue_id":"dot-s31.5.1","new_value":null,"old_value":null}
+{"actor":"steez","comment":"Added label: themes","created_at":"2026-03-16T00:19:36Z","event_type":"label_added","id":271,"issue_id":"dot-s31.5.1","new_value":null,"old_value":null}
+{"actor":"steez","comment":null,"created_at":"2026-03-16T00:19:37Z","event_type":"created","id":272,"issue_id":"dot-s31.5.2","new_value":"","old_value":""}
+{"actor":"steez","comment":"Added label: main","created_at":"2026-03-16T00:19:37Z","event_type":"label_added","id":273,"issue_id":"dot-s31.5.2","new_value":null,"old_value":null}
+{"actor":"steez","comment":"Added label: themes","created_at":"2026-03-16T00:19:37Z","event_type":"label_added","id":274,"issue_id":"dot-s31.5.2","new_value":null,"old_value":null}
+{"actor":"steez","comment":null,"created_at":"2026-03-16T00:19:37Z","event_type":"created","id":275,"issue_id":"dot-s31.6","new_value":"","old_value":""}
+{"actor":"steez","comment":"Added label: main","created_at":"2026-03-16T00:19:37Z","event_type":"label_added","id":276,"issue_id":"dot-s31.6","new_value":null,"old_value":null}
+{"actor":"steez","comment":"Added label: themes","created_at":"2026-03-16T00:19:37Z","event_type":"label_added","id":277,"issue_id":"dot-s31.6","new_value":null,"old_value":null}
+{"actor":"steez","comment":null,"created_at":"2026-03-16T00:19:37Z","event_type":"created","id":278,"issue_id":"dot-s31.6.1","new_value":"","old_value":""}
+{"actor":"steez","comment":"Added label: main","created_at":"2026-03-16T00:19:37Z","event_type":"label_added","id":279,"issue_id":"dot-s31.6.1","new_value":null,"old_value":null}
+{"actor":"steez","comment":"Added label: themes","created_at":"2026-03-16T00:19:37Z","event_type":"label_added","id":280,"issue_id":"dot-s31.6.1","new_value":null,"old_value":null}
+{"actor":"steez","comment":null,"created_at":"2026-03-16T00:19:38Z","event_type":"created","id":281,"issue_id":"dot-s31.6.2","new_value":"","old_value":""}
+{"actor":"steez","comment":"Added label: main","created_at":"2026-03-16T00:19:38Z","event_type":"label_added","id":282,"issue_id":"dot-s31.6.2","new_value":null,"old_value":null}
+{"actor":"steez","comment":"Added label: themes","created_at":"2026-03-16T00:19:38Z","event_type":"label_added","id":283,"issue_id":"dot-s31.6.2","new_value":null,"old_value":null}
+{"actor":"steez","comment":null,"created_at":"2026-03-16T00:19:38Z","event_type":"created","id":284,"issue_id":"dot-s31.7","new_value":"","old_value":""}
+{"actor":"steez","comment":"Added label: main","created_at":"2026-03-16T00:19:38Z","event_type":"label_added","id":285,"issue_id":"dot-s31.7","new_value":null,"old_value":null}
+{"actor":"steez","comment":"Added label: themes","created_at":"2026-03-16T00:19:38Z","event_type":"label_added","id":286,"issue_id":"dot-s31.7","new_value":null,"old_value":null}
+{"actor":"steez","comment":null,"created_at":"2026-03-16T00:19:38Z","event_type":"created","id":287,"issue_id":"dot-s31.7.1","new_value":"","old_value":""}
+{"actor":"steez","comment":"Added label: main","created_at":"2026-03-16T00:19:38Z","event_type":"label_added","id":288,"issue_id":"dot-s31.7.1","new_value":null,"old_value":null}
+{"actor":"steez","comment":"Added label: themes","created_at":"2026-03-16T00:19:38Z","event_type":"label_added","id":289,"issue_id":"dot-s31.7.1","new_value":null,"old_value":null}
+{"actor":"steez","comment":null,"created_at":"2026-03-16T00:19:39Z","event_type":"created","id":290,"issue_id":"dot-s31.7.2","new_value":"","old_value":""}
+{"actor":"steez","comment":"Added label: main","created_at":"2026-03-16T00:19:39Z","event_type":"label_added","id":291,"issue_id":"dot-s31.7.2","new_value":null,"old_value":null}
+{"actor":"steez","comment":"Added label: themes","created_at":"2026-03-16T00:19:39Z","event_type":"label_added","id":292,"issue_id":"dot-s31.7.2","new_value":null,"old_value":null}
+{"actor":"steez","comment":null,"created_at":"2026-03-16T00:19:39Z","event_type":"created","id":293,"issue_id":"dot-s31.8","new_value":"","old_value":""}
+{"actor":"steez","comment":"Added label: main","created_at":"2026-03-16T00:19:39Z","event_type":"label_added","id":294,"issue_id":"dot-s31.8","new_value":null,"old_value":null}
+{"actor":"steez","comment":"Added label: themes","created_at":"2026-03-16T00:19:39Z","event_type":"label_added","id":295,"issue_id":"dot-s31.8","new_value":null,"old_value":null}
+{"actor":"steez","comment":null,"created_at":"2026-03-16T00:19:39Z","event_type":"created","id":296,"issue_id":"dot-s31.8.1","new_value":"","old_value":""}
+{"actor":"steez","comment":"Added label: main","created_at":"2026-03-16T00:19:39Z","event_type":"label_added","id":297,"issue_id":"dot-s31.8.1","new_value":null,"old_value":null}
+{"actor":"steez","comment":"Added label: themes","created_at":"2026-03-16T00:19:39Z","event_type":"label_added","id":298,"issue_id":"dot-s31.8.1","new_value":null,"old_value":null}
+{"actor":"steez","comment":null,"created_at":"2026-03-16T00:19:40Z","event_type":"created","id":299,"issue_id":"dot-s31.8.2","new_value":"","old_value":""}
+{"actor":"steez","comment":"Added label: main","created_at":"2026-03-16T00:19:40Z","event_type":"label_added","id":300,"issue_id":"dot-s31.8.2","new_value":null,"old_value":null}
+{"actor":"steez","comment":"Added label: themes","created_at":"2026-03-16T00:19:40Z","event_type":"label_added","id":301,"issue_id":"dot-s31.8.2","new_value":null,"old_value":null}
+{"actor":"steez","comment":"Added label: main","created_at":"2026-03-16T00:27:25Z","event_type":"label_added","id":302,"issue_id":"dot-h4r","new_value":null,"old_value":null}
