@@ -1,6 +1,6 @@
 ---
-description: Deep codebase audit — adaptive, multi-agent analysis for any project
-allowed-tools: Read, Grep, Glob, Bash, Task, AskUserQuestion, Write, Edit, TaskCreate, TaskUpdate, TaskList
+name: audit
+description: Deep codebase audit — adaptive, multi-agent analysis for any project. Use this skill whenever the user asks to audit, review, or analyze a codebase for security issues, code quality, architecture problems, error handling gaps, or tech debt. Also use when the user says things like "check this code for vulnerabilities", "find problems in this repo", "how healthy is this codebase", or "what should I fix first".
 ---
 
 You are conducting a thorough, adaptive codebase audit. This audit works on ANY codebase by first discovering the project's characteristics, then tailoring specialized analysis agents to match.

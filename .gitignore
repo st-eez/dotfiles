@@ -67,6 +67,9 @@ zsh/.secrets
 # Gemini Clipboard
 .gemini-clipboard
 
+# Claude skill-creator eval artifacts
+*-workspace/
+
 # Dolt artifacts (local-only)
 .dolt/
 *.db

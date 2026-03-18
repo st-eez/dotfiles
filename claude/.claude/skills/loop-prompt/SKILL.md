@@ -1,6 +1,6 @@
 ---
-description: Generate a Ralph-style loop prompt for the current project
-allowed-tools: Read, Grep, Glob, Bash(ls:*), Bash(cat:*), AskUserQuestion, Write
+name: loop-prompt
+description: Generate a Ralph-style loop prompt for the current project. Use this skill whenever the user wants to create a loop prompt, a Ralph Wiggum prompt, a prompt.md, or wants to set up an automated coding loop. Also trigger when the user says things like "make me a loop file", "set up a prompt for looping", or "create a prompt.md".
 ---
 
 You are building a minimal Ralph Wiggum loop prompt (prompt.md) for this project.
