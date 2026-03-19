@@ -1,0 +1,55 @@
+{
+  "skill_name": "jira",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "what tickets are assigned to me in NS?",
+      "expected_output": "A list of open NS tickets assigned to the user, excluding Done/Closed/Canceled",
+      "files": [],
+      "expectations": [
+        "Uses 'workitem' subcommand, not 'issue'",
+        "JQL includes project = NS",
+        "JQL includes assignee = currentUser()",
+        "JQL excludes terminal statuses using NOT IN (not !=)",
+        "Returns readable results with ticket keys and summaries"
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "create a ticket in IT for setting up a new monitor for the boardroom",
+      "expected_output": "An IT ticket is created with a relevant summary about the monitor setup",
+      "files": [],
+      "expectations": [
+        "Uses 'workitem create' subcommand",
+        "Uses project IT",
+        "Uses a valid issue type for the IT project",
+        "Summary references monitor or boardroom",
+        "Ticket is successfully created (IT-xxx key returned)"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "log 1 hour on NS-682 for skill testing",
+      "expected_output": "A 1-hour worklog entry is added to NS-682",
+      "files": [],
+      "expectations": [
+        "Logs time on NS-682 (not a different ticket)",
+        "Logs 1 hour (not a different duration)",
+        "Worklog is successfully added (confirmed by API response or verification)"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "what are all my open tickets?",
+      "expected_output": "Open tickets from both NS and IT projects",
+      "files": [],
+      "expectations": [
+        "Searches the NS project",
+        "Searches the IT project (not just NS)",
+        "Excludes terminal statuses using NOT IN",
+        "Uses assignee = currentUser()",
+        "Returns readable results"
+      ]
+    }
+  ]
+}

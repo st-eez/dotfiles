@@ -1,0 +1,4 @@
+interface:
+  display_name: "loop-prompt"
+  short_description: "Generate a prompt.md for an automated coding loop"
+  default_prompt: "Use $loop-prompt to create a Ralph-style prompt.md for the current project."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "reminders"
+  short_description: "Manage Apple Reminders via remindctl"
+  default_prompt: "Use $reminders to manage my Apple Reminders with remindctl."

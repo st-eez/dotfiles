@@ -71,36 +71,20 @@ remindctl delete <ID> --force --json
 
 ## Output Formatting
 
-When presenting reminders to the user, format them as rounded-corner Unicode tables grouped by list. Use this exact style:
+When displaying reminders, **always pipe the JSON through the bundled formatting script** rather than drawing tables yourself. The script handles alignment, wrapping, and borders deterministically.
 
-```
-◆ Work
-╭────────┬────────────────────┬────────────┬──────╮
-│ ID     │ Title              │ Due        │ Pri  │
-├────────┼────────────────────┼────────────┼──────┤
-│ 4A83   │ Review PR #42      │ 2026-03-18 │ high │
-│ B2F1   │ Update docs        │ —          │ —    │
-╰────────┴────────────────────┴────────────┴──────╯
-
-◆ Personal
-╭────────┬────────────────────┬────────────┬──────╮
-│ ID     │ Title              │ Due        │ Pri  │
-├────────┼────────────────────┼────────────┼──────┤
-│ C9D0   │ Buy milk           │ 2026-03-17 │ —    │
-╰────────┴────────────────────┴────────────┴──────╯
+```sh
+remindctl show open --json | python3 ~/.claude/skills/reminders/scripts/format_table.py
 ```
 
-Guidelines for the table:
-- Group by list name, with `◆ ListName` as the header
-- Columns: ID, Title, Due, Pri
-- Use `—` for empty fields (no due date, no priority or priority "none")
-- Sort by due date within each list (items with no due date last)
-- Size columns to fit the actual content — don't pad to a fixed width
+Combine the remindctl command and the formatter into a single piped command. The script outputs rounded-corner Unicode tables grouped by list, with sequential row numbers, separator lines between rows, and long titles wrapped across multiple lines.
 
-When there's only a single reminder (e.g., after an add or edit), you can show it inline instead of a full table:
+After the table output, add a brief summary noting overdue items or high-priority ones. You have the JSON data in context so you can map row numbers back to IDs for follow-up operations (complete, edit, delete).
+
+When there's only a single reminder (e.g., after an add or edit), show it inline instead of piping through the script:
 
 ```
-✓ Added to Personal: "Buy milk" (ID: C9D0, due 2026-03-18)
+✓ Added to Personal: "Buy milk" (due 2026-03-18)
 ```
 
 ## Workflow

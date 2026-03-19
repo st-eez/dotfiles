@@ -1,0 +1,53 @@
+{
+  "skill_name": "agenda",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "plan my day",
+      "expected_output": "Should trigger the agenda skill and begin Phase 1 (overdue triage) by running remindctl show overdue --json",
+      "assertions": [
+        {"text": "Triggers agenda skill (not reminders or jira)", "type": "trigger"},
+        {"text": "Starts with Phase 1 overdue query", "type": "workflow"},
+        {"text": "Uses remindctl show overdue --json", "type": "command"},
+        {"text": "Pipes recommendations through format_table.py with --columns and --header", "type": "formatting"}
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "what should I work on today",
+      "expected_output": "Should trigger agenda skill and run the 3-phase planning workflow",
+      "assertions": [
+        {"text": "Triggers agenda skill", "type": "trigger"},
+        {"text": "Starts with Phase 1", "type": "workflow"}
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "what reminders do I have due this week",
+      "expected_output": "Should trigger reminders skill, NOT agenda skill",
+      "assertions": [
+        {"text": "Does NOT trigger agenda skill", "type": "negative-trigger"},
+        {"text": "Triggers reminders skill instead", "type": "trigger"}
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "show me open NS tickets",
+      "expected_output": "Should trigger jira skill, NOT agenda skill",
+      "assertions": [
+        {"text": "Does NOT trigger agenda skill", "type": "negative-trigger"},
+        {"text": "Triggers jira skill instead", "type": "trigger"}
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "morning triage — let's get today sorted",
+      "expected_output": "Should trigger agenda skill, run all 3 phases with approval gates",
+      "assertions": [
+        {"text": "Triggers agenda skill", "type": "trigger"},
+        {"text": "Begins Phase 1 overdue triage", "type": "workflow"},
+        {"text": "Uses format_table.py for output", "type": "formatting"}
+      ]
+    }
+  ]
+}

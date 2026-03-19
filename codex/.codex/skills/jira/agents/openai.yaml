@@ -1,0 +1,4 @@
+interface:
+  display_name: "jira"
+  short_description: "Manage Jira work items with acli"
+  default_prompt: "Use $jira to search, update, and log work on Jira items with acli and the bundled helper."
