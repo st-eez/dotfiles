@@ -6,7 +6,7 @@ config-file = ?"~/.config/ghostty/theme.conf"
 
 background-opacity = 1
 font-family = JetBrainsMono Nerd Font
-font-size = 14
+font-size = 13
 keybind = shift+enter=text:\n
 keybind = super+left=text:\x1bOH
 
