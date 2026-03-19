@@ -13,11 +13,17 @@ keybind = super+left=text:\x1bOH
 # Split appearance
 unfocused-split-opacity = 0.5
 
+# Hide macOS title bar (tmux status bar makes it redundant)
+macos-titlebar-style = hidden
+window-padding-x = 4
+window-padding-y = 4
+
 # Disable paste protection warning
 clipboard-paste-protection = false
 
 # Enable copy on highlight
 copy-on-select = clipboard
+mouse-hide-while-typing = true
 
 # Enable desktop notifs
 desktop-notifications = true
