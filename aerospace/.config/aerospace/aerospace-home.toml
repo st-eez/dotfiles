@@ -10,14 +10,10 @@ default-root-container-layout = 'tiles'
 # Automatically change accordion to tiles when only one window
 # accordion-padding = 30
 
-after-login-command = []
-
-# You can use it to add commands that run after AeroSpace startup.
-# 'after-startup-command' is run after 'after-login-command'
-# Available commands : https://nikitabobko.github.io/AeroSpace/commands
+# Available commands: https://nikitabobko.github.io/AeroSpace/commands
 after-startup-command = [
-  # JankyBorders has a built-in detection of already running process,
-  # so it won't be run twice on AeroSpace restart
+  # JankyBorders and SketchyBar have built-in detection of already running process,
+  # so they won't be run twice on AeroSpace restart
   'exec-and-forget /opt/homebrew/opt/sketchybar/bin/sketchybar',
   'exec-and-forget /opt/homebrew/opt/borders/bin/borders',
 ]
