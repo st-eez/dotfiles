@@ -28,15 +28,18 @@ export SHELL_PKGS=(
 export DEV_PKGS=(
     nvim
     node
+    playwright-cli
     python
     lua
     pnpm
     prettier
     stow
+    uv
 )
 
 # AI Assistants
 export AI_PKGS=(
+    beads
     claude
     codex
     gemini
@@ -63,6 +66,7 @@ export SYSTEM_PKGS=(
     btop
     localsend
     nmap
+    remindctl
     wireguard-tools
 )
 
@@ -82,6 +86,7 @@ get_brew_pkg() {
         aerospace) echo "--cask aerospace" ;;
         autoraise) echo "--cask autoraiseapp" ;;
         bitwarden) echo "--cask bitwarden" ;;
+        remindctl) echo "steipete/tap/remindctl" ;;
         borders)   echo "felixkratz/formulae/borders" ;;
         ghostty)   echo "--cask ghostty" ;;
         karabiner) echo "--cask karabiner-elements" ;;
@@ -108,7 +113,9 @@ get_pacman_pkg() {
         nvim)      echo "neovim" ;;
         gh)        echo "github-cli" ;;
         node)      echo "nodejs" ;;
+        playwright-cli) echo "" ;;                # Homebrew-managed in this repo
         python)    echo "python" ;;
+        remindctl) echo "" ;;                     # Homebrew-managed in this repo
         telnet)    echo "inetutils" ;;
         ghostty)   echo "ghostty" ;;              # Now in official repo (was AUR)
         claude)    echo "aur:claude-code-bin" ;;
@@ -131,7 +138,9 @@ get_apt_pkg() {
         fd)        echo "fd-find" ;;
         gh)        echo "gh" ;;
         node)      echo "nodejs" ;;
+        playwright-cli) echo "" ;; # Homebrew-managed in this repo
         python)    echo "python3" ;;
+        remindctl) echo "" ;; # Homebrew-managed in this repo
         lua)       echo "lua5.4" ;;
         ghostty)   echo "" ;;   # No apt package - use AppImage
         claude)    echo "" ;;   # Use native installer
@@ -155,9 +164,12 @@ get_binary_name() {
         claude)          echo "claude" ;;
         codex)           echo "codex" ;;
         gemini)          echo "gemini" ;;
+        playwright-cli)  echo "playwright-cli" ;;
         pnpm)            echo "pnpm" ;;
         prompt-optimizer) echo "" ;;
+        remindctl)       echo "remindctl" ;;
         themes)          echo "" ;;  # Config-only package, no binary
+        uv)              echo "uv" ;;
         fd)
             if [[ "$DISTRO" == "debian" ]]; then
                 echo "fdfind"
@@ -194,6 +206,7 @@ get_pkg_description() {
         node)         echo "JavaScript runtime" ;;
         python)       echo "Python interpreter" ;;
         btop)         echo "System monitor" ;;
+        beads)        echo "Dependency-aware local issue tracker" ;;
         claude)       echo "Claude AI CLI" ;;
         codex)        echo "OpenAI Codex CLI" ;;
         eza)          echo "Modern ls replacement" ;;
@@ -209,12 +222,15 @@ get_pkg_description() {
         nmap)         echo "Network scanner" ;;
         nvim)         echo "Neovim + LazyVim" ;;
         opencode)     echo "OpenCode AI assistant" ;;
+        playwright-cli) echo "Playwright automation CLI" ;;
         pnpm)         echo "Fast package manager" ;;
         prettier)     echo "Code formatter" ;;
+        remindctl)    echo "Apple Reminders CLI" ;;
         ripgrep)      echo "Fast grep replacement" ;;
         starship)     echo "Cross-shell prompt" ;;
         stow)         echo "Symlink farm manager" ;;
         tmux)         echo "Terminal multiplexer" ;;
+        uv)           echo "Python package and tool manager" ;;
         wireguard-tools) echo "VPN tools" ;;
         zoxide)       echo "Smart cd command" ;;
         zsh)          echo "Z shell" ;;
@@ -235,6 +251,12 @@ get_alt_install_method() {
             # Linux: use native installer (brew handles macOS)
             [[ "$OS" != "macos" ]] && echo "native:curl -fsSL https://opencode.ai/install | bash"
             ;;
+        beads)
+            [[ "$OS" != "macos" ]] && echo "manual:install via Homebrew on macOS; Linux setup is not wired into this repo yet"
+            ;;
+        playwright-cli)
+            [[ "$OS" != "macos" ]] && echo "manual:install via Homebrew on macOS; Linux setup is not wired into this repo yet"
+            ;;
         claude)
             # Only use native installer on non-macOS (brew handles macOS)
             [[ "$OS" != "macos" ]] && echo "native:curl -fsSL https://claude.ai/install.sh | bash"
@@ -247,6 +269,9 @@ get_alt_install_method() {
             # Ubuntu/Mint repos have outdated neovim; LazyVim v15 requires 0.11.2+
             [[ "$DISTRO" == "debian" ]] && echo "native:install_nvim_tarball"
             ;;
+        remindctl)
+            [[ "$OS" != "macos" ]] && echo "manual:install via Homebrew on macOS; Linux setup is not wired into this repo yet"
+            ;;
         ghostty)
             # Debian/Ubuntu/Mint: use AppImage (no official apt package)
             # Arch has official package, macOS has cask
@@ -255,6 +280,9 @@ get_alt_install_method() {
         starship)
             # Debian/Ubuntu/Mint: apt version often outdated, use official script
             [[ "$DISTRO" == "debian" ]] && echo "native:install_starship_script"
+            ;;
+        uv)
+            [[ "$OS" != "macos" ]] && echo "manual:install via Homebrew on macOS; Linux setup is not wired into this repo yet"
             ;;
         localsend)
             [[ "$DISTRO" == "debian" ]] && echo "native:install_localsend_linux"
