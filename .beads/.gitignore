@@ -1,6 +1,8 @@
 # Dolt database (managed by Dolt, not git)
 dolt/
 dolt-access.lock
+.beads-credential-key
+backup/
 
 # Runtime files
 bd.sock
