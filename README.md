@@ -58,6 +58,13 @@ cd ~/dotfiles
 stow zsh tmux nvim ghostty
 ```
 
+### How CLI Tools Are Managed
+
+- `Brewfile` is the macOS package declaration for Homebrew-installed CLIs and apps.
+- `installer/config.sh` is the package catalog that powers `./install.sh`.
+- If you want a CLI to be reproducible on a new Mac, add it to both files instead of checking binaries into the repo.
+- Tool-specific runtime state under `$HOME`, such as `~/.agents/skills`, is install output and should not be treated as dotfile source.
+
 ---
 
 ## Post-Install
