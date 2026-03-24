@@ -28,3 +28,4 @@ aerospace reload-config && sketchybar --reload
 - Zsh uses ZDOTDIR (`~/.config/zsh/`) — edit there, not `~/.zshrc`.
 - Do not edit files marked `Managed by theme-set`; edit `themes/configs/<theme>/`.
 - If keyboard shortcuts change, also update `raycast/extensions/keybinds/src/search-keybinds.tsx`.
+- **Claude skills require `--no-folding`** — directory-level symlinks break skill discovery. Always restow the `claude` package with `--no-folding` after adding new skills.
