@@ -1,14 +1,6 @@
 ---
 name: sharpen-skill
-description: |
-  Evaluate and improve Claude Code skills through multi-agent research,
-  independent critique, and data-grounded debate. Use when asked to
-  "sharpen", "improve", "evaluate", or "review" a skill, or when the
-  user wants to know if a skill is working well, what to change, or
-  whether to adopt a skill from another source. Also trigger when the
-  user says "what's wrong with this skill", "how can I make this better",
-  "is this skill actually helping", "compare my skill to X", or
-  "should I add this skill".
+description: Evaluate and improve skills via multi-agent research, independent critique, and data-grounded debate. Use when asked to sharpen, improve, evaluate, review, or compare a skill, or adopt one from another source.
 ---
 
 # Sharpen Skill

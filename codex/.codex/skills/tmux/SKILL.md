@@ -14,6 +14,7 @@ Use tmux from the command line to inspect panes, send input, and capture output.
 3. Always send the text and `Enter` as separate tmux commands.
 4. Use `capture-pane -p` when reading output. Without `-p`, tmux writes to an internal paste buffer instead of stdout.
 5. Prefer explicit `session:window.pane` targets for any operation that affects another pane or window.
+6. Never put literal `\n` sequences inside the `send-keys` text payload. tmux sends them as the characters `\` and `n`, not as real line breaks.
 
 ## Target Format
 
@@ -81,6 +82,23 @@ tmux capture-pane -t work:1.2 -p | tail -5
 ```
 
 Never combine the command text and `Enter` in a single `send-keys` call.
+
+For multiline text, send actual newlines rather than escaped `\n` sequences. This works:
+
+```sh
+tmux send-keys -t work:1.2 "$(cat <<'EOF'
+first line
+second line
+EOF
+)"
+tmux send-keys -t work:1.2 Enter
+```
+
+This does **not** work:
+
+```sh
+tmux send-keys -t work:1.2 "first line\nsecond line"
+```
 
 Special keys:
 
