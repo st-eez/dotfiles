@@ -4,11 +4,11 @@
 
 # Tools
 
-**Use current year in web searches (from env "Today's date").**
-**Use absolute paths (`$HOME`, `__dirname`, `__file__`) — never relative (breaks when cwd changes).**
-**Use conventional commit messages: `feat:` | `fix:` | `refactor:` | `docs:` | `chore:`**
-
 ```sh
+# Search (use current year from env "Today's date")
+# Paths: use absolute ($HOME, __dirname, __file__) — never relative
+# Commits: feat: | fix: | refactor: | docs: | chore:
+
 # Playwright (browser automation)
 playwright-cli install --skills           # Setup (per-workspace)
 playwright-cli eval                       # Extract snapshot values
