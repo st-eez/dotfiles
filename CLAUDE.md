@@ -6,7 +6,7 @@
 stow --dir="$HOME/Projects/Personal/dotfiles" --target="$HOME" --restow <package>
 
 # Re-stow package that requires no-folding
-stow --dir="$HOME/Projects/Personal/dotfiles" --target="$HOME" --restow --no-folding <package>  # nvim | zsh | claude
+stow --dir="$HOME/Projects/Personal/dotfiles" --target="$HOME" --restow --no-folding <package>  # nvim | zsh | ghostty
 
 # Remove stow symlink safely
 unlink <target-path>  # never rm -r on symlinked paths
@@ -24,4 +24,4 @@ aerospace reload-config && sketchybar --reload
 - Zsh uses ZDOTDIR (`~/.config/zsh/`) — edit there, not `~/.zshrc`.
 - Do not edit files marked `Managed by theme-set`; edit `themes/configs/<theme>/`.
 - If keyboard shortcuts change, also update `raycast/extensions/keybinds/src/search-keybinds.tsx`.
-- **Claude skills require `--no-folding`** — directory-level symlinks break skill discovery. Always restow the `claude` package with `--no-folding` after adding new skills.
+- **Do NOT use `--no-folding` for the `claude` package** — stow should fold `~/.claude/skills/` into a directory symlink so new skills created anywhere land directly in the dotfiles repo.
