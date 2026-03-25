@@ -53,10 +53,7 @@ export SSH_AUTH_SOCK="$HOME/Library/Containers/com.bitwarden.desktop/Data/.bitwa
 
 ### Linux-Only Install
 
-```bash
-cd ~/dotfiles
-stow zsh tmux nvim ghostty
-```
+Run `./install.sh` — it handles `--no-folding` flags, `~/.zshenv` bootstrap, and package-specific setup automatically.
 
 ### How CLI Tools Are Managed
 

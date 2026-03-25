@@ -11,10 +11,6 @@ stow --dir="$HOME/Projects/Personal/dotfiles" --target="$HOME" --restow --no-fol
 # Remove stow symlink safely
 unlink <target-path>  # never rm -r on symlinked paths
 
-# Sync Claude slash commands
-mkdir -p "$HOME/.claude/commands"
-cp "$HOME/Projects/Personal/dotfiles/claude/.claude/commands/"*.md "$HOME/.claude/commands/"
-
 # Fix monitor ID drift
 aerospace list-monitors
 # Update monitor IDs in:

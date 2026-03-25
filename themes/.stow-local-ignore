@@ -7,4 +7,6 @@
 ^palettes$
 ^wallpapers$
 ^scripts$
+^sources$
+^tests$
 ^themes\.json$

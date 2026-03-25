@@ -165,7 +165,7 @@ migrate_zsh_to_zdotdir() {
         return 1
     fi
 
-    if ! stow --restow -d "$DOTFILES_DIR" -t "$HOME" zsh; then
+    if ! stow --restow --no-folding -d "$DOTFILES_DIR" -t "$HOME" zsh; then
         gum style --foreground "$THEME_ERROR" "  Failed to stow zsh config (check for conflicts above)"
         return 1
     fi

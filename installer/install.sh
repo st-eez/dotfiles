@@ -1002,7 +1002,7 @@ stow_package() {
     local -a stow_args=(--dir="$DOTFILES_DIR" --target="$HOME" --restow)
     # shellcheck disable=SC2076
     [[ " ${no_folding_pkgs[*]} " =~ " $pkg " ]] && stow_args+=(--no-folding)
-    
+
     if stow "${stow_args[@]}" "$pkg" 2>/dev/null; then
         # 3. Post-stow hooks for packages that need additional setup
         case "$pkg" in

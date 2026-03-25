@@ -196,7 +196,7 @@ run_installation() {
         done
         
         if [[ "$has_themeable" == true ]]; then
-            stow -d "$DOTFILES_DIR" -t "$HOME" themes 2>/dev/null || true
+            stow_package "themes" "$run_timestamp"
             
             local theme_script="$DOTFILES_DIR/themes/.local/bin/theme-set"
             if [[ -x "$theme_script" ]]; then
