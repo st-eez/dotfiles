@@ -2,27 +2,12 @@
 
 ## Commands
 ```sh
-# Re-stow edited package
+# Re-stow a package (simulate first, add --no-folding if target dir has non-stow files)
+stow --dir="$HOME/Projects/Personal/dotfiles" --target="$HOME" --simulate --verbose --restow <package>
 stow --dir="$HOME/Projects/Personal/dotfiles" --target="$HOME" --restow <package>
-
-# Re-stow package that requires no-folding
-stow --dir="$HOME/Projects/Personal/dotfiles" --target="$HOME" --restow --no-folding <package>  # nvim | zsh | claude | ghostty
 
 # Remove stow symlink safely
 unlink <target-path>  # never rm -r on symlinked paths
-
-# Sync Claude slash commands
-mkdir -p "$HOME/.claude/commands"
-cp "$HOME/Projects/Personal/dotfiles/claude/.claude/commands/"*.md "$HOME/.claude/commands/"
-
-# Validate canonical theme TOML sources
-python3 "$HOME/Projects/Personal/dotfiles/themes/scripts/theme_build.py" --check
-
-# Regenerate all managed theme artifacts from canonical sources
-python3 "$HOME/Projects/Personal/dotfiles/themes/scripts/theme_build.py" --generate-meta
-python3 "$HOME/Projects/Personal/dotfiles/themes/scripts/theme_build.py" --generate-themes-json
-python3 "$HOME/Projects/Personal/dotfiles/themes/scripts/theme_build.py" --generate-configs
-python3 "$HOME/Projects/Personal/dotfiles/themes/scripts/theme_build.py" --generate-wallpapers
 
 # Fix monitor ID drift
 aerospace list-monitors
@@ -35,11 +20,12 @@ aerospace reload-config && sketchybar --reload
 ## Rules
 - Edit repo source files, never stow targets in `$HOME`.
 - Zsh uses ZDOTDIR (`~/.config/zsh/`) — edit there, not `~/.zshrc`.
-- Theme source of truth is `themes/sources/<theme>.toml` (plus optional wallpaper assets). Do not hand-edit generated files in `themes/meta/`, `themes/configs/`, `themes/themes.json`, or `themes/wallpapers/<theme>/1-solid.png`.
+- Do not edit files marked `Managed by theme-set`; edit `themes/configs/<theme>/`.
 - If keyboard shortcuts change, also update `raycast/extensions/keybinds/src/search-keybinds.tsx`.
+- **Do NOT use `--no-folding` for the `claude` package** — stow should fold `~/.claude/skills/` into a directory symlink so new skills created anywhere land directly in the dotfiles repo.
 
 
-<!-- BEGIN BEADS INTEGRATION -->
+<!-- BEGIN BEADS INTEGRATION v:1 profile:full hash:f65d5d33 -->
 ## Issue Tracking with bd (beads)
 
 **IMPORTANT**: This project uses **bd (beads)** for ALL issue tracking. Do NOT use markdown TODOs, task lists, or other tracking methods.
@@ -47,7 +33,7 @@ aerospace reload-config && sketchybar --reload
 ### Why bd?
 
 - Dependency-aware: Track blockers and relationships between issues
-- Git-friendly: Auto-syncs to JSONL for version control
+- Git-friendly: Dolt-powered version control with native sync
 - Agent-optimized: JSON output, ready work detection, discovered-from links
 - Prevents duplicate tracking systems and confusion
 
@@ -69,7 +55,7 @@ bd create "Issue title" --description="What this issue is about" -p 1 --deps dis
 **Claim and update:**
 
 ```bash
-bd update bd-42 --status in_progress --json
+bd update <id> --claim --json
 bd update bd-42 --priority 1 --json
 ```
 
@@ -98,18 +84,28 @@ bd close bd-42 --reason "Completed" --json
 ### Workflow for AI Agents
 
 1. **Check ready work**: `bd ready` shows unblocked issues
-2. **Claim your task**: `bd update <id> --status in_progress`
+2. **Claim your task atomically**: `bd update <id> --claim`
 3. **Work on it**: Implement, test, document
 4. **Discover new work?** Create linked issue:
    - `bd create "Found bug" --description="Details about what was found" -p 1 --deps discovered-from:<parent-id>`
 5. **Complete**: `bd close <id> --reason "Done"`
 
+### Quality
+- Use `--acceptance` and `--design` fields when creating issues
+- Use `--validate` to check description completeness
+
+### Lifecycle
+- `bd defer <id>` / `bd supersede <id>` for issue management
+- `bd stale` / `bd orphans` / `bd lint` for hygiene
+- `bd human <id>` to flag for human decisions
+- `bd formula list` / `bd mol pour <name>` for structured workflows
+
 ### Auto-Sync
 
-bd automatically syncs with git:
+bd automatically syncs via Dolt:
 
-- Exports to `.beads/issues.jsonl` after changes (5s debounce)
-- Imports from JSONL when newer (e.g., after `git pull`)
+- Each write auto-commits to Dolt history
+- Use `bd dolt push`/`bd dolt pull` for remote sync
 - No manual export/import needed!
 
 ### Important Rules
@@ -123,5 +119,31 @@ bd automatically syncs with git:
 - ❌ Do NOT duplicate tracking systems
 
 For more details, see README.md and docs/QUICKSTART.md.
+
+## Session Completion
+
+**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
+
+**MANDATORY WORKFLOW:**
+
+1. **File issues for remaining work** - Create issues for anything that needs follow-up
+2. **Run quality gates** (if code changed) - Tests, linters, builds
+3. **Update issue status** - Close finished work, update in-progress items
+4. **PUSH TO REMOTE** - This is MANDATORY:
+   ```bash
+   git pull --rebase
+   bd dolt push
+   git push
+   git status  # MUST show "up to date with origin"
+   ```
+5. **Clean up** - Clear stashes, prune remote branches
+6. **Verify** - All changes committed AND pushed
+7. **Hand off** - Provide context for next session
+
+**CRITICAL RULES:**
+- Work is NOT complete until `git push` succeeds
+- NEVER stop before pushing - that leaves work stranded locally
+- NEVER say "ready to push when you are" - YOU must push
+- If push fails, resolve and retry until it succeeds
 
 <!-- END BEADS INTEGRATION -->
