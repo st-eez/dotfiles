@@ -16,6 +16,7 @@ Use tmux from the command line to inspect panes, send input, and capture output.
 5. Prefer explicit `session:window.pane` targets for any operation that affects another pane or window.
 6. Never put literal `\n` sequences inside the `send-keys` text payload. tmux sends them as the characters `\` and `n`, not as real line breaks.
 7. If the target pane is an interactive app or chat-like composer rather than a shell prompt, verify after every send that the text was submitted and is not still sitting in the input box.
+8. After `split-window`, use `list-panes` to confirm the new pane index — indices renumber when a pane is inserted between existing ones.
 
 ## Target Format
 
@@ -30,11 +31,6 @@ Example:
 ```sh
 tmux capture-pane -t work:1.2 -p
 ```
-
-You can omit components from the right when needed:
-
-- `-t work:1` targets window `1` in session `work`
-- `-t work` targets the current window and pane of session `work`
 
 ## Discovering Layout
 
@@ -53,7 +49,13 @@ tmux list-windows -a
 tmux list-panes -a -F "#{session_name}:#{window_index}.#{pane_index}  #{pane_current_command}  #{pane_width}x#{pane_height}"
 ```
 
-Before targeting a pane, confirm it is the intended one. Accidentally sending text to your own pane or another agent session is a common failure mode.
+**Before any `send-keys`, verify your target is correct:**
+
+1. Run the `SELF` command above to know which pane is yours
+2. Confirm the target pane index differs from your own
+3. Check `#{pane_current_command}` on the target to verify it is the pane you expect
+
+Do not skip this. Sending text to your own pane or the wrong agent session is the most common tmux failure mode.
 
 ## Sending Input
 
@@ -73,20 +75,13 @@ sleep 1
 tmux capture-pane -t work:1.2 -p | tail -10
 ```
 
-That is the recommended default for agent/chat panes because it:
-
-- keeps the operation as one tmux client command
-- still sends `Enter` as a second tmux action after a short delay
-- was verified to submit successfully in a Codex pane during live testing
-- makes it easy to verify that the composer cleared
-
 Assume these failure modes unless you verify otherwise:
 
 - literal `\n` is inserted as backslash + n
 - sending text plus `Enter` in one `send-keys` invocation leaves the prompt sitting in the input box
 - submission is not complete until a second tmux action sends `Enter`
 
-Do not rely on combining the command text and `Enter` in a single `send-keys` call. In Codex panes, `Enter`, `C-m`, `KPEnter`, and `C-j` in the same `send-keys` invocation all left the prompt in the composer during testing.
+Do not rely on combining the command text and `Enter` in a single `send-keys` call. During testing, `Enter`, `C-m`, `KPEnter`, and `C-j` in the same `send-keys` invocation all left the prompt in the composer.
 
 If the prompt is still visible in the composer after the delayed command, send `Enter` again and re-check.
 
@@ -108,46 +103,14 @@ tmux send-keys -t work:1.2 "first line\nsecond line"
 
 For chat-like panes, prefer a short message or a file reference over a large multiline paste unless you have already verified that the target UI handles pasted newlines correctly.
 
-Special keys:
-
-- `Enter`
-- `Escape`
-- `Tab`
-- `C-c`
-- `C-d`
-- `Up`
-- `Down`
-- `Left`
-- `Right`
-
-To interrupt a running command:
-
-```sh
-tmux send-keys -t work:1.2 C-c
-```
-
-## Reading Output
-
-Capture visible output:
-
-```sh
-tmux capture-pane -t work:1.2 -p
-```
-
-Capture recent scrollback:
+## Reading Scrollback
 
 ```sh
 tmux capture-pane -t work:1.2 -p -S -200
 tmux capture-pane -t work:1.2 -p -S -200 | tail -30
 ```
 
-## Checking What Is Running
-
-```sh
-tmux display-message -t work:1.2 -p '#{pane_current_command}'
-```
-
-This reports the foreground command for the pane. A shell name usually means the pane is idle at a prompt.
+For long-running commands or evaluations, increase `-S` and `tail` values as needed.
 
 ## Waiting For A Command To Finish
 
@@ -189,8 +152,7 @@ Run a command in a new pane and capture its output later:
 ```sh
 tmux split-window -t work:1 -v
 NEW_PANE=$(tmux list-panes -t work:1 -F "#{pane_index}" | tail -1)
-tmux send-keys -t "work:1.$NEW_PANE" "pytest tests/"
-tmux send-keys -t "work:1.$NEW_PANE" Enter
+tmux send-keys -t "work:1.$NEW_PANE" "pytest tests/" \; run-shell -d 0.3 "tmux send-keys -t work:1.$NEW_PANE Enter"
 tmux capture-pane -t "work:1.$NEW_PANE" -p -S -200
 ```
 
@@ -199,6 +161,5 @@ Stop a process, then start a replacement command:
 ```sh
 tmux send-keys -t work:1.2 C-c
 sleep 1
-tmux send-keys -t work:1.2 "npm run dev"
-tmux send-keys -t work:1.2 Enter
+tmux send-keys -t work:1.2 "npm run dev" \; run-shell -d 0.3 'tmux send-keys -t work:1.2 Enter'
 ```
