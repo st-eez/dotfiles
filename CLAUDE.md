@@ -21,7 +21,7 @@ aerospace reload-config && sketchybar --reload
 - Edit repo source files, never stow targets in `$HOME`.
 - Zsh uses ZDOTDIR (`~/.config/zsh/`) — edit there, not `~/.zshrc`.
 - Do not edit files marked `Managed by theme-set`; edit `themes/configs/<theme>/`.
-- If keyboard shortcuts change, also update `raycast/extensions/keybinds/src/search-keybinds.tsx`.
+- **MANDATORY**: When ANY keybinding changes in aerospace configs, Ghostty, or app shortcuts, you MUST ALSO update `raycast/extensions/keybinds/src/search-keybinds.tsx` in the SAME edit session — do NOT wait to be asked.
 - **Do NOT use `--no-folding` for the `claude` package** — stow should fold `~/.claude/skills/` into a directory symlink so new skills created anywhere land directly in the dotfiles repo.
 
 

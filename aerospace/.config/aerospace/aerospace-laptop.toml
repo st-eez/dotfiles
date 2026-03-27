@@ -135,7 +135,7 @@ ctrl-alt-shift-3 = 'exec-and-forget bash -c "aerospace move-node-to-monitor --fo
 
 # Configuration management (Custom bindings kept)
 ctrl-alt-j = 'layout tiles horizontal vertical'
-ctrl-alt-shift-f = 'macos-native-fullscreen'
+ctrl-alt-shift-f = 'fullscreen --no-outer-gaps'
 ctrl-alt-c = 'reload-config'
 ctrl-alt-r = 'flatten-workspace-tree'
 ctrl-alt-h = 'exec-and-forget /bin/bash -c "cp ~/.config/aerospace/aerospace-home.toml ~/.config/aerospace/aerospace.toml && aerospace reload-config && sketchybar --reload"'
