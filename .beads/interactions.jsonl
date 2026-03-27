@@ -5,3 +5,4 @@
 {"id":"int-e0faaffd","kind":"field_change","created_at":"2026-03-25T22:35:01.387483Z","actor":"steez","issue_id":"dot-32j","extra":{"field":"status","new_value":"in_progress","old_value":"open"}}
 {"id":"int-3e7258d0","kind":"field_change","created_at":"2026-03-25T22:36:47.279493Z","actor":"steez","issue_id":"dot-32j","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Completed"}}
 {"id":"int-3fbf6ddc","kind":"field_change","created_at":"2026-03-26T01:00:11.122243Z","actor":"steez","issue_id":"dot-ibl","extra":{"field":"status","new_value":"in_progress","old_value":"open"}}
+{"id":"int-c1afea81","kind":"field_change","created_at":"2026-03-27T20:22:05.574507Z","actor":"steez","issue_id":"dot-ibl","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Aligned claude-spawn send-keys to delayed one-command pattern matching tmux skill"}}
