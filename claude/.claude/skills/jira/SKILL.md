@@ -147,10 +147,76 @@ acli jira workitem assign --key "XX-123" --remove-assignee --yes
 
 ### Comment on a ticket
 
+**Simple comments** (plain text — no formatting):
+
 ```sh
 acli jira workitem comment create --key "XX-123" --body "Comment text here"
 acli jira workitem comment list --key "XX-123"
 ```
+
+**Rich comments** (tables, headings, mentions, panels) — use `--body-file` with ADF JSON. `--body` sends plain text only; Jira does not render markdown, so tables and lists show up as raw characters. Use ADF whenever the comment has structure.
+
+```sh
+cat > /tmp/jira_comment.json << 'EOF'
+{
+  "type": "doc",
+  "version": 1,
+  "content": [
+    {
+      "type": "heading",
+      "attrs": {"level": 3},
+      "content": [{"type": "text", "text": "Section Title"}]
+    },
+    {
+      "type": "bulletList",
+      "content": [
+        {"type": "listItem", "content": [{"type": "paragraph", "content": [
+          {"type": "text", "text": "Bold label: ", "marks": [{"type": "strong"}]},
+          {"type": "text", "text": "Normal text"}
+        ]}]}
+      ]
+    },
+    {
+      "type": "table",
+      "attrs": {"isNumberColumnEnabled": false, "layout": "default"},
+      "content": [
+        {
+          "type": "tableRow",
+          "content": [
+            {"type": "tableHeader", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Column A", "marks": [{"type": "strong"}]}]}]},
+            {"type": "tableHeader", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Column B", "marks": [{"type": "strong"}]}]}]}
+          ]
+        },
+        {
+          "type": "tableRow",
+          "content": [
+            {"type": "tableCell", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Cell 1"}]}]},
+            {"type": "tableCell", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Cell 2"}]}]}
+          ]
+        }
+      ]
+    },
+    {
+      "type": "panel",
+      "attrs": {"panelType": "warning"},
+      "content": [
+        {"type": "paragraph", "content": [{"type": "text", "text": "Warning callout text here."}]}
+      ]
+    },
+    {
+      "type": "orderedList",
+      "content": [
+        {"type": "listItem", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Step one"}]}]},
+        {"type": "listItem", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Step two"}]}]}
+      ]
+    }
+  ]
+}
+EOF
+acli jira workitem comment create --key "XX-123" --body-file /tmp/jira_comment.json
+```
+
+ADF panel types: `info`, `note`, `warning`, `error`, `success`. The same ADF format works for `--description-file` on ticket creation.
 
 ### Link tickets
 
