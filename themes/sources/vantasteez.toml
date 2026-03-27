@@ -102,11 +102,11 @@ highlight = "#8fa8d8"
 
 [overrides.tmux]
 thm_red = "#d0d0d0"
-thm_green = "#6a6a6a"
+thm_green = "#a3c8a0"
 thm_surface_1 = "#343434"
 thm_overlay_2 = "#666666"
 thm_yellow = "#8a8a8a"
-thm_teal = "#d8d8d8"
+thm_teal = "#8fbfc8"
 thm_maroon = "#8a8a8a"
 thm_sapphire = "#8a8a8a"
 thm_lavender = "#8a8a8a"

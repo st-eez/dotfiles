@@ -98,6 +98,25 @@ plugins=(git zsh-autosuggestions zsh-syntax-highlighting)
 
 source $ZSH/oh-my-zsh.sh
 
+# Set pane title to CWD with git-aware truncation (like starship).
+# Inside a repo: …/repo_name/relative/path. Outside: ~/path as-is.
+# OMZ termsupport uses \ek (tmux window name); \e]2 sets pane_title.
+function _set_pane_title_precmd() {
+  local toplevel dir
+  toplevel=$(git rev-parse --show-toplevel 2>/dev/null)
+  if [[ -n "$toplevel" ]]; then
+    dir="…/${toplevel:t}${PWD#$toplevel}"
+  else
+    dir="${(%):-%~}"
+  fi
+  if (( ${#dir} > 25 )); then
+    local tail="${dir: -24}"
+    dir="…/${tail#*/}"
+  fi
+  printf '\e]2;%s\e\\' "$dir"
+}
+add-zsh-hook precmd _set_pane_title_precmd
+
 # Use eza's built-in defaults (matches Linux/Omarchy behavior)
 unset LS_COLORS
 zstyle ':completion:*' list-colors ''
