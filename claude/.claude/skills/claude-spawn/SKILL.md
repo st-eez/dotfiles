@@ -100,8 +100,7 @@ NEW_TARGET="<session-name>:0.0"
 
 **4b. Change to the working directory:**
 ```bash
-tmux send-keys -t "$NEW_TARGET" "cd <directory>"
-tmux send-keys -t "$NEW_TARGET" Enter
+tmux send-keys -t "$NEW_TARGET" "cd <directory>" \; run-shell -d 0.3 'tmux send-keys -t "$NEW_TARGET" Enter'
 ```
 
 **4c. Launch Claude Code (interactive session):**
@@ -109,8 +108,7 @@ tmux send-keys -t "$NEW_TARGET" Enter
 IMPORTANT: Always launch Claude as an interactive session — never use `-p` flag, which runs headless and exits after one response.
 
 ```bash
-tmux send-keys -t "$NEW_TARGET" "claude --dangerously-skip-permissions"
-tmux send-keys -t "$NEW_TARGET" Enter
+tmux send-keys -t "$NEW_TARGET" "claude --dangerously-skip-permissions" \; run-shell -d 0.3 'tmux send-keys -t "$NEW_TARGET" Enter'
 ```
 
 **4d. Wait for Claude to be ready, then send initial prompt (if provided):**
@@ -128,8 +126,7 @@ done
 
 If the user provided an initial prompt, send it via `send-keys` into the running interactive session:
 ```bash
-tmux send-keys -t "$NEW_TARGET" "<prompt text>"
-tmux send-keys -t "$NEW_TARGET" Enter
+tmux send-keys -t "$NEW_TARGET" "<prompt text>" \; run-shell -d 0.3 'tmux send-keys -t "$NEW_TARGET" Enter'
 ```
 
 For multi-line or complex prompts, send line by line or use literal newlines. Do NOT use `-p` flag.
