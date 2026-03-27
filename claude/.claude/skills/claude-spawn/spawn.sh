@@ -158,7 +158,7 @@ echo "SELF=$SELF_PANE TARGET=$NEW_TARGET"
 
 # --- cd to directory (if resolved) ---
 if [ -n "$TARGET_DIR" ]; then
-  tmux send-keys -t "$NEW_TARGET" "cd $TARGET_DIR"
+  tmux send-keys -t "$NEW_TARGET" "cd '$TARGET_DIR'"
   sleep 0.3
   tmux send-keys -t "$NEW_TARGET" Enter
   sleep 0.5
@@ -177,6 +177,7 @@ done
 
 # --- Send initial prompt (if provided) ---
 if [ -n "$PROMPT_TEXT" ]; then
+  sleep 2
   tmux send-keys -t "$NEW_TARGET" "$PROMPT_TEXT"
   sleep 0.3
   tmux send-keys -t "$NEW_TARGET" Enter
