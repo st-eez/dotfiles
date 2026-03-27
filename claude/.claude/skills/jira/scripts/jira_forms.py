@@ -12,7 +12,7 @@ from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 
 # Reuse auth plumbing from jira_worklog
-from jira_worklog import load_acli_config, get_token
+from jira_worklog import load_acli_config, get_token, auth_header
 
 
 def forms_api_request(config, method, path):
@@ -20,7 +20,7 @@ def forms_api_request(config, method, path):
     token = get_token(config)
     url = f"https://api.atlassian.com/jira/forms/cloud/{config['cloud_id']}/{path}"
     headers = {
-        "Authorization": f"Bearer {token}",
+        "Authorization": auth_header(config, token),
         "Accept": "application/json",
     }
     req = Request(url, headers=headers, method=method)

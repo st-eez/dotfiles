@@ -85,14 +85,17 @@ def load_acli_config():
         "site": profile["site"],
         "cloud_id": profile["cloud_id"],
         "account_id": profile["account_id"],
+        "email": profile.get("email", ""),
+        "auth_type": profile.get("auth_type", "oauth"),
     }
 
 
 def get_token(config):
-    """Retrieve the OAuth access token from macOS Keychain.
+    """Retrieve the access token from macOS Keychain.
 
-    acli stores tokens in go-keyring format: base64-encoded gzip JSON
-    with a 'go-keyring-base64:' prefix.
+    acli stores tokens in go-keyring format: base64-encoded payload
+    with a 'go-keyring-base64:' prefix. The payload is either
+    gzip-compressed JSON (OAuth) or a plain API token string.
     """
     import base64
     import gzip
@@ -110,12 +113,15 @@ def get_token(config):
         print("Make sure you're logged in via: acli auth login", file=sys.stderr)
         sys.exit(1)
 
-    # Decode go-keyring format: prefix → base64 → gzip → JSON
+    # Decode go-keyring format: prefix → base64 → gzip JSON (OAuth) or plain (API token)
     prefix = "go-keyring-base64:"
     if raw.startswith(prefix):
         blob = base64.b64decode(raw[len(prefix):])
-        data = json.loads(gzip.decompress(blob))
-        return data["access_token"]
+        try:
+            data = json.loads(gzip.decompress(blob))
+            return data["access_token"]
+        except (gzip.BadGzipFile, OSError):
+            return blob.decode()
 
     # Fallback: try plain JSON or raw token
     try:
@@ -125,12 +131,24 @@ def get_token(config):
         return raw
 
 
+def auth_header(config, token):
+    """Build the Authorization header for the active auth type."""
+    import base64
+    if config.get("auth_type") == "api_token":
+        cred = base64.b64encode(f"{config['email']}:{token}".encode()).decode()
+        return f"Basic {cred}"
+    return f"Bearer {token}"
+
+
 def api_request(config, method, path, body=None):
     """Make an authenticated request to the Jira REST API."""
     token = get_token(config)
-    url = f"https://api.atlassian.com/ex/jira/{config['cloud_id']}/rest/api/3/{path}"
+    if config.get("auth_type") == "api_token":
+        url = f"https://{config['site']}/rest/api/3/{path}"
+    else:
+        url = f"https://api.atlassian.com/ex/jira/{config['cloud_id']}/rest/api/3/{path}"
     headers = {
-        "Authorization": f"Bearer {token}",
+        "Authorization": auth_header(config, token),
         "Content-Type": "application/json",
         "Accept": "application/json",
     }
