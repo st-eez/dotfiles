@@ -2,9 +2,14 @@
 # spawn.sh — Create a tmux target and launch Claude Code in it.
 #
 # Usage:
-#   spawn.sh <target-type> [--dir <name-or-path>] [--session <name>] [--prompt <text>]
+#   spawn.sh <target-type> [--dir <name-or-path>] [--session <name>] [--prompt <text>] [--target <pane>]
 #
 # Target types: split-h, split-v, new-window, new-session
+#
+# --target <pane>  For split-h/split-v: split this pane instead of self.
+#                  Use session:window.pane format (e.g., mac:5.1).
+#                  Enables multi-agent patterns: new-window first, then
+#                  split-h --target <returned-pane> to add agents in that window.
 #
 # Output (structured, for model consumption):
 #   SELF=mac:4.1 TARGET=mac:4.2       (on success)
@@ -21,12 +26,14 @@ shift
 DIR_NAME=""
 SESSION_NAME=""
 PROMPT_TEXT=""
+SPLIT_TARGET=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --dir)    DIR_NAME="$2"; shift 2 ;;
     --session) SESSION_NAME="$2"; shift 2 ;;
     --prompt) PROMPT_TEXT="$2"; shift 2 ;;
+    --target) SPLIT_TARGET="$2"; shift 2 ;;
     *) echo "ERROR: unknown argument '$1'"; exit 1 ;;
   esac
 done
@@ -121,20 +128,32 @@ if [ -n "$DIR_NAME" ]; then
   fi
 fi
 
+# --- Resolve split target ---
+# For split-h/split-v: --target overrides which pane to split (default: self)
+if [ -n "$SPLIT_TARGET" ]; then
+  SPLIT_PANE="$SPLIT_TARGET"
+  SPLIT_SESSION=$(echo "$SPLIT_TARGET" | cut -d: -f1)
+  SPLIT_WINDOW=$(echo "$SPLIT_TARGET" | cut -d: -f2 | cut -d. -f1)
+else
+  SPLIT_PANE="$SELF_PANE"
+  SPLIT_SESSION="$CURRENT_SESSION"
+  SPLIT_WINDOW="$CURRENT_WINDOW"
+fi
+
 # --- Snapshot pane IDs (for split detection) ---
-BEFORE=$(tmux list-panes -t "$CURRENT_SESSION:$CURRENT_WINDOW" -F "#{pane_id}" | sort)
+BEFORE=$(tmux list-panes -t "$SPLIT_SESSION:$SPLIT_WINDOW" -F "#{pane_id}" | sort)
 
 # --- Create tmux target ---
 case "$TARGET_TYPE" in
   split-h)
-    tmux split-window -t "$SELF_PANE" -h
-    NEW_PANE_ID=$(comm -13 <(echo "$BEFORE") <(tmux list-panes -t "$CURRENT_SESSION:$CURRENT_WINDOW" -F "#{pane_id}" | sort))
-    NEW_TARGET=$(tmux list-panes -t "$CURRENT_SESSION:$CURRENT_WINDOW" -F "#{pane_id} #{session_name}:#{window_index}.#{pane_index}" | grep "^$NEW_PANE_ID " | awk '{print $2}')
+    tmux split-window -t "$SPLIT_PANE" -h
+    NEW_PANE_ID=$(comm -13 <(echo "$BEFORE") <(tmux list-panes -t "$SPLIT_SESSION:$SPLIT_WINDOW" -F "#{pane_id}" | sort))
+    NEW_TARGET=$(tmux list-panes -t "$SPLIT_SESSION:$SPLIT_WINDOW" -F "#{pane_id} #{session_name}:#{window_index}.#{pane_index}" | grep "^$NEW_PANE_ID " | awk '{print $2}')
     ;;
   split-v)
-    tmux split-window -t "$SELF_PANE" -v
-    NEW_PANE_ID=$(comm -13 <(echo "$BEFORE") <(tmux list-panes -t "$CURRENT_SESSION:$CURRENT_WINDOW" -F "#{pane_id}" | sort))
-    NEW_TARGET=$(tmux list-panes -t "$CURRENT_SESSION:$CURRENT_WINDOW" -F "#{pane_id} #{session_name}:#{window_index}.#{pane_index}" | grep "^$NEW_PANE_ID " | awk '{print $2}')
+    tmux split-window -t "$SPLIT_PANE" -v
+    NEW_PANE_ID=$(comm -13 <(echo "$BEFORE") <(tmux list-panes -t "$SPLIT_SESSION:$SPLIT_WINDOW" -F "#{pane_id}" | sort))
+    NEW_TARGET=$(tmux list-panes -t "$SPLIT_SESSION:$SPLIT_WINDOW" -F "#{pane_id} #{session_name}:#{window_index}.#{pane_index}" | grep "^$NEW_PANE_ID " | awk '{print $2}')
     ;;
   new-window)
     tmux new-window -t "$CURRENT_SESSION"

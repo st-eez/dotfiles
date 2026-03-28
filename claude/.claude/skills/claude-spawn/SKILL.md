@@ -35,10 +35,16 @@ Extract everything from what the user already said. The user's request IS the co
 Run the `spawn.sh` script in a **single Bash call**. The script handles everything: tmux validation, pane ID detection, directory resolution (zoxide-backed), Claude launch, and readiness polling.
 
 ```bash
-$HOME/.claude/skills/claude-spawn/spawn.sh <target-type> [--dir <name-or-path>] [--session <name>] [--prompt <text>]
+$HOME/.claude/skills/claude-spawn/spawn.sh <target-type> [--dir <name-or-path>] [--session <name>] [--prompt <text>] [--target <pane>]
 ```
 
 **Target types:** `split-h`, `split-v`, `new-window`, `new-session`
+
+**Flags:**
+- `--dir <name-or-path>` — working directory (resolved via zoxide cascade)
+- `--session <name>` — session name (for `new-session` only)
+- `--prompt <text>` — initial prompt to send after Claude starts
+- `--target <pane>` — for `split-h`/`split-v`: split this pane instead of self. Use `session:window.pane` format (e.g., `mac:5.1`). **Critical for multi-agent spawns** — without this, splits always happen in the caller's window.
 
 **Examples:**
 ```bash
@@ -50,7 +56,24 @@ $HOME/.claude/skills/claude-spawn/spawn.sh new-window --dir scratchpad --prompt 
 
 # Spawn in a new session
 $HOME/.claude/skills/claude-spawn/spawn.sh new-session --session agent-1 --prompt "run the test suite"
+
+# Split a REMOTE pane (not self) — use TARGET from a previous spawn
+$HOME/.claude/skills/claude-spawn/spawn.sh split-h --target mac:5.1 --dir other-project --prompt "run linter"
 ```
+
+**Multi-agent pattern** (2+ agents in a new window):
+
+When spawning multiple agents side-by-side in a new window, you MUST use `--target` on the second spawn. Otherwise the split happens in YOUR window, not the new one.
+
+```bash
+# Step 1: Create new window with first agent → returns TARGET=mac:5.1
+$HOME/.claude/skills/claude-spawn/spawn.sh new-window --dir project-a --prompt "task A"
+
+# Step 2: Split THAT pane to add second agent → returns TARGET=mac:5.2
+$HOME/.claude/skills/claude-spawn/spawn.sh split-h --target mac:5.1 --dir project-b --prompt "task B"
+```
+
+Parse the `TARGET=...` value from step 1's output and pass it as `--target` in step 2.
 
 **Reading the output:**
 
