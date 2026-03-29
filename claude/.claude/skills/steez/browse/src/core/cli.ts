@@ -419,8 +419,14 @@ async function sendCommand(state: ServerState, command: string, args: string[], 
       console.error('[browse] Command timed out after 30s');
       process.exit(1);
     }
-    // Connection error — server may have crashed
-    if (err.code === 'ECONNREFUSED' || err.code === 'ECONNRESET' || err.message?.includes('fetch failed')) {
+    // Connection error — server may have crashed, or we just told it to stop
+    const isConnectionError = err.code === 'ECONNREFUSED' || err.code === 'ECONNRESET'
+      || err.message?.includes('fetch failed') || err.message?.includes('Unable to connect');
+    if (isConnectionError) {
+      if (command === 'stop') {
+        console.log('Server stopped.');
+        return;
+      }
       if (retries >= 1) throw new Error('[browse] Server crashed twice in a row — aborting');
       console.error('[browse] Server connection lost. Restarting...');
       // Kill the old server to avoid orphaned chromium processes
