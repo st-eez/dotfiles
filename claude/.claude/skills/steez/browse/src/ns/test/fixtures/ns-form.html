@@ -143,19 +143,51 @@ window.nlapiSetFieldValue = function(fieldId, value, fireSlavingWhenever, fireFi
 window.nlapiCancel = function() { return true; };
 
 // Mock sublist APIs
+var SUBLIST_LINES = {
+  item: [
+    { item: '100', quantity: '5', rate: '10.00', amount: '50.00' },
+    { item: '200', quantity: '3', rate: '20.00', amount: '60.00' },
+  ],
+};
+var CURRENT_LINE = {};
+
 window.nlapiGetLineItemCount = function(sublistId) {
-  if (sublistId === 'item') return 2;
-  return 0;
+  return (SUBLIST_LINES[sublistId] || []).length;
 };
 
 window.nlapiGetLineItemValue = function(sublistId, fieldId, line) {
-  if (sublistId === 'item' && line === 1) {
-    return { item: '100', quantity: '5', rate: '10.00', amount: '50.00' }[fieldId] || '';
-  }
-  if (sublistId === 'item' && line === 2) {
-    return { item: '200', quantity: '3', rate: '20.00', amount: '60.00' }[fieldId] || '';
+  var lines = SUBLIST_LINES[sublistId] || [];
+  if (line >= 1 && line <= lines.length) {
+    return lines[line - 1][fieldId] || '';
   }
   return '';
+};
+
+window.nlapiSelectNewLineItem = function(sublistId) {
+  CURRENT_LINE = { _sublist: sublistId };
+};
+
+window.nlapiSetCurrentLineItemValue = function(sublistId, fieldId, value, fsw, ffc) {
+  CURRENT_LINE[fieldId] = value;
+  // Simulate sourcing: setting 'item' cascades to rate/amount after delay
+  if (!fsw && fieldId === 'item') {
+    setTimeout(function() {
+      CURRENT_LINE['rate'] = '25.00';
+      CURRENT_LINE['amount'] = String(parseFloat(CURRENT_LINE['quantity'] || '1') * 25);
+    }, 80);
+  }
+};
+
+window.nlapiGetCurrentLineItemValue = function(sublistId, fieldId) {
+  return CURRENT_LINE[fieldId] || null;
+};
+
+window.nlapiCommitLineItem = function(sublistId) {
+  if (!SUBLIST_LINES[sublistId]) SUBLIST_LINES[sublistId] = [];
+  var line = Object.assign({}, CURRENT_LINE);
+  delete line._sublist;
+  SUBLIST_LINES[sublistId].push(line);
+  CURRENT_LINE = {};
 };
 
 // Expose a function to show/hide error modals

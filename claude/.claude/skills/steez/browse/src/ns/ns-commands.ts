@@ -1,11 +1,8 @@
 /**
- * NetSuite command handlers — MVP stubs.
+ * NetSuite command dispatcher.
  *
  * All NS commands follow the pattern: (command, args, browserManager) → string (JSON).
- * Each stub returns { error: 'not implemented', command } so the agent gets structured feedback.
- *
- * Phase 2 will replace these stubs with real implementations that use page.evaluate()
- * to call NetSuite client-side APIs (nlapiGetField, nlapiSetFieldValue, etc.).
+ * Each returns a typed NsCommandResult via nsOk/nsFail.
  */
 
 import type { BrowserManager } from '../core/browser-manager';
@@ -16,6 +13,7 @@ import { nsCancel } from './commands/ns-cancel';
 import { nsInspect } from './commands/ns-inspect';
 import { nsSave } from './commands/ns-save';
 import { nsSet } from './commands/ns-set';
+import { nsAddRow } from './commands/ns-add-row';
 
 export async function handleNsCommand(
   command: string,
@@ -35,7 +33,7 @@ export async function handleNsCommand(
       return nsSet(args, browserManager);
 
     case 'add-row':
-      return stub('ns add-row', args, 'Add sublist row with field values');
+      return nsAddRow(args, browserManager);
 
     case 'save':
       return nsSave(args, browserManager);
@@ -55,14 +53,4 @@ export async function handleNsCommand(
         hint: 'Available: navigate, inspect, set, add-row, save, query, status, cancel',
       });
   }
-}
-
-function stub(command: string, args: string[], description: string): string {
-  return JSON.stringify({
-    error: 'not implemented',
-    command,
-    args,
-    description,
-    phase: 'Phase 2 will implement this command',
-  });
 }
