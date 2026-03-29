@@ -128,6 +128,7 @@ let agentStatus: 'idle' | 'processing' | 'hung' = 'idle';
 let agentStartTime: number | null = null;
 let messageQueue: Array<{message: string, ts: string, extensionUrl?: string | null}> = [];
 let currentMessage: string | null = null;
+const CHAT_BUFFER_CAP = 10_000;
 let chatBuffer: ChatEntry[] = [];
 let chatNextId = 0;
 
@@ -208,6 +209,10 @@ function summarizeToolInput(tool: string, input: any): string {
 function addChatEntry(entry: Omit<ChatEntry, 'id'>): ChatEntry {
   const full: ChatEntry = { ...entry, id: chatNextId++ };
   chatBuffer.push(full);
+  // Evict oldest entries when buffer exceeds cap
+  if (chatBuffer.length > CHAT_BUFFER_CAP) {
+    chatBuffer = chatBuffer.slice(-CHAT_BUFFER_CAP);
+  }
   // Persist to disk (best-effort)
   if (sidebarSession) {
     const chatFile = path.join(SESSIONS_DIR, sidebarSession.id, 'chat.jsonl');
