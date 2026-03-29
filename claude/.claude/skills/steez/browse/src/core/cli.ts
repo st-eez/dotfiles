@@ -419,13 +419,23 @@ async function sendCommand(state: ServerState, command: string, args: string[], 
       console.error('[browse] Command timed out after 30s');
       process.exit(1);
     }
-    // Connection error — server may have crashed, or we just told it to stop
+    // Connection error — server may have crashed, or we just told it to stop/restart
     const isConnectionError = err.code === 'ECONNREFUSED' || err.code === 'ECONNRESET'
       || err.message?.includes('fetch failed') || err.message?.includes('Unable to connect');
     if (isConnectionError) {
-      if (command === 'stop') {
-        console.log('Server stopped.');
-        return;
+      if (command === 'stop' || command === 'restart') {
+        // Verify the server is actually dead before reporting success
+        const deadline = Date.now() + 3000;
+        while (Date.now() < deadline) {
+          if (!await isServerHealthy(state.port)) {
+            console.log(command === 'stop' ? 'Server stopped.' : 'Server restarting...');
+            return;
+          }
+          await Bun.sleep(200);
+        }
+        // Server still responding — our stop/restart may not have worked
+        console.error(`[browse] Server did not shut down within 3s`);
+        process.exit(1);
       }
       if (retries >= 1) throw new Error('[browse] Server crashed twice in a row — aborting');
       console.error('[browse] Server connection lost. Restarting...');
@@ -670,6 +680,15 @@ Refs:           After 'snapshot', use @e1, @e2... as selectors:
     try { fs.unlinkSync(config.stateFile); } catch {}
     console.log('Disconnected (server was unresponsive — force cleaned).');
     process.exit(0);
+  }
+
+  // Special case: stop with no running server — nothing to do
+  if (command === 'stop') {
+    const existingState = readState();
+    if (!existingState || !isProcessAlive(existingState.pid)) {
+      console.log('No server running.');
+      return;
+    }
   }
 
   // Special case: chain reads from stdin
