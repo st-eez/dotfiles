@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head><title>NetSuite Form Stub</title></head>
+<body>
+<!--
+  Mock NetSuite form for testing NS utilities.
+  Provides stub nlapi* functions and DOM elements that mimic a real NS record page.
+-->
+
+<form id="main_form">
+  <!-- Text field -->
+  <input id="companyname" type="text" value="Acme Corp" />
+
+  <!-- Select field (status) -->
+  <select id="entitystatus">
+    <option value="13">Customer - Closed Won</option>
+    <option value="6" selected>Customer - Lead</option>
+  </select>
+
+  <!-- Entity-ref field (salesrep) with _display companion -->
+  <input id="salesrep" type="hidden" value="42" />
+  <span id="salesrep_display" style="display:none">Jane Smith</span>
+
+  <!-- Disabled field -->
+  <input id="formulatext" type="text" value="=SUM()" disabled />
+
+  <!-- Mandatory currency field -->
+  <input id="total" type="text" value="1500.00" />
+</form>
+
+<!-- Error display elements (hidden by default) -->
+<div id="_err_alert" style="display:none">Validation error: field required</div>
+<div class="uir-message-error" style="display:none">Server error occurred</div>
+<div class="uir-message-warning" style="display:none">Warning: duplicate record</div>
+
+<!-- Mutation target for settle detection tests -->
+<div id="mutation-target">initial content</div>
+
+<script>
+// ─── Mock NetSuite Client API ────────────────────────────────
+
+const FIELDS = {
+  companyname: {
+    type: 'text', label: 'Company Name', mandatory: true, disabled: false,
+    value: 'Acme Corp', text: 'Acme Corp',
+  },
+  entitystatus: {
+    type: 'select', label: 'Status', mandatory: false, disabled: false,
+    value: '6', text: 'Customer - Lead',
+    options: [
+      { id: '13', text: 'Customer - Closed Won' },
+      { id: '6', text: 'Customer - Lead' },
+      { id: '7', text: 'Customer - Prospect' },
+    ],
+  },
+  salesrep: {
+    type: 'select', label: 'Sales Rep', mandatory: false, disabled: false,
+    value: '42', text: 'Jane Smith',
+    // Entity-ref: has _display companion in DOM
+  },
+  formulatext: {
+    type: 'text', label: 'Formula (Text)', mandatory: false, disabled: true,
+    value: '=SUM()', text: '=SUM()',
+  },
+  total: {
+    type: 'currency', label: 'Total', mandatory: true, disabled: false,
+    value: '1500.00', text: '$1,500.00',
+  },
+};
+
+window.nlapiGetField = function(id) {
+  const f = FIELDS[id];
+  if (!f) return null;
+  return {
+    getType: () => f.type,
+    getLabel: () => f.label,
+    isMandatory: () => f.mandatory,
+    isDisabled: () => f.disabled,
+    getSelectOptions: () => f.options || [],
+  };
+};
+
+window.nlapiGetFieldValue = function(id) {
+  const f = FIELDS[id];
+  return f ? f.value : null;
+};
+
+window.nlapiGetFieldText = function(id) {
+  const f = FIELDS[id];
+  return f ? f.text : null;
+};
+
+window.nlapiGetFieldIds = function() {
+  return Object.keys(FIELDS);
+};
+
+// ─── Helpers for tests ───────────────────────────────────────
+
+// Expose a function to trigger DOM mutations (for settle detection tests)
+window.__mutateDOM = function(text) {
+  document.getElementById('mutation-target').textContent = text;
+};
+
+// Expose a function to show/hide error modals
+window.__showError = function(selector) {
+  const el = document.querySelector(selector);
+  if (el) el.style.display = 'block';
+};
+
+window.__hideError = function(selector) {
+  const el = document.querySelector(selector);
+  if (el) el.style.display = 'none';
+};
+</script>
+</body>
+</html>
