@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# steez-review-read — read review log and config for dashboard
+# Usage: steez-review-read
+set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+eval "$("$SCRIPT_DIR/steez-slug" 2>/dev/null)"
+STEEZ_HOME="${STEEZ_HOME:-$HOME/.steez}"
+cat "$STEEZ_HOME/projects/$SLUG/$BRANCH-reviews.jsonl" 2>/dev/null || echo "NO_REVIEWS"
+echo "---CONFIG---"
+"$SCRIPT_DIR/steez-config" get skip_eng_review 2>/dev/null || echo "false"
+echo "---HEAD---"
+git rev-parse --short HEAD 2>/dev/null || echo "unknown"
