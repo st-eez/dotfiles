@@ -1,10 +1,16 @@
 # Architecture
 
-How steez is built, why it's built this way, and where everything lives.
+This document explains **why** steez is built the way it is. For the skill catalog and usage, see [README.md](README.md). For upstream provenance, see [FORK_MANIFEST.md](FORK_MANIFEST.md).
 
-## File structure
+## The core idea
 
-Steez spans two locations: the dotfiles repo (git-backed, deployed via stow) and a runtime state directory (local-only, never committed).
+steez is 21 Markdown files that turn Claude Code into a structured engineering team. No build step, no runtime dependencies, no server — just SKILL.md files that Claude reads when you invoke a slash command.
+
+The key insight: AI agents don't need frameworks, they need **opinionated instructions**. A well-written SKILL.md with clear phases, explicit voice, and filesystem-based data flow produces better results than a sophisticated template engine. steez proves this by running the same sprint pipeline as gstack — Think → Plan → Build → Review → Test → Ship → Reflect — with zero infrastructure beyond stow and git.
+
+## Where everything lives
+
+steez spans two locations: the dotfiles repo (git-backed, deployed via stow) and a runtime state directory (local-only, never committed).
 
 ### Repo (dotfiles)
 
@@ -12,30 +18,18 @@ Steez spans two locations: the dotfiles repo (git-backed, deployed via stow) and
 dotfiles/claude/.claude/skills/
   steez/                              # shared home
     bin/                              # 5 helper scripts
-      steez-config                    # config read/write
-      steez-slug                      # project slug from git remote
-      steez-review-log                # append review entries
-      steez-review-read               # read reviews + config
-      steez-diff-scope                # categorize diff scope
-    browse/                           # headless browser binary (WIP)
-      src/                            # TypeScript source
-      dist/                           # compiled Bun binary
-      bin/find-browse                 # binary discovery shim
-      SKILL.md                        # browse skill definition
-    ETHOS.md                          # builder philosophy (Boil the Lake, Search Before Building)
-    FORK_MANIFEST.md                  # upstream provenance tracking
-    README.md                         # this ecosystem's docs
+    browse/                           # headless browser (Playwright + Chromium)
+    ETHOS.md                          # builder philosophy
+    FORK_MANIFEST.md                  # upstream provenance
+    README.md                         # ecosystem docs
     ARCHITECTURE.md                   # this file
-  steez-office-hours/SKILL.md         # workflow skill
-  steez-plan-ceo-review/SKILL.md      # workflow skill
-  steez-plan-eng-review/SKILL.md      # workflow skill
-  steez-review/                       # workflow skill + supporting docs
-    SKILL.md
-    checklist.md                      # PR review checklist (read at runtime)
-    design-checklist.md               # design review checklist
-    TODOS-format.md                   # TODOS.md format spec
-    greptile-triage.md                # greptile integration triage rules
-  steez-ship/SKILL.md                 # workflow skill
+  steez-office-hours/SKILL.md         # ─┐
+  steez-plan-ceo-review/SKILL.md      #  │
+  steez-plan-eng-review/SKILL.md      #  │
+  steez-plan-design-review/SKILL.md   #  │ 21 workflow skills
+  steez-review/SKILL.md + checklists  #  │ each in its own directory
+  steez-ship/SKILL.md                 #  │
+  ...                                 # ─┘
 ```
 
 ### Runtime (`~/.steez/`)
@@ -47,12 +41,8 @@ dotfiles/claude/.claude/skills/
   analytics/
     skill-usage.jsonl                 # every skill invocation
     eureka.jsonl                      # first-principles insights
-  skill-reports/
-    {slug}.md                         # Skill Self-Report bug reports
-  projects/
-    {slug}/
-      {user}-{branch}-design-{ts}.md  # design docs
-      {branch}-reviews.jsonl          # review log entries
+  skill-reports/                      # Skill Self-Report bug reports
+  projects/{slug}/                    # per-project design docs + review logs
   browse/                             # chromium profile, sidebar sessions
 ```
 
@@ -64,6 +54,49 @@ The `claude` package uses directory folding. After `stow --restow claude`, `~/.c
 - New skill directories created in the repo appear immediately
 - `steez/bin/` scripts are accessible at `$HOME/.claude/skills/steez/bin/`
 
+## Why no templates
+
+gstack generates SKILL.md files from `.tmpl` templates via `gen-skill-docs.ts`. This makes sense for gstack — 29 skills with shared preambles and auto-generated command references from source code metadata. Template drift is a real risk at that scale.
+
+steez doesn't use templates. Each SKILL.md is hand-edited directly.
+
+**Why this works:**
+- **No build step.** Edit a SKILL.md, it's live immediately. No `bun run gen:skill-docs`, no stale generated output.
+- **21 skills is manageable.** The preamble pattern is ~30 lines. Updating 21 files manually takes 5 minutes with search-and-replace. At 50+ skills, this would break down.
+- **No template/generated drift.** gstack's template system solves a real problem — but it introduces its own: the generated SKILL.md can be stale if someone forgets to regenerate. steez has no generated files to go stale.
+
+**The tradeoff:** shared-section updates (preamble, voice, AskUserQuestion format) must be applied to all 21 files manually. This is acceptable friction for a single maintainer.
+
+## Why hardcoded solo
+
+gstack detects whether a repo is solo or collaborative based on contributor count and adapts behavior — review depth, PR format, communication style. steez hardcodes `REPO_MODE=solo` in every preamble.
+
+**Why:** This is personal tooling deployed from dotfiles. There is no multi-user scenario. The detection logic is dead code, and dead code is a liability — it adds lines that Claude reads, costs tokens, and can confuse the agent about whether it should behave differently.
+
+**How to apply:** Every skill preamble sets `REPO_MODE=solo` as a constant. No conditional branches, no contributor detection.
+
+## Why local-only telemetry
+
+gstack supports opt-in remote telemetry via Supabase — anonymous usage data (skill name, duration, success/fail) sent to a hosted database. steez strips all remote telemetry.
+
+**Why:** steez runs in a public dotfiles repo. Embedding remote endpoints in committed files is a maintenance burden and a trust issue. Local analytics provide the same signal — which skills get used, how long they take, what fails — without any network dependency.
+
+**How it works:** Every skill appends a JSON line to `~/.steez/analytics/skill-usage.jsonl` at session end. This is a local file, never synced. The eureka log (`eureka.jsonl`) captures first-principles insights from the Search Before Building pattern.
+
+## Why no onboarding
+
+gstack runs first-time prompts for three features: lake intro (philosophy), telemetry consent, and proactive skill suggestions. Each prompt sets a flag in config so it only fires once. steez strips all three.
+
+**Why:** Single user, config pre-seeded. The onboarding conditionals are dead code — they check flags that are already set. Every line of SKILL.md costs tokens when Claude reads it. Dead conditionals waste tokens and add noise.
+
+**How to apply:** `~/.steez/config` ships with `proactive: true` already set. No first-run detection needed.
+
+## Why Skill Self-Report is always on
+
+gstack has a "Contributor Mode" gated behind a `gstack_contributor` config flag. When enabled, the agent files casual bug reports when gstack itself misbehaves. steez repurposes this as "Skill Self-Report" and makes it unconditional.
+
+**Why:** You're the maintainer. If a skill misbehaves, you want to know. Gating the report behind a flag that you'd always enable adds complexity for zero benefit. Reports go to `~/.steez/skill-reports/{slug}.md`.
+
 ## Skill anatomy
 
 Every SKILL.md follows the same structure:
@@ -71,67 +104,46 @@ Every SKILL.md follows the same structure:
 ```
 ┌─ YAML frontmatter ─────────────────────────┐
 │ name: steez-{skill}                        │
-│ preamble-tier: 3 or 4                      │
-│ version: 1.0.0 or 2.0.0                   │
 │ description: ...                           │
 │ allowed-tools: [Bash, Read, ...]           │
 └────────────────────────────────────────────┘
          │
 ┌─ Preamble (bash block, run first) ─────────┐
-│ STEEZ_HOME="$HOME/.steez"                  │
-│ STEEZ_BIN="$HOME/.claude/skills/steez/bin" │
-│ Session tracking, branch detection          │
-│ Config read (steez-config)                  │
-│ REPO_MODE=solo (hardcoded)                  │
-│ Local usage logging (JSONL)                 │
+│ STEEZ_HOME, STEEZ_BIN, session tracking    │
+│ Branch detection, config read              │
+│ REPO_MODE=solo, local usage logging        │
 └────────────────────────────────────────────┘
          │
 ┌─ Behavioral sections (shared pattern) ─────┐
-│ PROACTIVE check                            │
-│ Voice identity                             │
+│ PROACTIVE check, Voice identity            │
 │ AskUserQuestion format                     │
 │ Completeness Principle (Boil the Lake)     │
 │ Search Before Building (→ ETHOS.md)        │
-│ Skill Self-Report                          │
-│ Completion Status Protocol                 │
-│ Telemetry footer (local JSONL only)        │
-│ Plan Status Footer (STEEZ REVIEW REPORT)   │
-│ SETUP browse check                         │
+│ Skill Self-Report, Telemetry footer        │
+│ STEEZ REVIEW REPORT                        │
 └────────────────────────────────────────────┘
          │
 ┌─ Functional phases (skill-specific) ───────┐
-│ The actual workflow logic                  │
 │ Phase 1, Phase 2, Phase 3...              │
-│ Skill chaining: /steez-plan-ceo-review →   │
-│   /steez-plan-eng-review → /steez-review   │
+│ Skill chaining references                  │
 └────────────────────────────────────────────┘
 ```
 
 ### Preamble variables
 
-Every skill preamble sets these variables that Claude uses throughout the session:
+Every skill preamble sets these variables:
 
 | Variable | Source | Purpose |
 |----------|--------|---------|
 | `STEEZ_HOME` | Hardcoded `$HOME/.steez` | Runtime state directory |
 | `STEEZ_BIN` | Hardcoded `$HOME/.claude/skills/steez/bin` | Helper script directory |
-| `_BRANCH` | `git branch --show-current` | Current branch (for AskUserQuestion grounding) |
-| `_PROACTIVE` | `steez-config get proactive` | Whether to auto-suggest skills |
-| `REPO_MODE` | Hardcoded `solo` | Always solo (no collaborative mode) |
-| `_TEL_START` | `date +%s` | Session start time (for duration logging) |
+| `_BRANCH` | `git branch --show-current` | Current branch |
+| `_PROACTIVE` | `steez-config get proactive` | Auto-suggest skills |
+| `REPO_MODE` | Hardcoded `solo` | Always solo |
+| `_TEL_START` | `date +%s` | Session start time |
 | `_SESSION_ID` | `$$-$(date +%s)` | Unique session identifier |
 
-### No template system
-
-gstack generates SKILL.md files from `.tmpl` templates via `gen-skill-docs.ts`. Steez does not use templates. Each SKILL.md is hand-edited directly. This means:
-
-- No build step required
-- Changes to shared sections (preamble, voice) must be applied to all 5 files manually
-- No risk of template/generated drift
-
 ## Data flow
-
-### Skill chaining
 
 Skills communicate through the filesystem, not through shared memory:
 
@@ -159,7 +171,7 @@ Skills communicate through the filesystem, not through shared memory:
 
 ### Review Readiness Dashboard
 
-`steez-review-read` outputs three sections that `/steez-ship` and `/steez-review` use to render the dashboard:
+`steez-review-read` outputs three sections that `/steez-ship` and `/steez-review` use:
 
 ```
 {branch}-reviews.jsonl entries    ← review history
@@ -169,7 +181,7 @@ Skills communicate through the filesystem, not through shared memory:
 {short commit hash}               ← current HEAD
 ```
 
-### Helper script dependency chain
+### Helper script dependencies
 
 ```
 steez-slug ← steez-review-log (needs SLUG for file path)
@@ -177,16 +189,15 @@ steez-slug ← steez-review-log (needs SLUG for file path)
 
 steez-config ← steez-review-read (reads skip_eng_review)
              ← all skills (reads proactive in preamble)
-```
 
-`steez-diff-scope` is standalone — no dependencies on other scripts.
+steez-diff-scope — standalone, no dependencies
+```
 
 ## Browse integration
 
 Skills reference the browse binary as `$B`:
 
 ```bash
-# SETUP block in every skill
 _ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
 B=""
 [ -n "$_ROOT" ] && [ -x "$_ROOT/.claude/skills/steez/browse/dist/browse" ] && B="$_ROOT/.claude/skills/steez/browse/dist/browse"
@@ -195,7 +206,24 @@ B=""
 
 Resolution order: repo-local binary first, global fallback second. This allows per-project browse versions while defaulting to the stowed version.
 
-The browse binary is a WIP project merging gstack-browse + playwright-cli + NetSuite automation into a single compiled Bun binary. See `steez/browse/` for source. Architecture details will live in browse-specific docs once the binary stabilizes.
+The browse binary is a compiled Bun daemon built on the Playwright npm library (v1.58.2). It provides a long-lived Chromium session with sub-second command latency. See the browse skill for architecture details.
+
+## Error philosophy
+
+Skill errors are for the AI agent, not for humans. Every error message should be actionable — tell Claude what went wrong and what to do next. This principle is inherited from gstack's browse server (which rewrites Playwright errors through `wrapError()`) and applied to skill design:
+
+- If a config value is missing, the preamble falls back to a sensible default
+- If a design doc isn't found, the skill tells the agent to run `/steez-office-hours` first
+- If a review log is empty, the Review Readiness Dashboard says "no reviews found" instead of erroring
+
+## What's intentionally not here
+
+- **No template system.** 21 skills is manageable by hand. The build step complexity isn't justified. See "Why no templates" above.
+- **No multi-user support.** `REPO_MODE=solo` is hardcoded. No contributor detection, no collaborative review workflows.
+- **No remote telemetry.** All analytics are local JSONL files. No Supabase, no network calls.
+- **No onboarding flow.** Config is pre-seeded. No first-run prompts, no opt-in gates.
+- **No self-updater.** steez is git-backed. `git pull` in dotfiles is the update mechanism.
+- **No shared command reference generation.** Unlike gstack's `{{COMMAND_REFERENCE}}` template placeholders, browse command docs are maintained directly in the browse SKILL.md.
 
 ## Key differences from gstack
 
@@ -204,12 +232,12 @@ The browse binary is a WIP project merging gstack-browse + playwright-cli + NetS
 | Deployment | `git clone` + `./setup` | stow from dotfiles |
 | Template system | `.tmpl` → `gen-skill-docs.ts` → `SKILL.md` | hand-edited SKILL.md |
 | Config file | `~/.gstack/config.yaml` | `~/.steez/config` (no extension) |
-| Repo mode | Detected per-repo (solo/collaborative) | Hardcoded solo |
+| Repo mode | Detected per-repo | Hardcoded solo |
 | Telemetry | Local JSONL + opt-in Supabase sync | Local JSONL only |
-| Onboarding | First-run prompts (lake intro, telemetry, proactive) | None (config pre-seeded) |
-| Contributor Mode | Gated behind `_CONTRIB` flag | Repurposed as Skill Self-Report (always on) |
+| Onboarding | First-run prompts | None (pre-seeded) |
+| Contributor Mode | Gated behind flag | Skill Self-Report (always on) |
 | Voice | Garry Tan / GStack identity | "Senior engineering partner — CTO-level operator" |
-| Skill count | 28 skills | 6 skills (5 workflow + browse) |
+| Skill count | 29 skills | 21 skills |
 | Update mechanism | `/gstack-upgrade` self-updater | `git pull` in dotfiles |
 
 ## Extending steez
@@ -217,16 +245,27 @@ The browse binary is a WIP project merging gstack-browse + playwright-cli + NetS
 ### Adding a new skill
 
 1. Create `dotfiles/claude/.claude/skills/steez-{name}/SKILL.md`
-2. Use the preamble pattern from any existing skill (copy and change `SKILL_NAME`)
+2. Copy the preamble from any existing skill (change `SKILL_NAME`)
 3. Stow deploys it automatically (directory folding)
 
-### Porting another gstack skill
+### Porting from gstack
 
-1. Copy source from `~/.claude/skills/gstack/{skill}/SKILL.md`
-2. Apply the porting recipe (documented in FORK_MANIFEST.md patches column):
-   - Replace preamble, strip onboarding, adapt voice, update paths
-3. Update FORK_MANIFEST.md with the new entry
-4. If the skill has supporting docs (like review's checklists), copy and clean those too
+1. `mkdir -p` the skill directory + `cp` source SKILL.md
+2. YAML frontmatter `name:` → `steez-*`
+3. Remove auto-generated comments (template artifact markers)
+4. Replace preamble with steez pattern (`STEEZ_HOME`, `STEEZ_BIN`, curly-brace config fallback, `REPO_MODE=solo`, local JSONL)
+5. Strip onboarding conditionals (`LAKE_INTRO`, `TEL_PROMPTED`, `PROACTIVE_PROMPTED`) — keep only the `PROACTIVE` check
+6. Voice → "senior engineering partner — CTO-level operator"
+7. Delete YC pitch line
+8. Strip Repo Ownership section
+9. Contributor Mode → Skill Self-Report (always on, `~/.steez/skill-reports/`)
+10. Telemetry → local JSONL only (strip Supabase sync)
+11. SETUP browse → steez pattern (`$_ROOT/.claude/skills/steez/browse/dist/browse`)
+12. Plan Status Footer → `STEEZ REVIEW REPORT`
+13. Global replace all gstack paths/refs → steez
+14. Verify: `grep -c -i gstack SKILL.md` must return 0
+
+**Gotcha:** bash `||` and `&&` precedence — use curly braces `{ }` for fallback grouping (e.g., `cmd || { fallback; }`).
 
 ### Updating from upstream
 
