@@ -236,7 +236,7 @@ export async function handleReadCommand(
       }
       if (networkBuffer.length === 0) return '(no network requests)';
       return networkBuffer.toArray().map(e =>
-        `${e.method} ${e.url} → ${e.status || 'pending'} (${e.duration || '?'}ms, ${e.size || '?'}B)`
+        `${e.method} ${e.url} → ${e.status || 'pending'} (${e.duration ?? '?'}ms, ${e.size ?? '?'}B)`
       ).join('\n');
     }
 

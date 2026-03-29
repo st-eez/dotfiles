@@ -1010,13 +1010,15 @@ export class BrowserManager {
         const res = await req.response();
         if (res) {
           const url = req.url();
-          const cl = res.headers()['content-length'];
-          const size = cl ? parseInt(cl, 10) || 0 : 0;
-          for (let i = networkBuffer.length - 1; i >= 0; i--) {
-            const entry = networkBuffer.get(i);
-            if (entry && entry.url === url && !entry.size) {
-              networkBuffer.set(i, { ...entry, size });
-              break;
+          const cl = res.headers()['content-length']?.trim();
+          const size = cl && /^\d+$/.test(cl) ? Number(cl) : undefined;
+          if (size !== undefined) {
+            for (let i = networkBuffer.length - 1; i >= 0; i--) {
+              const entry = networkBuffer.get(i);
+              if (entry && entry.url === url && entry.size === undefined) {
+                networkBuffer.set(i, { ...entry, size });
+                break;
+              }
             }
           }
         }

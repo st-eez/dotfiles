@@ -231,8 +231,9 @@ function loadSession(): SidebarSession | null {
     const chatFile = path.join(SESSIONS_DIR, session.id, 'chat.jsonl');
     try {
       const lines = fs.readFileSync(chatFile, 'utf-8').split('\n').filter(Boolean);
-      chatBuffer = lines.map(line => { try { return JSON.parse(line); } catch { return null; } }).filter(Boolean);
-      chatNextId = chatBuffer.length > 0 ? Math.max(...chatBuffer.map(e => e.id)) + 1 : 0;
+      const parsed = lines.map(line => { try { return JSON.parse(line); } catch { return null; } }).filter(Boolean) as ChatEntry[];
+      chatBuffer = parsed.slice(-CHAT_BUFFER_CAP);
+      chatNextId = parsed.length > 0 ? Math.max(...parsed.map(e => e.id)) + 1 : 0;
     } catch {}
     return session;
   } catch {
@@ -506,7 +507,7 @@ async function flushBuffers() {
     if (newNetworkCount > 0) {
       const entries = networkBuffer.last(Math.min(newNetworkCount, networkBuffer.length));
       const lines = entries.map(e =>
-        `[${new Date(e.timestamp).toISOString()}] ${e.method} ${e.url} → ${e.status || 'pending'} (${e.duration || '?'}ms, ${e.size || '?'}B)`
+        `[${new Date(e.timestamp).toISOString()}] ${e.method} ${e.url} → ${e.status || 'pending'} (${e.duration ?? '?'}ms, ${e.size ?? '?'}B)`
       ).join('\n') + '\n';
       fs.appendFileSync(NETWORK_LOG_PATH, lines);
       lastNetworkFlushed = networkBuffer.totalAdded;
@@ -986,8 +987,10 @@ async function start() {
           return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
         }
         const afterId = parseInt(url.searchParams.get('after') || '0', 10);
-        const entries = chatBuffer.filter(e => e.id >= afterId);
-        return new Response(JSON.stringify({ entries, total: chatNextId }), {
+        const availableFrom = chatBuffer[0]?.id ?? chatNextId;
+        const gap = afterId < availableFrom;
+        const entries = chatBuffer.filter(e => e.id >= Math.max(afterId, availableFrom));
+        return new Response(JSON.stringify({ entries, total: chatNextId, gap, availableFrom }), {
           status: 200,
           headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
         });
