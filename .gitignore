@@ -76,3 +76,4 @@ __pycache__/
 # Dolt artifacts (local-only)
 .dolt/
 *.db
+.steez/

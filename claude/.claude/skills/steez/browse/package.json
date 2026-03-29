@@ -1,0 +1,25 @@
+{
+  "name": "steez-browse",
+  "version": "0.1.0",
+  "description": "Personal browser binary — Browse superset with Playwright features and NetSuite automation",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "browse": "./dist/browse"
+  },
+  "scripts": {
+    "build": "bun build --compile src/core/cli.ts --outfile dist/browse && bun build --compile src/core/find-browse.ts --outfile dist/find-browse && bash scripts/build-node-server.sh && git rev-parse HEAD > dist/.version || true",
+    "dev": "bun run src/core/cli.ts",
+    "server": "bun run src/core/server.ts",
+    "test": "bun test src/core/test/ src/ns/test/ --ignore '**/*e2e*'",
+    "test:core": "bun test src/core/test/",
+    "test:ns": "bun test src/ns/test/"
+  },
+  "dependencies": {
+    "diff": "^7.0.0",
+    "playwright": "^1.58.2"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
+  }
+}
