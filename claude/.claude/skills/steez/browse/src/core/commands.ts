@@ -40,7 +40,7 @@ export const META_COMMANDS = new Set([
 
 export const NS_COMMANDS = new Set([
   'ns navigate', 'ns inspect', 'ns set', 'ns add-row',
-  'ns save', 'ns query', 'ns status', 'ns cancel',
+  'ns save', 'ns query', 'ns status', 'ns cancel', 'ns diff', 'ns verify', 'ns login',
 ]);
 
 export const PLAYWRIGHT_COMMANDS = new Set([
@@ -138,6 +138,9 @@ export const COMMAND_DESCRIPTIONS: Record<string, { category: string; descriptio
   'ns query':    { category: 'NetSuite', description: 'Execute SuiteQL query (SELECT only)', usage: 'ns query <sql>' },
   'ns status':   { category: 'NetSuite', description: 'Current page state: record type, mode, session', usage: 'ns status' },
   'ns cancel':   { category: 'NetSuite', description: 'Clear current line, return to form view' },
+  'ns diff':     { category: 'NetSuite', description: 'Snapshot all fields, optionally perform an action, then show what changed', usage: 'ns diff [set <field> <value>]' },
+  'ns verify':   { category: 'NetSuite', description: 'Post-save verify: reload record and check field values match expectations', usage: 'ns verify <type> <id> field=value ... | ns verify --current field=value ...' },
+  'ns login':    { category: 'NetSuite', description: 'Automated NS login using stored credentials from ~/.steez/browse/auth.json', usage: 'ns login [--account <id>]' },
   // Playwright
   'tracing-start': { category: 'Playwright', description: 'Start recording a Playwright trace' },
   'tracing-stop':  { category: 'Playwright', description: 'Stop recording and save trace file', usage: 'tracing-stop [path]' },

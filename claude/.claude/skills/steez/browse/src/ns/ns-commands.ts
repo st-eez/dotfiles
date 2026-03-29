@@ -14,6 +14,9 @@ import { nsInspect } from './commands/ns-inspect';
 import { nsSave } from './commands/ns-save';
 import { nsSet } from './commands/ns-set';
 import { nsAddRow } from './commands/ns-add-row';
+import { nsDiff } from './commands/ns-diff';
+import { nsVerify } from './commands/ns-verify';
+import { nsLogin } from './commands/ns-login';
 
 export async function handleNsCommand(
   command: string,
@@ -47,10 +50,19 @@ export async function handleNsCommand(
     case 'cancel':
       return nsCancel(args, browserManager);
 
+    case 'diff':
+      return nsDiff(args, browserManager);
+
+    case 'verify':
+      return nsVerify(args, browserManager);
+
+    case 'login':
+      return nsLogin(args, browserManager);
+
     default:
       return JSON.stringify({
         error: `Unknown NS command: ${nsCommand}`,
-        hint: 'Available: navigate, inspect, set, add-row, save, query, status, cancel',
+        hint: 'Available: navigate, inspect, set, add-row, save, query, status, cancel, diff, verify, login',
       });
   }
 }
