@@ -11,9 +11,7 @@
 # Commands
 
 ```sh
-# Playwright (browser automation)
-playwright-cli install --skills           # Setup (per-workspace)
-playwright-cli eval                       # Extract snapshot values
+# Browser automation: use /steez-browse skill
 
 # Use 'bd' for Task tracking (beads)
 bd prime                                  # If not auto-injected by hooks

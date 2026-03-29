@@ -9,9 +9,7 @@
 **Use conventional commit messages: `feat:` | `fix:` | `refactor:` | `docs:` | `chore:`**
 
 ```sh
-# Playwright (browser automation)
-playwright-cli install --skills           # Setup (per-workspace)
-playwright-cli eval                       # Extract snapshot values
+# Browser automation: use /steez-browse skill
 
 # Jira (acli) — use `workitem`, not `issue`
 Always exclude terminal statuses: status NOT IN ("Done","Closed","Canceled")
