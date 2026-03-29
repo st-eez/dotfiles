@@ -9,6 +9,10 @@
  */
 
 import type { BrowserManager } from '../core/browser-manager';
+import { nsNavigate } from './commands/ns-navigate';
+import { nsQuery } from './commands/ns-query';
+import { nsStatus } from './commands/ns-status';
+import { nsCancel } from './commands/ns-cancel';
 
 export async function handleNsCommand(
   command: string,
@@ -19,7 +23,7 @@ export async function handleNsCommand(
 
   switch (nsCommand) {
     case 'navigate':
-      return stub('ns navigate', args, 'Navigate to a NetSuite record (new or existing)');
+      return nsNavigate(args, browserManager);
 
     case 'inspect':
       return stub('ns inspect', args, 'Full form inspection: fields, sublists, @refs');
@@ -34,13 +38,13 @@ export async function handleNsCommand(
       return stub('ns save', args, 'Save record with concurrency detection');
 
     case 'query':
-      return stub('ns query', args, 'Execute SuiteQL query (SELECT only)');
+      return nsQuery(args, browserManager);
 
     case 'status':
-      return stub('ns status', args, 'Current page state: record type, mode, session validity');
+      return nsStatus(args, browserManager);
 
     case 'cancel':
-      return stub('ns cancel', args, 'Clear current line, return to form view');
+      return nsCancel(args, browserManager);
 
     default:
       return JSON.stringify({

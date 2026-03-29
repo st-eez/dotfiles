@@ -101,6 +101,9 @@ window.__mutateDOM = function(text) {
   document.getElementById('mutation-target').textContent = text;
 };
 
+// Mock nlapiCancel (NS cancel API)
+window.nlapiCancel = function() { return true; };
+
 // Expose a function to show/hide error modals
 window.__showError = function(selector) {
   const el = document.querySelector(selector);
