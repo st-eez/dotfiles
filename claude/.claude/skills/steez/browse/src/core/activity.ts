@@ -18,6 +18,12 @@ import { CircularBuffer } from './buffers';
 
 // ─── Types ──────────────────────────────────────────────────────
 
+export interface NsMetadata {
+  recordType?: string;
+  recordId?: string;
+  environment?: string;
+}
+
 export interface ActivityEntry {
   id: number;
   timestamp: number;
@@ -31,6 +37,8 @@ export interface ActivityEntry {
   result?: string;
   tabs?: number;
   mode?: string;
+  /** NS-specific metadata — present only for NS command activity entries */
+  nsMetadata?: NsMetadata;
 }
 
 // ─── Buffer & Subscribers ───────────────────────────────────────

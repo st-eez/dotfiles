@@ -547,6 +547,7 @@ export { READ_COMMANDS, WRITE_COMMANDS, META_COMMANDS, NS_COMMANDS, PLAYWRIGHT_C
 
 // ─── NS + Playwright handlers ───────────────────────────────────
 import { handleNsCommand } from '../ns/ns-commands';
+import { extractNsMetadata } from '../ns/ns-metadata';
 import { handleTracingCommand } from '../playwright/tracing';
 import { handleRoutingCommand } from '../playwright/routing';
 import { handleVideoCommand } from '../playwright/video';
@@ -701,6 +702,8 @@ async function handleCommand(body: any): Promise<Response> {
     }
 
     // Activity: emit command_end (success)
+    // For NS commands, extract metadata (recordType, recordId, environment) from the result
+    const nsMetadata = command === 'ns' ? extractNsMetadata(result) : undefined;
     emitActivity({
       type: 'command_end',
       command,
@@ -711,6 +714,7 @@ async function handleCommand(body: any): Promise<Response> {
       result: result,
       tabs: browserManager.getTabCount(),
       mode: browserManager.getConnectionMode(),
+      ...(nsMetadata ? { nsMetadata } : {}),
     });
 
     browserManager.resetFailures();
