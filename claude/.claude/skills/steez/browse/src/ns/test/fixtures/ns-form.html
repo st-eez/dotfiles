@@ -28,10 +28,27 @@
   <input id="total" type="text" value="1500.00" />
 </form>
 
+<!-- Mock sublist (item lines) -->
+<div id="item_splits">
+  <table class="uir-machine-table">
+    <thead>
+      <tr>
+        <td class="listheadertd"><div class="listheadertextb">Item</div></td>
+        <td class="listheadertd"><div class="listheadertextb">Quantity</div></td>
+        <td class="listheadertd"><div class="listheadertextb">Rate</div></td>
+        <td class="listheadertd"><div class="listheadertextb">Amount</div></td>
+      </tr>
+    </thead>
+  </table>
+</div>
+
 <!-- Error display elements (hidden by default) -->
 <div id="_err_alert" style="display:none">Validation error: field required</div>
 <div class="uir-message-error" style="display:none">Server error occurred</div>
 <div class="uir-message-warning" style="display:none">Warning: duplicate record</div>
+
+<!-- Save button (NS toolbar) -->
+<button id="btn_multibutton_submitter" onclick="if(window.__saveBehavior === 'validation') { alert('Please enter a value for Company Name'); } else if(window.__saveBehavior === 'concurrency') { alert('This record has been changed since you started editing'); } else { var sep = window.location.href.indexOf('?') === -1 ? '?' : '&amp;'; window.location.href = window.location.href + sep + 'id=12345'; }">Save</button>
 
 <!-- Mutation target for settle detection tests -->
 <div id="mutation-target">initial content</div>
@@ -94,6 +111,11 @@ window.nlapiGetFieldIds = function() {
   return Object.keys(FIELDS);
 };
 
+// ─── Mock save behavior ─────────────────────────────────────
+// Set window.__saveBehavior to 'success' | 'validation' | 'concurrency'
+// before clicking the save button to control the dialog that fires.
+window.__saveBehavior = 'success';
+
 // ─── Helpers for tests ───────────────────────────────────────
 
 // Expose a function to trigger DOM mutations (for settle detection tests)
@@ -101,8 +123,40 @@ window.__mutateDOM = function(text) {
   document.getElementById('mutation-target').textContent = text;
 };
 
+// Mock nlapiSetFieldValue (NS set field API)
+window.nlapiSetFieldValue = function(fieldId, value, fireSlavingWhenever, fireFieldChanged) {
+  if (!FIELDS[fieldId]) return;
+  FIELDS[fieldId].value = value;
+  FIELDS[fieldId].text = value;
+
+  // Simulate sourcing cascade for entity-ref fields
+  if (!fireSlavingWhenever && fieldId === 'salesrep') {
+    // Simulate async sourcing — after a short delay, update dependent fields
+    setTimeout(function() {
+      FIELDS['companyname'].value = 'Sourced Company';
+      FIELDS['companyname'].text = 'Sourced Company';
+    }, 100);
+  }
+};
+
 // Mock nlapiCancel (NS cancel API)
 window.nlapiCancel = function() { return true; };
+
+// Mock sublist APIs
+window.nlapiGetLineItemCount = function(sublistId) {
+  if (sublistId === 'item') return 2;
+  return 0;
+};
+
+window.nlapiGetLineItemValue = function(sublistId, fieldId, line) {
+  if (sublistId === 'item' && line === 1) {
+    return { item: '100', quantity: '5', rate: '10.00', amount: '50.00' }[fieldId] || '';
+  }
+  if (sublistId === 'item' && line === 2) {
+    return { item: '200', quantity: '3', rate: '20.00', amount: '60.00' }[fieldId] || '';
+  }
+  return '';
+};
 
 // Expose a function to show/hide error modals
 window.__showError = function(selector) {

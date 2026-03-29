@@ -13,6 +13,9 @@ import { nsNavigate } from './commands/ns-navigate';
 import { nsQuery } from './commands/ns-query';
 import { nsStatus } from './commands/ns-status';
 import { nsCancel } from './commands/ns-cancel';
+import { nsInspect } from './commands/ns-inspect';
+import { nsSave } from './commands/ns-save';
+import { nsSet } from './commands/ns-set';
 
 export async function handleNsCommand(
   command: string,
@@ -26,16 +29,16 @@ export async function handleNsCommand(
       return nsNavigate(args, browserManager);
 
     case 'inspect':
-      return stub('ns inspect', args, 'Full form inspection: fields, sublists, @refs');
+      return nsInspect(args, browserManager);
 
     case 'set':
-      return stub('ns set', args, 'Set field value with auto-detect cascading');
+      return nsSet(args, browserManager);
 
     case 'add-row':
       return stub('ns add-row', args, 'Add sublist row with field values');
 
     case 'save':
-      return stub('ns save', args, 'Save record with concurrency detection');
+      return nsSave(args, browserManager);
 
     case 'query':
       return nsQuery(args, browserManager);

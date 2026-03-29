@@ -46,3 +46,6 @@
 {"id":"int-ec10ffcc","kind":"field_change","created_at":"2026-03-29T04:07:56.953967Z","actor":"steez","issue_id":"dot-xuq.2.12","extra":{"field":"status","new_value":"closed","old_value":"open","reason":"Closed"}}
 {"id":"int-9750350f","kind":"field_change","created_at":"2026-03-29T04:07:56.970829Z","actor":"steez","issue_id":"dot-xuq.2.13","extra":{"field":"status","new_value":"closed","old_value":"open","reason":"Closed"}}
 {"id":"int-dbc0fd24","kind":"field_change","created_at":"2026-03-29T04:07:56.986333Z","actor":"steez","issue_id":"dot-xuq.2.11","extra":{"field":"status","new_value":"closed","old_value":"open","reason":"Closed"}}
+{"id":"int-3bf2b5b4","kind":"field_change","created_at":"2026-03-29T05:06:21.31749Z","actor":"steez","issue_id":"dot-xuq.2.7","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
+{"id":"int-b166d8ea","kind":"field_change","created_at":"2026-03-29T05:06:21.335305Z","actor":"steez","issue_id":"dot-xuq.2.10","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
+{"id":"int-15269c40","kind":"field_change","created_at":"2026-03-29T05:06:21.354561Z","actor":"steez","issue_id":"dot-xuq.2.8","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
