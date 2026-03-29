@@ -657,6 +657,11 @@ describe('Chain', () => {
     expect(result).toContain('[goto] ERROR:');
     expect(result).not.toContain('Unknown meta command');
     expect(result).not.toContain('Unknown read command');
+    // Chain error leaves page on chrome-error:// which blocks future gotos.
+    // Open a fresh tab to escape, then close the broken one.
+    const brokenTab = (await bm.getTabListWithTitles()).find(t => t.active);
+    await bm.newTab(baseUrl + '/basic.html');
+    if (brokenTab) await bm.closeTab(brokenTab.id);
   });
 });
 
@@ -705,7 +710,7 @@ describe('CLI lifecycle', () => {
       pid: 999999,
     }));
 
-    const cliPath = path.resolve(__dirname, '../src/cli.ts');
+    const cliPath = path.resolve(__dirname, '../cli.ts');
     const cliEnv: Record<string, string> = {};
     for (const [k, v] of Object.entries(process.env)) {
       if (v !== undefined) cliEnv[k] = v;
