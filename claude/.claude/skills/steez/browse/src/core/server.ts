@@ -554,6 +554,8 @@ import { handleVideoCommand } from '../playwright/video';
 
 // ─── Server ────────────────────────────────────────────────────
 const browserManager = new BrowserManager();
+// Route browser disconnect through shared shutdown so all cleanup runs
+browserManager.onDisconnect = (exitCode) => shutdown(exitCode);
 let isShuttingDown = false;
 
 // Test if a port is available by binding and immediately releasing.
@@ -747,22 +749,32 @@ async function handleCommand(body: any): Promise<Response> {
   }
 }
 
-async function shutdown() {
+async function shutdown(exitCode: number = 0) {
   if (isShuttingDown) return;
   isShuttingDown = true;
 
   console.log('[browse] Shutting down...');
-  // Stop watch mode if active
-  if (browserManager.isWatching()) browserManager.stopWatch();
-  killAgent();
-  messageQueue = [];
-  saveSession(); // Persist chat history before exit
-  if (sidebarSession?.worktreePath) removeWorktree(sidebarSession.worktreePath);
-  if (agentHealthInterval) clearInterval(agentHealthInterval);
-  clearInterval(flushInterval);
-  clearInterval(idleCheckInterval);
-  await flushBuffers(); // Final flush (async now)
+  try {
+    // Stop watch mode if active
+    if (browserManager.isWatching()) browserManager.stopWatch();
+    killAgent();
+    messageQueue = [];
+    saveSession(); // Persist chat history before exit
+    if (sidebarSession?.worktreePath) removeWorktree(sidebarSession.worktreePath);
+    if (agentHealthInterval) clearInterval(agentHealthInterval);
+    clearInterval(flushInterval);
+    clearInterval(idleCheckInterval);
+    await flushBuffers(); // Final flush (async now)
+  } catch (err) {
+    console.error('[browse] Error during shutdown cleanup:', (err as Error).message);
+  }
 
+  // If the browser already disconnected (crash/user closed), close() can't
+  // talk to it, so kill the child process directly. On graceful shutdown
+  // (stop/SIGTERM), skip the kill so close() can flush profile state cleanly.
+  if (!browserManager.isConnected()) {
+    try { browserManager.killProcess(); } catch {}
+  }
   await browserManager.close();
 
   // Clean up Chromium profile locks (prevent SingletonLock on next launch)
@@ -774,12 +786,12 @@ async function shutdown() {
   // Clean up state file
   try { fs.unlinkSync(config.stateFile); } catch {}
 
-  process.exit(0);
+  process.exit(exitCode);
 }
 
-// Handle signals
-process.on('SIGTERM', shutdown);
-process.on('SIGINT', shutdown);
+// Handle signals — wrap to avoid passing signal name as exitCode
+process.on('SIGTERM', () => { void shutdown(0); });
+process.on('SIGINT', () => { void shutdown(0); });
 // Windows: taskkill /F bypasses SIGTERM, but 'exit' fires for some shutdown paths.
 // Defense-in-depth — primary cleanup is the CLI's stale-state detection via health check.
 if (process.platform === 'win32') {
@@ -789,6 +801,8 @@ if (process.platform === 'win32') {
 }
 
 // Emergency cleanup for crashes (OOM, uncaught exceptions, browser disconnect)
+// This is synchronous — called right before process.exit(), so no await.
+// Kill the Chrome child process directly via SIGKILL to prevent orphans.
 function emergencyCleanup() {
   if (isShuttingDown) return;
   isShuttingDown = true;
@@ -796,6 +810,8 @@ function emergencyCleanup() {
   try { killAgent(); } catch {}
   // Save session state so chat history persists across crashes
   try { saveSession(); } catch {}
+  // Kill the browser's child process to prevent orphaned Chrome
+  try { browserManager.killProcess(); } catch {}
   // Clean Chromium profile locks
   const profileDir = path.join(process.env.HOME || '/tmp', '.steez', 'browse', 'chromium-profile');
   for (const lockFile of ['SingletonLock', 'SingletonSocket', 'SingletonCookie']) {

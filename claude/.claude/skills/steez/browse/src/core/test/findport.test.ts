@@ -2,7 +2,7 @@ import { describe, test, expect } from 'bun:test';
 import * as net from 'net';
 import * as path from 'path';
 
-const polyfillPath = path.resolve(import.meta.dir, '../src/bun-polyfill.cjs');
+const polyfillPath = path.resolve(import.meta.dir, '../bun-polyfill.cjs');
 
 // Helper: bind a port and hold it open, returning a cleanup function
 function occupyPort(port: number): Promise<() => Promise<void>> {

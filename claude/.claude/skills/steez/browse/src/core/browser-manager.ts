@@ -2,7 +2,7 @@
  * Browser lifecycle manager
  *
  * Chromium crash handling:
- *   browser.on('disconnected') → log error → process.exit(1)
+ *   browser.on('disconnected') → log error → onDisconnect callback (shutdown)
  *   CLI detects dead server → auto-restarts on next command
  *   We do NOT try to self-heal — don't hide failure.
  *
@@ -70,6 +70,10 @@ export class BrowserManager {
   // ─── Headed State ────────────────────────────────────────
   private connectionMode: 'launched' | 'headed' = 'launched';
   private intentionalDisconnect = false;
+
+  // ─── Disconnect Callback ──────────────────────────────────
+  // Set by server.ts to route disconnect through shared shutdown(exitCode)
+  onDisconnect: ((exitCode: number) => void) | null = null;
 
   getConnectionMode(): 'launched' | 'headed' { return this.connectionMode; }
 
@@ -180,11 +184,12 @@ export class BrowserManager {
       ...(launchArgs.length > 0 ? { args: launchArgs } : {}),
     });
 
-    // Chromium crash → exit with clear message
+    // Chromium crash → route through shared shutdown so cleanup runs
     this.browser.on('disconnected', () => {
+      if (this.intentionalDisconnect) return;
       console.error('[browse] FATAL: Chromium process crashed or was killed. Server exiting.');
       console.error('[browse] Console/network logs flushed to .steez/browse-*.log');
-      process.exit(1);
+      if (this.onDisconnect) this.onDisconnect(1); else process.exit(1);
     });
 
     const contextOptions: BrowserContextOptions = {
@@ -303,13 +308,13 @@ export class BrowserManager {
       await this.newTab();
     }
 
-    // Browser disconnect handler — exit code 2 distinguishes from crashes (1)
+    // Browser disconnect handler — route through shared shutdown so cleanup runs
     if (this.browser) {
       this.browser.on('disconnected', () => {
         if (this.intentionalDisconnect) return;
         console.error('[browse] Real browser disconnected (user closed or crashed).');
         console.error('[browse] Run `$B connect` to reconnect.');
-        process.exit(2);
+        if (this.onDisconnect) this.onDisconnect(2); else process.exit(2);
       });
     }
 
@@ -339,6 +344,24 @@ export class BrowserManager {
       }
       this.browser = null;
     }
+  }
+
+  /** Check if the browser process is still connected */
+  isConnected(): boolean {
+    return !!this.browser?.isConnected();
+  }
+
+  /** Synchronous kill — for emergencyCleanup where we can't await.
+   *  Uses signal 0 to verify the PID is still alive before SIGKILL,
+   *  guarding against stale PID reuse by the OS. */
+  killProcess() {
+    try {
+      const proc = this.browser?.process?.();
+      if (proc?.pid) {
+        process.kill(proc.pid, 0); // Throws if PID doesn't exist
+        process.kill(proc.pid, 'SIGKILL');
+      }
+    } catch {}
   }
 
   /** Health check — verifies Chromium is connected AND responsive */
@@ -862,7 +885,7 @@ export class BrowserManager {
         this.browser.on('disconnected', () => {
           if (this.intentionalDisconnect) return;
           console.error('[browse] FATAL: Chromium process crashed or was killed. Server exiting.');
-          process.exit(1);
+          if (this.onDisconnect) this.onDisconnect(1); else process.exit(1);
         });
       }
 

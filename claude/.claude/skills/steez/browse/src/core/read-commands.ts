@@ -264,6 +264,15 @@ export async function handleReadCommand(
         locator = target.locator(resolved.selector);
       }
 
+      // visible/hidden are non-waiting in Playwright (return immediately for missing elements).
+      // All other assertions auto-wait, so check existence first to fail fast.
+      if (property !== 'visible' && property !== 'hidden') {
+        const count = await locator.count();
+        if (count === 0) {
+          throw new Error(`Element not found: ${selector}`);
+        }
+      }
+
       switch (property) {
         case 'visible':  return String(await locator.isVisible());
         case 'hidden':   return String(await locator.isHidden());
