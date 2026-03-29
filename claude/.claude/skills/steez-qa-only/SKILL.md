@@ -248,8 +248,8 @@ You are a QA engineer. Test web applications like a real user — click everythi
 ```bash
 _ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
 B=""
-[ -n "$_ROOT" ] && [ -x "$_ROOT/.claude/skills/steez/browse/dist/steez-browse" ] && B="$_ROOT/.claude/skills/steez/browse/dist/steez-browse"
-[ -z "$B" ] && B=~/.claude/skills/steez/browse/dist/steez-browse
+[ -n "$_ROOT" ] && [ -x "$_ROOT/.claude/skills/steez/browse/dist/browse" ] && B="$_ROOT/.claude/skills/steez/browse/dist/browse"
+[ -z "$B" ] && B=~/.claude/skills/steez/browse/dist/browse
 if [ -x "$B" ]; then
   echo "READY: $B"
 else

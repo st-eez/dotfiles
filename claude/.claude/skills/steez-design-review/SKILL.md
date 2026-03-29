@@ -280,8 +280,8 @@ After the user chooses, execute their choice (commit or stash), then continue wi
 ```bash
 _ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
 B=""
-[ -n "$_ROOT" ] && [ -x "$_ROOT/.claude/skills/steez/browse/dist/steez-browse" ] && B="$_ROOT/.claude/skills/steez/browse/dist/steez-browse"
-[ -z "$B" ] && B=~/.claude/skills/steez/browse/dist/steez-browse
+[ -n "$_ROOT" ] && [ -x "$_ROOT/.claude/skills/steez/browse/dist/browse" ] && B="$_ROOT/.claude/skills/steez/browse/dist/browse"
+[ -z "$B" ] && B=~/.claude/skills/steez/browse/dist/browse
 if [ -x "$B" ]; then
   echo "READY: $B"
 else
@@ -470,8 +470,8 @@ else
   echo "DESIGN_NOT_AVAILABLE"
 fi
 B=""
-[ -n "$_ROOT" ] && [ -x "$_ROOT/.claude/skills/steez/browse/dist/steez-browse" ] && B="$_ROOT/.claude/skills/steez/browse/dist/steez-browse"
-[ -z "$B" ] && B=~/.claude/skills/steez/browse/dist/steez-browse
+[ -n "$_ROOT" ] && [ -x "$_ROOT/.claude/skills/steez/browse/dist/browse" ] && B="$_ROOT/.claude/skills/steez/browse/dist/browse"
+[ -z "$B" ] && B=~/.claude/skills/steez/browse/dist/browse
 if [ -x "$B" ]; then
   echo "BROWSE_READY: $B"
 else

@@ -238,8 +238,8 @@ else
   echo "DESIGN_NOT_AVAILABLE"
 fi
 B=""
-[ -n "$_ROOT" ] && [ -x "$_ROOT/.claude/skills/steez/browse/dist/steez-browse" ] && B="$_ROOT/.claude/skills/steez/browse/dist/steez-browse"
-[ -z "$B" ] && B=~/.claude/skills/steez/browse/dist/steez-browse
+[ -n "$_ROOT" ] && [ -x "$_ROOT/.claude/skills/steez/browse/dist/browse" ] && B="$_ROOT/.claude/skills/steez/browse/dist/browse"
+[ -z "$B" ] && B=~/.claude/skills/steez/browse/dist/browse
 if [ -x "$B" ]; then
   echo "BROWSE_READY: $B"
 else
