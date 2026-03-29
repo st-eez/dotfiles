@@ -109,7 +109,7 @@ ctrl-alt-tab = 'exec-and-forget bash -c "aerospace workspace-back-and-forth && a
 
 # Window controls (CAPS + letter)
 alt-t = 'layout floating tiling' # Super+T → Ctrl+T
-alt-f = 'fullscreen'             # Super+F → Ctrl+F
+alt-f = 'fullscreen --no-outer-gaps' # Super+F → Ctrl+F
 
 # Resize windows (CAPS + +/-)
 alt-equal = 'resize smart +100'
@@ -137,7 +137,7 @@ ctrl-alt-shift-3 = 'exec-and-forget bash -c "aerospace move-node-to-monitor --fo
 
 # Configuration management (Custom bindings kept)
 ctrl-alt-j = 'layout tiles horizontal vertical'
-ctrl-alt-shift-f = 'fullscreen --no-outer-gaps'
+
 ctrl-alt-c = 'reload-config'
 ctrl-alt-r = 'flatten-workspace-tree'
 ctrl-alt-h = 'exec-and-forget /bin/bash -c "cp ~/.config/aerospace/aerospace-home.toml ~/.config/aerospace/aerospace.toml && aerospace reload-config && sketchybar --reload"'

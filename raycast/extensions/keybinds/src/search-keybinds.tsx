@@ -289,7 +289,7 @@ const AEROSPACE_SECTIONS: ShortcutSection[] = [
     title: "Aerospace - Window Controls",
     entries: [
       { binding: "alt-t", description: "Toggle floating/tiling mode" },
-      { binding: "alt-f", description: "Toggle fullscreen" },
+      { binding: "alt-f", description: "Toggle fullscreen (no outer gaps)" },
     ],
   },
   {
@@ -335,7 +335,7 @@ const AEROSPACE_SECTIONS: ShortcutSection[] = [
       { binding: "ctrl-alt-l", description: "Switch to laptop-only setup" },
       { binding: "ctrl-alt-a", description: "Toggle AutoRaise on/off" },
       { binding: "ctrl-alt-c", description: "Reload aerospace config" },
-      { binding: "ctrl-alt-shift-f", description: "Toggle fullscreen (no outer gaps)" },
+
       { binding: "ctrl-alt-j", description: "Toggle split direction (horizontal/vertical)" },
     ],
   },
