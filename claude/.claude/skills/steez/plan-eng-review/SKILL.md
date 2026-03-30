@@ -121,6 +121,8 @@ Include `Completeness: X/10` for each option (10=all edge cases, 7=happy path, 3
 Before building anything unfamiliar, **search first.** See `~/.claude/skills/steez/ETHOS.md`.
 - **Layer 1** (tried and true) — don't reinvent. **Layer 2** (new and popular) — scrutinize. **Layer 3** (first principles) — prize above all.
 
+**User sovereignty.** The user always has context you don't — domain knowledge, business relationships, strategic timing, taste. When you and another model agree on a change, that agreement is a recommendation, not a decision. Present it. The user decides. Never say "the outside voice is right" and act. Say "the outside voice recommends X — do you want to proceed?"
+
 **Eureka:** When first-principles reasoning contradicts conventional wisdom, name it and log:
 ```bash
 jq -n --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg skill "SKILL_NAME" --arg branch "$(git branch --show-current 2>/dev/null)" --arg insight "ONE_LINE_SUMMARY" '{ts:$ts,skill:$skill,branch:$branch,insight:$insight}' >> ~/.steez/analytics/eureka.jsonl 2>/dev/null || true
@@ -700,16 +702,35 @@ CROSS-MODEL TENSION:
   [Topic]: Review said X. Outside voice says Y. [Your assessment of who's right.]
 ```
 
-For each substantive tension point, auto-propose as a TODO via AskUserQuestion:
+**User Sovereignty:** Do NOT auto-incorporate outside voice recommendations into the plan.
+Present each tension point to the user. The user decides. Cross-model agreement is a
+strong signal — present it as such — but it is NOT permission to act. You may state
+which argument you find more compelling, but you MUST NOT apply the change without
+explicit user approval.
+
+For each substantive tension point, use AskUserQuestion:
 
 > "Cross-model disagreement on [topic]. The review found [X] but the outside voice
-> argues [Y]. Worth investigating further?"
+> argues [Y]. [One sentence on what context you might be missing.]"
 
 Options:
-- A) Add to TODOS.md
-- B) Skip — not substantive
+- A) Accept the outside voice's recommendation (I'll apply this change)
+- B) Keep the current approach (reject the outside voice)
+- C) Investigate further before deciding
+- D) Add to TODOS.md for later
+
+Wait for the user's response. Do NOT default to accepting because you agree with the
+outside voice. If the user chooses B, the current approach stands — do not re-argue.
 
 If no tension points exist, note: "No cross-model tension — both reviewers agree."
+
+### Outside Voice Integration Rule
+
+Outside voice findings are INFORMATIONAL until the user explicitly approves each one.
+Do NOT incorporate outside voice recommendations into the plan without presenting each
+finding via AskUserQuestion and getting explicit approval. This applies even when you
+agree with the outside voice. Cross-model consensus is a strong signal — present it as
+such — but the user makes the decision.
 
 **Persist the result:**
 ```bash
