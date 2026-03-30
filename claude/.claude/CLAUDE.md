@@ -15,7 +15,8 @@
 
 # Use 'bd' for Task tracking (beads)
 bd prime                                  # If not auto-injected by hooks
-bd update <id> --add-label <worktree>     # Always, on every issue you touch
+bd update <id> --add-label <group>        # Always: work area (e.g., browse, upstream-sync). Related beads share a label.
+bd update <id> --add-label <worktree>     # When applicable: worktree name (routes work to correct worktree)
 
 # Git worktrees
 bd worktree create <name>                 # Never `git worktree add`
