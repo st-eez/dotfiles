@@ -20,8 +20,6 @@ function startNsTestServer(port: number = 0) {
     hostname: '127.0.0.1',
     fetch(req) {
       const url = new URL(req.url);
-      // Serve ns-form.html for any path that looks like an NS record URL
-      // This simulates NetSuite serving the form at various URL patterns
       const pathname = url.pathname;
 
       let filePath: string;
@@ -30,7 +28,6 @@ function startNsTestServer(port: number = 0) {
         pathname.startsWith('/app/common/entity/') ||
         pathname.startsWith('/app/common/custom/')
       ) {
-        // Simulate NS record page — serve the mock form
         filePath = 'ns-form.html';
       } else if (pathname === '/' || pathname === '/ns-form.html') {
         filePath = 'ns-form.html';
@@ -74,24 +71,24 @@ afterAll(() => {
 // ─── Navigate to new record ────────────────────────────────────
 
 describe('ns navigate — new record', () => {
-  test('navigates to new salesorder (URL contains salesord slug)', async () => {
-    const result = JSON.parse(await nsNavigate(['salesorder'], bm));
+  test('navigates to new salesorder', async () => {
+    const output = await nsNavigate(['salesorder'], bm);
 
-    expect(result.ok).toBe(true);
-    expect(result.data.recordType).toBe('salesorder');
-    expect(result.data.url).toContain('/app/accounting/transactions/salesord.nl');
-    expect(result.data.mode).toBe('create');
-    expect(result.data.sessionValid).toBe(true);
-    expect(result.elapsedMs).toBeGreaterThanOrEqual(0);
+    expect(output.ok).toBe(true);
+    expect(output.display).toContain('NAVIGATE OK');
+    expect(output.display).toContain('salesorder');
+    expect(output.display).toContain('create');
+    expect(output.display).toContain('salesord.nl');
+    expect(output.metadata?.recordType).toBe('salesorder');
   });
 
-  test('navigates to new customer (entity URL path)', async () => {
-    const result = JSON.parse(await nsNavigate(['customer'], bm));
+  test('navigates to new customer', async () => {
+    const output = await nsNavigate(['customer'], bm);
 
-    expect(result.ok).toBe(true);
-    expect(result.data.recordType).toBe('customer');
-    expect(result.data.url).toContain('/app/common/entity/custjob.nl');
-    expect(result.data.mode).toBe('create');
+    expect(output.ok).toBe(true);
+    expect(output.display).toContain('NAVIGATE OK');
+    expect(output.display).toContain('customer');
+    expect(output.display).toContain('custjob.nl');
   });
 });
 
@@ -99,34 +96,35 @@ describe('ns navigate — new record', () => {
 
 describe('ns navigate — existing record', () => {
   test('navigates with --id flag (view mode)', async () => {
-    const result = JSON.parse(await nsNavigate(['salesorder', '--id', '12345'], bm));
+    const output = await nsNavigate(['salesorder', '--id', '12345'], bm);
 
-    expect(result.ok).toBe(true);
-    expect(result.data.recordType).toBe('salesorder');
-    expect(result.data.url).toContain('id=12345');
-    expect(result.data.mode).toBe('view');
+    expect(output.ok).toBe(true);
+    expect(output.display).toContain('salesorder');
+    expect(output.display).toContain('view');
+    expect(output.display).toContain('id=12345');
+    expect(output.metadata?.recordId).toBe('12345');
   });
 
   test('navigates with --id and --edit flags', async () => {
-    const result = JSON.parse(await nsNavigate(['salesorder', '--id', '12345', '--edit'], bm));
+    const output = await nsNavigate(['salesorder', '--id', '12345', '--edit'], bm);
 
-    expect(result.ok).toBe(true);
-    expect(result.data.recordType).toBe('salesorder');
-    expect(result.data.url).toContain('id=12345');
-    expect(result.data.url).toContain('e=T');
-    expect(result.data.mode).toBe('edit');
+    expect(output.ok).toBe(true);
+    expect(output.display).toContain('salesorder');
+    expect(output.display).toContain('edit');
+    expect(output.display).toContain('id=12345');
+    expect(output.display).toContain('e=T');
   });
 });
 
 // ─── Error cases ──────────────────────────────────────────────
 
 describe('ns navigate — errors', () => {
-  test('missing record type returns validation error', async () => {
-    const result = JSON.parse(await nsNavigate([], bm));
+  test('missing record type returns error', async () => {
+    const output = await nsNavigate([], bm);
 
-    expect(result.ok).toBe(false);
-    expect(result.error.type).toBe('ValidationError');
-    expect(result.error.message).toContain('Missing record type');
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('ns navigate failed');
+    expect(output.display).toContain('Missing record type');
   });
 });
 
@@ -134,10 +132,11 @@ describe('ns navigate — errors', () => {
 
 describe('ns navigate — custom records', () => {
   test('unknown record type falls back to custom record URL', async () => {
-    const result = JSON.parse(await nsNavigate(['mywidget'], bm));
+    const output = await nsNavigate(['mywidget'], bm);
 
-    expect(result.ok).toBe(true);
-    expect(result.data.recordType).toBe('mywidget');
-    expect(result.data.url).toContain('/app/common/custom/custrecordmywidget.nl');
+    expect(output.ok).toBe(true);
+    expect(output.display).toContain('NAVIGATE OK');
+    expect(output.display).toContain('mywidget');
+    expect(output.display).toContain('custrecordmywidget.nl');
   });
 });

@@ -11,6 +11,9 @@
  */
 
 import type { BrowserManager } from '../../core/browser-manager';
+import type { NsMetadata } from '../../core/activity';
+import type { NsCommandOutput } from '../format';
+import { formatNsError } from '../format';
 import type { NsCommandResult } from '../errors';
 import { RECORD_URL_MAP } from '../tier1';
 import { guardNsApi, detectSessionExpiry, nsOk, nsFail, notARecordPage, validationError } from '../errors';
@@ -46,31 +49,26 @@ function parseNavigateArgs(args: string[]): { recordType: string | null; id: str
   return { recordType, id, edit };
 }
 
-export async function nsNavigate(args: string[], bm: BrowserManager): Promise<string> {
+export async function nsNavigate(args: string[], bm: BrowserManager): Promise<NsCommandOutput> {
   const start = Date.now();
 
   const { recordType, id, edit } = parseNavigateArgs(args);
 
   if (!recordType) {
-    const result: NsCommandResult = nsFail(
-      validationError('Missing record type. Usage: ns navigate <recordType> [--id <num>] [--edit]'),
-      Date.now() - start,
-    );
-    return JSON.stringify(result);
+    const err = validationError('Missing record type. Usage: ns navigate <recordType> [--id <num>] [--edit]');
+    return { display: formatNsError('ns navigate', err), ok: false };
   }
 
-  return withMutex(nsMutex, async () => {
+  const result = await withMutex(nsMutex, async (): Promise<NsCommandResult<NsNavigateData>> => {
     try {
       const page = bm.getPage();
       const relativePath = RECORD_URL_MAP.buildUrl(recordType, id, edit);
 
       // Build full URL: use the current origin if on an NS page, otherwise just use the path
-      // (for real NS usage, page.goto with a relative path would work against the current origin)
       const currentUrl = page.url();
       let fullUrl: string;
       try {
         const origin = new URL(currentUrl).origin;
-        // If we're on a real NS page (not about:blank), use its origin
         if (origin && origin !== 'null' && !currentUrl.startsWith('about:')) {
           fullUrl = origin + relativePath;
         } else {
@@ -87,34 +85,44 @@ export async function nsNavigate(args: string[], bm: BrowserManager): Promise<st
 
       const sessionError = await detectSessionExpiry(target);
       if (sessionError) {
-        const result: NsCommandResult = nsFail(sessionError, Date.now() - start);
-        return JSON.stringify(result);
+        return nsFail(sessionError, Date.now() - start);
       }
 
       const apiError = await guardNsApi(target);
       if (apiError) {
-        const result: NsCommandResult = nsFail(apiError, Date.now() - start);
-        return JSON.stringify(result);
+        return nsFail(apiError, Date.now() - start);
       }
 
       const mode = await detectFormMode(target);
 
-      const data: NsNavigateData = {
-        url: page.url(),
-        recordType,
-        mode,
-        sessionValid: true,
-      };
-
-      const result: NsCommandResult<NsNavigateData> = nsOk(data, Date.now() - start);
-      return JSON.stringify(result);
+      return nsOk<NsNavigateData>(
+        { url: page.url(), recordType, mode, sessionValid: true },
+        Date.now() - start,
+      );
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      const result: NsCommandResult = nsFail(
+      return nsFail(
         notARecordPage(`Navigation failed: ${message}`),
         Date.now() - start,
       );
-      return JSON.stringify(result);
     }
   }, { label: 'ns navigate' });
+
+  if (!result.ok) {
+    return { display: formatNsError('ns navigate', result.error!), ok: false };
+  }
+
+  const d = result.data!;
+  const display = `NAVIGATE OK | ${d.recordType} (${d.mode}) | ${d.url}`;
+
+  const metadata: NsMetadata = { recordType: d.recordType };
+  const idMatch = d.url.match(/[?&]id=(\d+)/);
+  if (idMatch) metadata.recordId = idMatch[1];
+  if (/_SB\d*/i.test(d.url) || /sandbox/i.test(d.url)) {
+    metadata.environment = 'sandbox';
+  } else if (d.url.startsWith('http')) {
+    metadata.environment = 'production';
+  }
+
+  return { display, ok: true, metadata };
 }

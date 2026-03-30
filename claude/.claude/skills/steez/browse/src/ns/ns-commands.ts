@@ -49,7 +49,7 @@ export async function handleNsCommand(
 
   switch (nsCommand) {
     case 'navigate':
-      return wrapLegacyResult(await nsNavigate(args, browserManager));
+      return nsNavigate(args, browserManager);
 
     case 'inspect':
       return wrapLegacyResult(await nsInspect(args, browserManager));
@@ -67,10 +67,10 @@ export async function handleNsCommand(
       return wrapLegacyResult(await nsQuery(args, browserManager));
 
     case 'status':
-      return wrapLegacyResult(await nsStatus(args, browserManager));
+      return nsStatus(args, browserManager);
 
     case 'cancel':
-      return wrapLegacyResult(await nsCancel(args, browserManager));
+      return nsCancel(args, browserManager);
 
     case 'diff':
       return wrapLegacyResult(await nsDiff(args, browserManager));
@@ -79,7 +79,7 @@ export async function handleNsCommand(
       return wrapLegacyResult(await nsVerify(args, browserManager));
 
     case 'login':
-      return wrapLegacyResult(await nsLogin(args, browserManager));
+      return nsLogin(args, browserManager);
 
     default:
       return {

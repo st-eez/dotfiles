@@ -75,7 +75,6 @@ beforeAll(async () => {
 
 afterAll(() => {
   try { testServer.server.stop(); } catch {}
-  // Clean up temp dir
   try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch {}
   setTimeout(() => process.exit(0), 500);
 });
@@ -96,13 +95,11 @@ function createAuthConfig(
 describe('ns login — missing auth config', () => {
   test('returns helpful error when auth config does not exist', async () => {
     const fakePath = path.join(tmpDir, 'nonexistent-auth.json');
-    const result = JSON.parse(await nsLogin([], bm, fakePath, loginUrl));
+    const output = await nsLogin([], bm, fakePath, loginUrl);
 
-    expect(result.ok).toBe(false);
-    expect(result.error.type).toBe('ValidationError');
-    expect(result.error.message).toContain('Auth config not found');
-    expect(result.error.message).toContain('chmod 600');
-    expect(result.error.message).toContain('"accounts"');
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('ns login failed');
+    expect(output.display).toContain('Auth config not found');
   });
 });
 
@@ -114,14 +111,11 @@ describe('ns login — successful login', () => {
       'TEST_ACCT': { email: 'test@example.com', password: 'secret123' },
     });
 
-    const result = JSON.parse(
-      await nsLogin([], bm, authPath, loginUrl),
-    );
+    const output = await nsLogin([], bm, authPath, loginUrl);
 
-    expect(result.ok).toBe(true);
-    expect(result.data.loggedIn).toBe(true);
-    expect(result.data.account).toBe('TEST_ACCT');
-    expect(result.elapsedMs).toBeGreaterThanOrEqual(0);
+    expect(output.ok).toBe(true);
+    expect(output.display).toContain('LOGIN OK');
+    expect(output.display).toContain('TEST_ACCT');
   });
 });
 
@@ -134,13 +128,11 @@ describe('ns login — account selection', () => {
       'ACCT_2': { email: 'two@example.com', password: 'pass2' },
     });
 
-    const result = JSON.parse(
-      await nsLogin(['--account', 'ACCT_2'], bm, authPath, loginUrl),
-    );
+    const output = await nsLogin(['--account', 'ACCT_2'], bm, authPath, loginUrl);
 
-    expect(result.ok).toBe(true);
-    expect(result.data.account).toBe('ACCT_2');
-    expect(result.data.loggedIn).toBe(true);
+    expect(output.ok).toBe(true);
+    expect(output.display).toContain('LOGIN OK');
+    expect(output.display).toContain('ACCT_2');
   });
 
   test('returns error for non-existent account', async () => {
@@ -149,15 +141,13 @@ describe('ns login — account selection', () => {
       'ACCT_2': { email: 'two@example.com', password: 'pass2' },
     });
 
-    const result = JSON.parse(
-      await nsLogin(['--account', 'DOES_NOT_EXIST'], bm, authPath, loginUrl),
-    );
+    const output = await nsLogin(['--account', 'DOES_NOT_EXIST'], bm, authPath, loginUrl);
 
-    expect(result.ok).toBe(false);
-    expect(result.error.type).toBe('ValidationError');
-    expect(result.error.message).toContain('DOES_NOT_EXIST');
-    expect(result.error.message).toContain('ACCT_1');
-    expect(result.error.message).toContain('ACCT_2');
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('ns login failed');
+    expect(output.display).toContain('DOES_NOT_EXIST');
+    expect(output.display).toContain('ACCT_1');
+    expect(output.display).toContain('ACCT_2');
   });
 
   test('uses first account when no --account flag', async () => {
@@ -166,12 +156,10 @@ describe('ns login — account selection', () => {
       'OTHER_ACCT': { email: 'other@example.com', password: 'otherpass' },
     });
 
-    const result = JSON.parse(
-      await nsLogin([], bm, authPath, loginUrl),
-    );
+    const output = await nsLogin([], bm, authPath, loginUrl);
 
-    expect(result.ok).toBe(true);
-    expect(result.data.account).toBe('DEFAULT_ACCT');
+    expect(output.ok).toBe(true);
+    expect(output.display).toContain('DEFAULT_ACCT');
   });
 });
 
@@ -183,11 +171,10 @@ describe('ns login — auth config validation', () => {
     fs.writeFileSync(authPath, JSON.stringify({ accounts: {} }), 'utf-8');
     fs.chmodSync(authPath, 0o600);
 
-    const result = JSON.parse(await nsLogin([], bm, authPath, loginUrl));
+    const output = await nsLogin([], bm, authPath, loginUrl);
 
-    expect(result.ok).toBe(false);
-    expect(result.error.type).toBe('ValidationError');
-    expect(result.error.message).toContain('no accounts');
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('no accounts');
   });
 
   test('returns error for malformed JSON', async () => {
@@ -195,15 +182,13 @@ describe('ns login — auth config validation', () => {
     fs.writeFileSync(authPath, '{ not valid json', 'utf-8');
     fs.chmodSync(authPath, 0o600);
 
-    const result = JSON.parse(await nsLogin([], bm, authPath, loginUrl));
+    const output = await nsLogin([], bm, authPath, loginUrl);
 
-    expect(result.ok).toBe(false);
-    expect(result.error.type).toBe('ValidationError');
-    expect(result.error.message).toContain('Failed to read auth config');
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('Failed to read auth config');
   });
 
   test('returns error for insecure file permissions', async () => {
-    // Skip on Windows (no Unix perms)
     if (process.platform === 'win32') return;
 
     const authPath = path.join(tmpDir, `auth-perms-${Date.now()}.json`);
@@ -212,14 +197,13 @@ describe('ns login — auth config validation', () => {
       JSON.stringify({ accounts: { X: { email: 'a', password: 'b' } } }),
       'utf-8',
     );
-    fs.chmodSync(authPath, 0o644); // World-readable — should fail
+    fs.chmodSync(authPath, 0o644);
 
-    const result = JSON.parse(await nsLogin([], bm, authPath, loginUrl));
+    const output = await nsLogin([], bm, authPath, loginUrl);
 
-    expect(result.ok).toBe(false);
-    expect(result.error.type).toBe('ValidationError');
-    expect(result.error.message).toContain('insecure permissions');
-    expect(result.error.message).toContain('chmod 600');
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('insecure permissions');
+    expect(output.display).toContain('chmod 600');
   });
 });
 
@@ -235,16 +219,14 @@ describe('ns login — security question', () => {
       },
     });
 
-    const result = JSON.parse(
-      await nsLogin([], bm, authPath, securityLoginUrl),
-    );
+    const output = await nsLogin([], bm, authPath, securityLoginUrl);
 
-    expect(result.ok).toBe(true);
-    expect(result.data.loggedIn).toBe(true);
-    expect(result.data.account).toBe('SEC_ACCT');
+    expect(output.ok).toBe(true);
+    expect(output.display).toContain('LOGIN OK');
+    expect(output.display).toContain('SEC_ACCT');
   });
 
-  test('returns validation error when securityQuestions not configured', async () => {
+  test('returns error when securityQuestions not configured', async () => {
     const authPath = createAuthConfig({
       'NO_SEC_ACCT': {
         email: 'nosec@example.com',
@@ -252,16 +234,13 @@ describe('ns login — security question', () => {
       },
     });
 
-    const result = JSON.parse(
-      await nsLogin([], bm, authPath, securityLoginUrl),
-    );
+    const output = await nsLogin([], bm, authPath, securityLoginUrl);
 
-    expect(result.ok).toBe(false);
-    expect(result.error.type).toBe('ValidationError');
-    expect(result.error.message).toContain('securityQuestions');
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('securityQuestions');
   });
 
-  test('returns validation error when no question keyword matches', async () => {
+  test('returns error when no question keyword matches', async () => {
     const authPath = createAuthConfig({
       'WRONG_SEC_ACCT': {
         email: 'wrong@example.com',
@@ -270,32 +249,26 @@ describe('ns login — security question', () => {
       },
     });
 
-    const result = JSON.parse(
-      await nsLogin([], bm, authPath, securityLoginUrl),
-    );
+    const output = await nsLogin([], bm, authPath, securityLoginUrl);
 
-    expect(result.ok).toBe(false);
-    expect(result.error.type).toBe('ValidationError');
-    expect(result.error.message).toContain('not matched');
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('not matched');
   });
 });
 
-// ─── Result shape ──────────────────────────────────────────
+// ─── Output shape ────────────────────────────────────────────
 
-describe('ns login — result shape', () => {
-  test('result includes loggedIn status, account, and timing', async () => {
+describe('ns login — output shape', () => {
+  test('successful login has ok, display, and optional metadata', async () => {
     const authPath = createAuthConfig({
       'SHAPE_TEST': { email: 'shape@example.com', password: 'shapepass' },
     });
 
-    const result = JSON.parse(
-      await nsLogin([], bm, authPath, loginUrl),
-    );
+    const output = await nsLogin([], bm, authPath, loginUrl);
 
-    expect(typeof result.ok).toBe('boolean');
-    expect(typeof result.elapsedMs).toBe('number');
-    expect(result.elapsedMs).toBeGreaterThanOrEqual(0);
-    expect(typeof result.data.loggedIn).toBe('boolean');
-    expect(typeof result.data.account).toBe('string');
+    expect(output.ok).toBe(true);
+    expect(typeof output.display).toBe('string');
+    expect(output.display).toContain('LOGIN OK');
+    expect(output.display).toMatch(/\d+\.\d+s/); // elapsed time
   });
 });

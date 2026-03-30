@@ -37,6 +37,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import type { BrowserManager } from '../../core/browser-manager';
+import type { NsMetadata } from '../../core/activity';
+import type { NsCommandOutput } from '../format';
+import { formatNsError } from '../format';
 import type { NsCommandResult } from '../errors';
 import { nsOk, nsFail, validationError } from '../errors';
 import { withMutex, nsMutex } from '../mutex';
@@ -279,7 +282,7 @@ export async function nsLogin(
   bm: BrowserManager,
   _authPath?: string,
   _loginUrl?: string,
-): Promise<string> {
+): Promise<NsCommandOutput> {
   const start = Date.now();
   const authPath = _authPath ?? DEFAULT_AUTH_PATH;
   const loginUrl = _loginUrl ?? NS_LOGIN_URL;
@@ -287,11 +290,7 @@ export async function nsLogin(
   // 1. Read auth config
   const configOrError = readAuthConfig(authPath);
   if (typeof configOrError === 'string') {
-    const result: NsCommandResult = nsFail(
-      validationError(configOrError),
-      Date.now() - start,
-    );
-    return JSON.stringify(result);
+    return { display: formatNsError('ns login', validationError(configOrError)), ok: false };
   }
 
   const config = configOrError;
@@ -303,62 +302,51 @@ export async function nsLogin(
   // Handle --release: release all locks held by this process
   if (release) {
     releaseAllLocks();
-    const result: NsCommandResult = nsOk(
-      { loggedIn: false, account: '', released: true } as any,
-      Date.now() - start,
-    );
-    return JSON.stringify(result);
+    return { display: 'LOGIN OK | Locks released', ok: true };
   }
 
   let accountId: string;
   if (requestedAccount) {
     if (!config.accounts[requestedAccount]) {
-      const result: NsCommandResult = nsFail(
-        validationError(
+      return {
+        display: formatNsError('ns login', validationError(
           `Account "${requestedAccount}" not found in auth config. Available: ${accountIds.join(', ')}`,
-        ),
-        Date.now() - start,
-      );
-      return JSON.stringify(result);
+        )),
+        ok: false,
+      };
     }
     accountId = requestedAccount;
   } else {
-    // Pick first unlocked account
     const available = accountIds.find(id => !isLockValid(id));
     if (!available) {
-      const result: NsCommandResult = nsFail(
-        validationError(
+      return {
+        display: formatNsError('ns login', validationError(
           `All accounts are locked by other sessions. Available accounts: ${accountIds.join(', ')}. Use --release in the other session or wait for locks to expire (2h TTL).`,
-        ),
-        Date.now() - start,
-      );
-      return JSON.stringify(result);
+        )),
+        ok: false,
+      };
     }
     accountId = available;
   }
 
   // Acquire lock
   if (!acquireLock(accountId)) {
-    // Another process grabbed it between our check and acquire (race)
-    const result: NsCommandResult = nsFail(
-      validationError(
+    return {
+      display: formatNsError('ns login', validationError(
         `Account "${accountId}" was claimed by another session. Try again or specify --account <id>.`,
-      ),
-      Date.now() - start,
-    );
-    return JSON.stringify(result);
+      )),
+      ok: false,
+    };
   }
 
   const creds = config.accounts[accountId];
-  // Resolve actual NS account ID (slot key may differ, e.g. "5582598-sb2:account2")
   const nsAccountId = creds.accountId || accountId;
 
   // 3. Navigate and fill credentials under mutex
-  return withMutex(nsMutex, async () => {
+  const result = await withMutex(nsMutex, async (): Promise<NsCommandResult<NsLoginData>> => {
     try {
       const page = bm.getPage();
 
-      // Navigate to NS login page
       await page.goto(loginUrl, {
         waitUntil: 'domcontentloaded',
         timeout: 15000,
@@ -396,29 +384,23 @@ export async function nsLogin(
       ).count().then(c => c > 0).catch(() => false);
 
       if (has2FA) {
-        const data: NsLoginData = {
-          loggedIn: false,
-          account: nsAccountId,
-          slot: accountId,
-          requires2FA: true,
-        };
-        const result: NsCommandResult<NsLoginData> = nsOk(data, Date.now() - start);
-        return JSON.stringify(result);
+        return nsOk<NsLoginData>(
+          { loggedIn: false, account: nsAccountId, slot: accountId, requires2FA: true },
+          Date.now() - start,
+        );
       }
 
-      // Check for security question page (URL-based — the page has no unique element IDs)
+      // Check for security question page
       const onSecurityQuestionPage = new URL(currentUrl).pathname.toLowerCase().includes('securityquestions.nl');
 
       if (onSecurityQuestionPage) {
         if (!creds.securityQuestions || Object.keys(creds.securityQuestions).length === 0) {
-          const result: NsCommandResult = nsFail(
+          return nsFail(
             validationError('Security question page detected but no securityQuestions configured in auth.json'),
             Date.now() - start,
           );
-          return JSON.stringify(result);
         }
 
-        // Get visible page text to find the question (innerText excludes <script> content)
         const pageText = await page.locator('body').innerText().catch(() => null);
 
         if (pageText) {
@@ -433,7 +415,6 @@ export async function nsLogin(
           }
 
           if (answer) {
-            // The answer field may be type="text" or type="password" (when "Hide Answer" is checked)
             const answerField = page.locator('input[name="answer"], input[type="text"]:visible, input[type="password"]:visible').first();
             await answerField.fill(answer);
 
@@ -442,14 +423,12 @@ export async function nsLogin(
             ).first();
             await securitySubmit.click();
 
-            // Wait for navigation away from the security question page
             await page.waitForURL((url) => !url.pathname.toLowerCase().includes('securityquestions.nl'), { timeout: 15000 });
           } else {
-            const result: NsCommandResult = nsFail(
+            return nsFail(
               validationError(`Security question not matched. Page text: "${pageText.trim().slice(0, 200)}"`),
               Date.now() - start,
             );
-            return JSON.stringify(result);
           }
         }
       }
@@ -458,30 +437,57 @@ export async function nsLogin(
       const finalUrl = page.url();
       const isLoggedIn = await detectLoginSuccess(page, finalUrl);
 
-      const data: NsLoginData = {
-        loggedIn: isLoggedIn,
-        account: nsAccountId,
-        slot: accountId,
-        ...(isLoggedIn ? {} : { error: `Landed on ${finalUrl} — login may have failed` }),
-      };
+      if (!isLoggedIn) {
+        return nsFail(
+          validationError(`Landed on ${finalUrl} — login may have failed`),
+          Date.now() - start,
+        );
+      }
 
-      const result: NsCommandResult<NsLoginData> = nsOk(data, Date.now() - start);
-      return JSON.stringify(result);
+      return nsOk<NsLoginData>(
+        { loggedIn: true, account: nsAccountId, slot: accountId },
+        Date.now() - start,
+      );
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      const data: NsLoginData = {
-        loggedIn: false,
-        account: nsAccountId,
-        slot: accountId,
-        error: message,
-      };
-      const result: NsCommandResult<NsLoginData> = nsFail(
+      return nsFail(
         validationError(`Login failed: ${message}`),
         Date.now() - start,
       );
-      return JSON.stringify(result);
     }
   }, { label: 'ns login', operationTimeoutMs: 60000 });
+
+  // ── Format output ──────────────────────────────────────────
+  if (!result.ok) {
+    return { display: formatNsError('ns login', result.error!), ok: false };
+  }
+
+  const d = result.data!;
+  const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+
+  if (d.requires2FA) {
+    return {
+      display: `LOGIN PENDING | Account: ${d.account} | Requires 2FA — enter code manually`,
+      ok: true,
+      metadata: buildLoginMetadata(d.account),
+    };
+  }
+
+  return {
+    display: `LOGIN OK | Account: ${d.account} | ${elapsed}s`,
+    ok: true,
+    metadata: buildLoginMetadata(d.account),
+  };
+}
+
+function buildLoginMetadata(account: string): NsMetadata {
+  const metadata: NsMetadata = {};
+  if (/_SB\d*/i.test(account) || /sandbox/i.test(account)) {
+    metadata.environment = 'sandbox';
+  } else {
+    metadata.environment = 'production';
+  }
+  return metadata;
 }
 
 /**

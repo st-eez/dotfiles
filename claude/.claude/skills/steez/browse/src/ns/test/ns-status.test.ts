@@ -54,55 +54,50 @@ afterAll(() => {
 // ─── ns status ─────────────────────────────────────────────
 
 describe('ns status', () => {
-  test('returns status on a valid NS form page', async () => {
+  test('returns STATUS OK on a valid NS form page', async () => {
     const page = bm.getPage();
     await page.goto(baseUrl + '/ns-form.html');
 
-    const raw = await nsStatus([], bm);
-    const result = JSON.parse(raw);
+    const output = await nsStatus([], bm);
 
-    expect(result.ok).toBe(true);
-    expect(result.data.url).toContain('/ns-form.html');
-    expect(result.data.sessionValid).toBe(true);
-    expect(result.data.mode).toBe('create');
-    expect(result.data.modal).toBeNull();
-    expect(typeof result.elapsedMs).toBe('number');
+    expect(output.ok).toBe(true);
+    expect(output.display).toContain('STATUS OK');
+    expect(output.display).toContain('create');
+    expect(output.display).toContain('Session valid');
   });
 
-  test('returns NotARecordPage on about:blank', async () => {
+  test('returns error on about:blank', async () => {
     const page = bm.getPage();
     await page.goto('about:blank');
 
-    const raw = await nsStatus([], bm);
-    const result = JSON.parse(raw);
+    const output = await nsStatus([], bm);
 
-    expect(result.ok).toBe(false);
-    expect(result.error.type).toBe('NotARecordPage');
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('ns status failed');
+    expect(output.display).toContain('NotARecordPage');
 
     // Navigate back for subsequent tests
     await page.goto(baseUrl + '/ns-form.html');
   });
 
-  test('returns sessionValid: true on a normal page', async () => {
+  test('shows Session valid on a normal page', async () => {
     const page = bm.getPage();
     await page.goto(baseUrl + '/ns-form.html');
 
-    const raw = await nsStatus([], bm);
-    const result = JSON.parse(raw);
+    const output = await nsStatus([], bm);
 
-    expect(result.ok).toBe(true);
-    expect(result.data.sessionValid).toBe(true);
+    expect(output.ok).toBe(true);
+    expect(output.display).toContain('Session valid');
   });
 
   test('detects edit mode from URL params', async () => {
     const page = bm.getPage();
     await page.goto(baseUrl + '/ns-form.html?id=123&e=T');
 
-    const raw = await nsStatus([], bm);
-    const result = JSON.parse(raw);
+    const output = await nsStatus([], bm);
 
-    expect(result.ok).toBe(true);
-    expect(result.data.mode).toBe('edit');
+    expect(output.ok).toBe(true);
+    expect(output.display).toContain('edit');
 
     await page.goto(baseUrl + '/ns-form.html');
   });
@@ -111,25 +106,23 @@ describe('ns status', () => {
     const page = bm.getPage();
     await page.goto(baseUrl + '/ns-form.html?id=456');
 
-    const raw = await nsStatus([], bm);
-    const result = JSON.parse(raw);
+    const output = await nsStatus([], bm);
 
-    expect(result.ok).toBe(true);
-    expect(result.data.mode).toBe('view');
+    expect(output.ok).toBe(true);
+    expect(output.display).toContain('view');
 
     await page.goto(baseUrl + '/ns-form.html');
   });
 
-  test('recordType is null for non-NS URL patterns', async () => {
+  test('shows unknown for non-NS URL patterns', async () => {
     const page = bm.getPage();
     await page.goto(baseUrl + '/ns-form.html');
 
-    const raw = await nsStatus([], bm);
-    const result = JSON.parse(raw);
+    const output = await nsStatus([], bm);
 
-    expect(result.ok).toBe(true);
+    expect(output.ok).toBe(true);
     // Local test server URL does not match any RECORD_URL_MAP slug
-    expect(result.data.recordType).toBeNull();
+    expect(output.display).toContain('unknown');
   });
 
   test('detects visible DOM modal', async () => {
@@ -137,13 +130,11 @@ describe('ns status', () => {
     await page.goto(baseUrl + '/ns-form.html');
     await page.evaluate(() => (window as any).__showError('#_err_alert'));
 
-    const raw = await nsStatus([], bm);
-    const result = JSON.parse(raw);
+    const output = await nsStatus([], bm);
 
-    expect(result.ok).toBe(true);
-    expect(result.data.modal).not.toBeNull();
-    expect(result.data.modal.type).toBe('error');
-    expect(result.data.modal.message).toContain('Validation error');
+    expect(output.ok).toBe(true);
+    expect(output.display).toContain('Modal:');
+    expect(output.display).toContain('error');
 
     // Clean up
     await page.evaluate(() => (window as any).__hideError('#_err_alert'));

@@ -54,40 +54,37 @@ afterAll(() => {
 // ─── ns cancel ─────────────────────────────────────────────
 
 describe('ns cancel', () => {
-  test('cancel on a valid NS page returns cancelled: true', async () => {
+  test('cancel on a valid NS page returns CANCEL OK', async () => {
     const page = bm.getPage();
     await page.goto(baseUrl + '/ns-form.html');
 
-    const raw = await nsCancel([], bm);
-    const result = JSON.parse(raw);
+    const output = await nsCancel([], bm);
 
-    expect(result.ok).toBe(true);
-    expect(result.data.cancelled).toBe(true);
-    expect(typeof result.elapsedMs).toBe('number');
+    expect(output.ok).toBe(true);
+    expect(output.display).toContain('CANCEL OK');
   });
 
-  test('cancel on non-NS page returns NotARecordPage error', async () => {
+  test('cancel on non-NS page returns error', async () => {
     const page = bm.getPage();
     await page.goto('about:blank');
 
-    const raw = await nsCancel([], bm);
-    const result = JSON.parse(raw);
+    const output = await nsCancel([], bm);
 
-    expect(result.ok).toBe(false);
-    expect(result.error.type).toBe('NotARecordPage');
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('ns cancel failed');
+    expect(output.display).toContain('NotARecordPage');
 
     // Navigate back for subsequent tests
     await page.goto(baseUrl + '/ns-form.html');
   });
 
-  test('dialogs array is present in result data', async () => {
+  test('successful cancel has no dialogs line when empty', async () => {
     const page = bm.getPage();
     await page.goto(baseUrl + '/ns-form.html');
 
-    const raw = await nsCancel([], bm);
-    const result = JSON.parse(raw);
+    const output = await nsCancel([], bm);
 
-    expect(result.ok).toBe(true);
-    expect(Array.isArray(result.data.dialogs)).toBe(true);
+    expect(output.ok).toBe(true);
+    expect(output.display).not.toContain('Dialogs:');
   });
 });
