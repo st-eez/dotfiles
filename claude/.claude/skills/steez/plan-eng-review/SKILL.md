@@ -34,6 +34,13 @@ mkdir -p "$STEEZ_HOME/analytics"
 echo '{"skill":"steez-plan-eng-review","ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","repo":"'$(basename "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null || echo "unknown")'"}'  >> "$STEEZ_HOME/analytics/skill-usage.jsonl" 2>/dev/null || true
 ```
 
+## Beads Context
+
+```bash
+# Beads context — shows current bead, suggested skill, ready work (non-blocking)
+"$HOME/.claude/skills/steez/bin/steez-bd" resume 2>/dev/null || true
+```
+
 If `PROACTIVE` is `"false"`, do not proactively suggest steez skills AND do not
 auto-invoke skills based on conversation context. Only run skills the user explicitly
 types (e.g., /steez-qa, /steez-ship). If you would have auto-invoked a skill, instead briefly say:
@@ -786,6 +793,24 @@ Format: `Lane A: step1 → step2 (sequential, shared models/)` / `Lane B: step3 
 3. **Execution order** — which lanes launch in parallel, which wait. Example: "Launch A + B in parallel worktrees. Merge both. Then C."
 
 4. **Conflict flags** — if two parallel lanes touch the same module directory, flag it: "Lanes X and Y both touch module/ — potential merge conflict. Consider sequential execution or careful coordination."
+
+### Beads Integration (completion)
+
+If the Beads Context preamble showed a bead with label `skill:eng-review`, hand off the review results:
+
+```bash
+# Hand off eng review results to the bead (non-blocking)
+_ENG_BEAD_ID="BEAD_ID_FROM_PREAMBLE"
+if [ -n "$_ENG_BEAD_ID" ] && [ "$_ENG_BEAD_ID" != "none" ]; then
+  "$HOME/.claude/skills/steez/bin/steez-bd" handoff "$_ENG_BEAD_ID" "Eng review complete. Status: STATUS. Issues: N. Test gaps: N." --close 2>/dev/null || true
+fi
+```
+
+Replace `BEAD_ID_FROM_PREAMBLE` with the bead ID shown by the Beads Context preamble.
+Replace `STATUS` and `N` values from the Completion Summary.
+Closing the eng review bead auto-unblocks the implement bead (via bd dependency).
+
+If no bead was shown in the preamble, skip this step.
 
 ### Completion summary
 At the end of the review, fill in and display this summary so the user can see all findings at a glance:

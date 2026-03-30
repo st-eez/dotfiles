@@ -37,6 +37,13 @@ mkdir -p "$STEEZ_HOME/analytics"
 echo '{"skill":"steez-plan-ceo-review","ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","repo":"'$(basename "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null || echo "unknown")'"}'  >> "$STEEZ_HOME/analytics/skill-usage.jsonl" 2>/dev/null || true
 ```
 
+## Beads Context
+
+```bash
+# Beads context — shows current bead, suggested skill, ready work (non-blocking)
+"$HOME/.claude/skills/steez/bin/steez-bd" resume 2>/dev/null || true
+```
+
 If `PROACTIVE` is `"false"`, do not proactively suggest steez skills AND do not
 auto-invoke skills based on conversation context. Only run skills the user explicitly
 types (e.g., /steez-plan-ceo-review, /steez-ship). If you would have auto-invoked a skill, instead briefly say:
@@ -1173,6 +1180,24 @@ rm -f ~/.steez/projects/$SLUG/*-$BRANCH-ceo-handoff-*.md 2>/dev/null || true
 ```
 
 ## Review Log
+
+### Beads Integration (completion)
+
+If the Beads Context preamble showed a bead with label `skill:ceo-review`, hand off the review results:
+
+```bash
+# Hand off CEO review results to the bead (non-blocking)
+_CEO_BEAD_ID="BEAD_ID_FROM_PREAMBLE"
+if [ -n "$_CEO_BEAD_ID" ] && [ "$_CEO_BEAD_ID" != "none" ]; then
+  "$HOME/.claude/skills/steez/bin/steez-bd" handoff "$_CEO_BEAD_ID" "CEO review complete. Status: STATUS. Mode: MODE. Unresolved: N." --close 2>/dev/null || true
+fi
+```
+
+Replace `BEAD_ID_FROM_PREAMBLE` with the bead ID shown by the Beads Context preamble.
+Replace `STATUS`, `MODE`, and `N` with actual values from the Completion Summary.
+Closing the CEO review bead auto-unblocks the eng review bead (via bd dependency).
+
+If no bead was shown in the preamble, skip this step.
 
 After producing the Completion Summary above, persist the review result.
 

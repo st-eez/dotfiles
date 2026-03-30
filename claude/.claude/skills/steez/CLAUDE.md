@@ -23,6 +23,10 @@ steez-slug                       # git remote → owner-repo slug
 steez-diff-scope                 # categorize diff as frontend/backend/prompts/tests/docs/config
 steez-review-log                 # append JSON review entry to project log
 steez-review-read                # read review log + config for Review Readiness Dashboard
+steez-bd resume                  # session brief: current bead, suggested skill, ready work
+steez-bd start <id> [skill]      # claim bead + optional skill tag
+steez-bd emit-finding <id> "t"   # create linked finding bead
+steez-bd handoff <id> "s" [--close]  # append note + optional close
 ```
 
 `bun test` runs before every commit to browse source. Both core and NS tests
@@ -194,6 +198,13 @@ steez-config ← steez-review-read (reads skip_eng_review)
              ← all skills (reads proactive in preamble)
 
 steez-diff-scope — standalone, no dependencies
+
+steez-bd ← all skills (beads context in preamble, non-blocking)
+         ← office-hours (chain creation after design doc approved)
+         ← plan-ceo-review (handoff at completion)
+         ← plan-eng-review (handoff at completion)
+         ← ship (handoff at completion, emit-finding for issues)
+  Depends on: bd CLI (beads), jq (macOS system binary)
 ```
 
 ## Search before building

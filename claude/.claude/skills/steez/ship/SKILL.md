@@ -40,6 +40,13 @@ mkdir -p "$STEEZ_HOME/analytics"
 echo '{"skill":"steez-ship","ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","repo":"'$(basename "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null || echo "unknown")'"}'  >> "$STEEZ_HOME/analytics/skill-usage.jsonl" 2>/dev/null || true
 ```
 
+## Beads Context
+
+```bash
+# Beads context — shows current bead, suggested skill, ready work (non-blocking)
+"$HOME/.claude/skills/steez/bin/steez-bd" resume 2>/dev/null || true
+```
+
 If `PROACTIVE` is `"false"`, do not proactively suggest steez skills AND do not
 auto-invoke skills based on conversation context. Only run skills the user explicitly
 types (e.g., /steez-qa, /steez-ship). If you would have auto-invoked a skill, instead briefly say:
@@ -1747,6 +1754,30 @@ Print the branch name, remote URL, and instruct the user to create the PR/MR man
 **Output the PR/MR URL** — then proceed to Step 8.5.
 
 ---
+
+## Step 8.25: Beads Integration (completion)
+
+If the Beads Context preamble showed a bead with label `skill:implement`, hand off the ship results:
+
+```bash
+# Hand off ship results to the implement bead (non-blocking)
+_IMPL_BEAD_ID="BEAD_ID_FROM_PREAMBLE"
+if [ -n "$_IMPL_BEAD_ID" ] && [ "$_IMPL_BEAD_ID" != "none" ]; then
+  "$HOME/.claude/skills/steez/bin/steez-bd" handoff "$_IMPL_BEAD_ID" "Shipped. PR: PR_URL. Branch: BRANCH." --close 2>/dev/null || true
+fi
+```
+
+Replace `BEAD_ID_FROM_PREAMBLE` with the bead ID shown by the Beads Context preamble.
+Replace `PR_URL` and `BRANCH` with actual values from Step 8.
+Closing the implement bead completes the full pipeline (design -> CEO -> eng -> implement).
+
+Use `steez-bd emit-finding` for any issues discovered during ship that need follow-up:
+```bash
+# Example: test failure that was skipped needs follow-up
+"$HOME/.claude/skills/steez/bin/steez-bd" emit-finding "$_IMPL_BEAD_ID" "Flaky test in auth.test.ts needs investigation" --type task --priority 2 2>/dev/null || true
+```
+
+If no bead was shown in the preamble, skip this step.
 
 ## Step 8.5: Auto-invoke /steez-document-release
 

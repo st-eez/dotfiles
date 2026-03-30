@@ -37,6 +37,13 @@ mkdir -p "$STEEZ_HOME/analytics"
 echo '{"skill":"steez-design-shotgun","ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","repo":"'$(basename "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null || echo "unknown")'"}'  >> "$STEEZ_HOME/analytics/skill-usage.jsonl" 2>/dev/null || true
 ```
 
+## Beads Context
+
+```bash
+# Beads context — shows current bead, suggested skill, ready work (non-blocking)
+"$HOME/.claude/skills/steez/bin/steez-bd" resume 2>/dev/null || true
+```
+
 If `PROACTIVE` is `"false"`, do not proactively suggest steez skills AND do not
 auto-invoke skills based on conversation context. Only run skills the user explicitly
 types (e.g., /steez-qa, /steez-ship). If you would have auto-invoked a skill, instead briefly say:

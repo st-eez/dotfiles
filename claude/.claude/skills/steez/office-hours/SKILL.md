@@ -38,6 +38,13 @@ mkdir -p "$STEEZ_HOME/analytics"
 echo '{"skill":"steez-office-hours","ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","repo":"'$(basename "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null || echo "unknown")'"}'  >> "$STEEZ_HOME/analytics/skill-usage.jsonl" 2>/dev/null || true
 ```
 
+## Beads Context
+
+```bash
+# Beads context — shows current bead, suggested skill, ready work (non-blocking)
+"$HOME/.claude/skills/steez/bin/steez-bd" resume 2>/dev/null || true
+```
+
 If `PROACTIVE` is `"false"`, do not proactively suggest steez skills AND do not
 auto-invoke skills based on conversation context. Only run skills the user explicitly
 types (e.g., /steez-office-hours, /steez-ship). If you would have auto-invoked a skill, instead briefly say:
@@ -1097,6 +1104,40 @@ Present the reviewed design doc to the user via AskUserQuestion:
 - A) Approve — mark Status: APPROVED and proceed to handoff
 - B) Revise — specify which sections need changes (loop back to revise those sections)
 - C) Start over — return to Phase 2
+
+---
+
+## Beads Integration
+
+After the design doc is APPROVED (and spec review loop completes), create the bead pipeline chain.
+This makes the downstream workflow (CEO review -> eng review -> implement) visible in `bd graph`
+and enables cross-session continuity via `steez-bd resume`.
+
+**All commands must be in a single bash block** (variables don't persist between blocks):
+
+```bash
+# Create bead pipeline chain
+_DESIGN_TITLE="$(head -1 "$DESIGN" 2>/dev/null | sed 's/^# //' || echo 'Untitled design')"
+PARENT=$(bd create --title="Design: $_DESIGN_TITLE" --type=feature --priority=2 --silent 2>/dev/null) || true
+if [ -n "$PARENT" ]; then
+  CEO=$(bd create --title="CEO review: $_DESIGN_TITLE" --type=task --priority=2 --parent="$PARENT" --silent 2>/dev/null) || true
+  ENG=$(bd create --title="Eng review: $_DESIGN_TITLE" --type=task --priority=2 --parent="$PARENT" --silent 2>/dev/null) || true
+  IMPL=$(bd create --title="Implement: $_DESIGN_TITLE" --type=task --priority=2 --parent="$PARENT" --silent 2>/dev/null) || true
+  [ -n "$CEO" ] && [ -n "$ENG" ] && bd dep add "$ENG" "$CEO" >/dev/null 2>&1 || true
+  [ -n "$ENG" ] && [ -n "$IMPL" ] && bd dep add "$IMPL" "$ENG" >/dev/null 2>&1 || true
+  [ -n "$CEO" ] && bd tag "$CEO" skill:ceo-review >/dev/null 2>&1 || true
+  [ -n "$ENG" ] && bd tag "$ENG" skill:eng-review >/dev/null 2>&1 || true
+  [ -n "$IMPL" ] && bd tag "$IMPL" skill:implement >/dev/null 2>&1 || true
+  echo "Bead chain: $PARENT -> $CEO -> $ENG -> $IMPL"
+  "$HOME/.claude/skills/steez/bin/steez-bd" handoff "$PARENT" "Design doc approved. Path: $DESIGN" 2>/dev/null || true
+else
+  echo "steez-bd: could not create bead chain (bd unavailable or not in beads project)"
+fi
+```
+
+Tell the user: "Created bead pipeline: [PARENT] -> [CEO] -> [ENG] -> [IMPL]. Run `bd ready` to see next available work, or `bd graph [PARENT]` to visualize the chain."
+
+If chain creation fails (bd not available, not in a beads project), proceed normally. The chain is a bonus, not a gate.
 
 ---
 

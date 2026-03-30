@@ -1,0 +1,276 @@
+#!/usr/bin/env bash
+# steez-bd — standardized beads integration for steez workflow skills
+#
+# Usage:
+#   steez-bd resume                                    — session brief (what bead, what next)
+#   steez-bd start <bead-id> [skill-name]              — claim bead + optional skill tag
+#   steez-bd emit-finding <parent-id> "<title>" [opts] — create linked finding bead
+#   steez-bd handoff <bead-id> "<summary>" [--close]   — append note + optional close
+#
+# Options for emit-finding:
+#   --priority N    — priority 0-4 (default: 2)
+#   --type T        — bug or task (default: bug)
+set -euo pipefail
+
+# Guard: bd must be available
+if ! command -v bd >/dev/null 2>&1; then
+  echo "steez-bd: bd not found in PATH. Install beads first." >&2
+  exit 1
+fi
+
+# Guard: must be in a beads project
+if ! bd list --limit=0 >/dev/null 2>&1; then
+  echo "steez-bd: not in a beads project (no .beads/ found)." >&2
+  exit 1
+fi
+
+cmd_resume() {
+  # Collect in-progress beads
+  local in_progress
+  in_progress=$(bd list --status=in_progress --json --limit=10 2>/dev/null || echo "[]")
+  local ip_count
+  ip_count=$(echo "$in_progress" | jq 'length')
+
+  # Collect ready beads
+  local ready
+  ready=$(bd ready --json --limit=10 2>/dev/null || echo "[]")
+  local ready_count
+  ready_count=$(echo "$ready" | jq 'length')
+
+  if [ "$ip_count" -eq 0 ] && [ "$ready_count" -eq 0 ]; then
+    echo "No active or ready beads."
+    return 0
+  fi
+
+  if [ "$ip_count" -gt 1 ]; then
+    echo "WARNING: $ip_count beads in progress"
+    echo ""
+  fi
+
+  # Show each in-progress bead
+  if [ "$ip_count" -gt 0 ]; then
+    local ids
+    ids=$(echo "$in_progress" | jq -r '.[].id')
+    for id in $ids; do
+      _show_bead_brief "$id" "in_progress"
+      echo ""
+    done
+  fi
+
+  # If no in-progress, show ready beads
+  if [ "$ip_count" -eq 0 ]; then
+    echo "READY BEADS: $ready_count"
+    if [ "$ready_count" -le 5 ]; then
+      echo "$ready" | jq -r '.[] | "  \(.id) — \(.title)"'
+    else
+      echo "$ready" | jq -r '.[:5][] | "  \(.id) — \(.title)"'
+      echo "  ... and $(( ready_count - 5 )) more"
+    fi
+
+    # Check first ready bead for skill label
+    local first_id
+    first_id=$(echo "$ready" | jq -r '.[0].id // empty')
+    if [ -n "$first_id" ]; then
+      local skill_label
+      skill_label=$(_get_skill_label "$first_id")
+      if [ -n "$skill_label" ]; then
+        echo ""
+        echo "SUGGESTED SKILL: /steez-$skill_label (from $first_id)"
+      fi
+    fi
+  fi
+
+  # Also show ready count if there are in-progress beads
+  if [ "$ip_count" -gt 0 ] && [ "$ready_count" -gt 0 ]; then
+    echo "READY BEADS: $ready_count"
+    if [ "$ready_count" -le 5 ]; then
+      echo "$ready" | jq -r '.[] | "  \(.id) — \(.title)"'
+    else
+      echo "$ready" | jq -r '.[:5][] | "  \(.id) — \(.title)"'
+      echo "  ... and $(( ready_count - 5 )) more"
+    fi
+  fi
+}
+
+_show_bead_brief() {
+  local id="$1"
+  local status="$2"
+
+  # Get detail (includes labels if they exist)
+  local detail
+  detail=$(bd show "$id" --json 2>/dev/null || echo "[]")
+  local title
+  title=$(echo "$detail" | jq -r '.[0].title // "unknown"')
+
+  echo "CURRENT BEAD: $id — $title"
+  echo "STATUS: $status"
+
+  # Parent (from show detail — check if this bead has a parent)
+  local parent_info
+  parent_info=$(echo "$detail" | jq -r '.[0].parent // empty' 2>/dev/null || true)
+  if [ -n "$parent_info" ]; then
+    echo "PARENT: $parent_info"
+  else
+    echo "PARENT: none"
+  fi
+
+  # Children
+  local children
+  children=$(bd children "$id" --json 2>/dev/null || echo "[]")
+  local child_count
+  child_count=$(echo "$children" | jq 'length' 2>/dev/null || echo "0")
+  if [ "$child_count" -gt 0 ]; then
+    echo "CHILDREN: $(echo "$children" | jq -r '[.[].id] | join(", ")')"
+  else
+    echo "CHILDREN: none"
+  fi
+
+  # Last note (from comments)
+  local comments
+  comments=$(bd comments "$id" --json 2>/dev/null || echo "[]")
+  local last_note
+  last_note=$(echo "$comments" | jq -r 'if length > 0 then .[-1].text // .[-1].body // .[-1].content // "none" else "none" end' 2>/dev/null || echo "none")
+  if [ "$last_note" = "none" ] || [ -z "$last_note" ]; then
+    echo "LAST NOTE: none"
+  else
+    # Truncate long notes to first line
+    echo "LAST NOTE: $(echo "$last_note" | head -1 | cut -c1-120)"
+  fi
+
+  # Skill label
+  local skill_label
+  skill_label=$(_get_skill_label "$id")
+  if [ -n "$skill_label" ]; then
+    echo "SUGGESTED SKILL: /steez-$skill_label"
+  else
+    echo "SUGGESTED SKILL: none"
+  fi
+}
+
+_get_skill_label() {
+  local id="$1"
+  # bd show --json includes labels array when present
+  local labels
+  labels=$(bd show "$id" --json 2>/dev/null | jq -r '.[0].labels // [] | .[]' 2>/dev/null || true)
+  # Find skill:* label
+  echo "$labels" | grep '^skill:' | head -1 | sed 's/^skill://' || true
+}
+
+cmd_start() {
+  local bead_id="${1:?Usage: steez-bd start <bead-id> [skill-name]}"
+  local skill_name="${2:-}"
+
+  # Verify bead exists
+  if ! bd show "$bead_id" >/dev/null 2>&1; then
+    echo "steez-bd: bead $bead_id not found." >&2
+    exit 1
+  fi
+
+  # Check if blocked
+  local status
+  status=$(bd show "$bead_id" --json 2>/dev/null | jq -r '.[0].status // "unknown"')
+  if [ "$status" = "blocked" ]; then
+    echo "steez-bd: bead $bead_id is blocked." >&2
+    bd show "$bead_id" 2>/dev/null
+    exit 1
+  fi
+
+  # Claim (idempotent)
+  bd update "$bead_id" --claim >/dev/null 2>&1
+
+  # Optional skill tag
+  if [ -n "$skill_name" ]; then
+    bd tag "$bead_id" "skill:$skill_name" >/dev/null 2>&1
+  fi
+
+  echo "Started: $bead_id ($(bd show "$bead_id" --json 2>/dev/null | jq -r '.[0].title // "unknown"'))"
+}
+
+cmd_emit_finding() {
+  local parent_id="${1:?Usage: steez-bd emit-finding <parent-id> \"<title>\" [--priority N] [--type T]}"
+  shift
+  local title="${1:?Usage: steez-bd emit-finding <parent-id> \"<title>\" [--priority N] [--type T]}"
+  shift
+
+  local priority=2
+  local finding_type="bug"
+
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --priority) priority="${2:?--priority requires a value}"; shift 2 ;;
+      --type) finding_type="${2:?--type requires a value}"; shift 2 ;;
+      *) echo "steez-bd emit-finding: unknown option $1" >&2; exit 1 ;;
+    esac
+  done
+
+  # Verify parent exists
+  if ! bd show "$parent_id" >/dev/null 2>&1; then
+    echo "steez-bd: parent bead $parent_id not found." >&2
+    exit 1
+  fi
+
+  # Create finding bead
+  local new_id
+  new_id=$(bd create --title="$title" --type="$finding_type" --priority="$priority" --parent="$parent_id" --silent 2>/dev/null)
+
+  # Link provenance (non-fatal — parent-child already established via --parent)
+  bd link "$new_id" "$parent_id" --type discovered-from >/dev/null 2>&1 || true
+
+  echo "Finding: $new_id — $title (linked to $parent_id)"
+}
+
+cmd_handoff() {
+  local bead_id="${1:?Usage: steez-bd handoff <bead-id> \"<summary>\" [--close]}"
+  shift
+  local summary="${1:?Usage: steez-bd handoff <bead-id> \"<summary>\" [--close]}"
+  shift
+
+  local do_close=false
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --close) do_close=true; shift ;;
+      *) echo "steez-bd handoff: unknown option $1" >&2; exit 1 ;;
+    esac
+  done
+
+  # Check if bead exists
+  if ! bd show "$bead_id" >/dev/null 2>&1; then
+    echo "steez-bd: bead $bead_id not found." >&2
+    exit 1
+  fi
+
+  # Check if already closed (warn but continue)
+  local status
+  status=$(bd show "$bead_id" --json 2>/dev/null | jq -r '.[0].status // "unknown"')
+  if [ "$status" = "closed" ]; then
+    echo "steez-bd: warning — bead $bead_id is already closed. Appending note anyway." >&2
+  fi
+
+  # Append note via stdin to handle special characters
+  echo "$summary" | bd note "$bead_id" --stdin >/dev/null 2>&1
+
+  if [ "$do_close" = true ] && [ "$status" != "closed" ]; then
+    bd close "$bead_id" >/dev/null 2>&1
+    echo "Handed off and closed: $bead_id"
+  else
+    echo "Handed off: $bead_id"
+  fi
+}
+
+# Command dispatch
+case "${1:-}" in
+  resume)  shift; cmd_resume "$@" ;;
+  start)   shift; cmd_start "$@" ;;
+  emit-finding) shift; cmd_emit_finding "$@" ;;
+  handoff) shift; cmd_handoff "$@" ;;
+  *)
+    echo "Usage: steez-bd {resume|start|emit-finding|handoff} [args]"
+    echo ""
+    echo "Commands:"
+    echo "  resume                              Show session brief (what bead, what next)"
+    echo "  start <id> [skill]                  Claim bead + optional skill tag"
+    echo "  emit-finding <parent> \"title\" [opts] Create linked finding bead"
+    echo "  handoff <id> \"summary\" [--close]    Append note + optional close"
+    exit 1
+    ;;
+esac
