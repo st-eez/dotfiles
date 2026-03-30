@@ -46,6 +46,86 @@ export class BrowserManager {
   /** Server port — set after server starts, used by cookie-import-browser command */
   public serverPort: number = 0;
 
+  /**
+   * Browser-side function that patches the global getFuncArgs function (from NLUtil.js).
+   * Extracted as a static so it can be passed to both context.addInitScript()
+   * (future navigations) and page.evaluate() (already-loaded pages).
+   *
+   * Playwright's page.evaluate() runs in strict mode. NetSuite's NLUtil.js
+   * uses arguments.callee to walk the caller stack for debug logging. When the
+   * walk reaches a strict-mode function, accessing .caller throws a TypeError,
+   * crashing any NLAPI call (nlapiGetFieldValue, nlapiSetFieldValue, etc.)
+   * made from page.evaluate().
+   *
+   * This patches getFuncArgs to catch that specific TypeError and return ''
+   * instead of crashing. getFuncArgs is debug-only, so this is safe.
+   */
+  private static nlUtilPatchFn = () => {
+    const root = globalThis as typeof globalThis & Record<string, any>;
+    const stateKey = '__browseNlUtilPatchInstalled';
+
+    if (root[stateKey]) return;
+    root[stateKey] = true;
+
+    const isStrictModeError = (error: unknown): boolean => {
+      const msg = error instanceof Error ? error.message : String(error);
+      return (msg.includes('callee') || msg.includes('caller') || msg.includes('arguments'))
+        && msg.includes('strict mode');
+    };
+
+    // Wrap a global function to catch strict-mode caller/callee/arguments errors
+    const patchGlobal = (name: string, fallback: unknown): boolean => {
+      if (typeof root[name] !== 'function') return false;
+      if (root[name].__browsePatched) return true;
+
+      const original = root[name];
+      const wrapped = function (this: unknown, ...args: unknown[]) {
+        try {
+          return original.apply(this, args);
+        } catch (error) {
+          if (isStrictModeError(error)) return fallback;
+          throw error;
+        }
+      };
+
+      Object.defineProperty(wrapped, '__browsePatched', {
+        value: true, configurable: false, enumerable: false, writable: false,
+      });
+
+      root[name] = wrapped;
+      return true;
+    };
+
+    const tryPatch = (): boolean => {
+      // Both getFuncArgs and stacktrace are standalone globals from NLUtil.js.
+      // getFuncArgs accesses arguments.callee, stacktrace accesses .caller.
+      // Both crash when called from Playwright's strict-mode evaluate().
+      const a = patchGlobal('getFuncArgs', '');
+      const b = patchGlobal('stacktrace', '');
+      return a && b;
+    };
+
+    if (tryPatch()) return;
+
+    // NLUtil not loaded yet — poll until it appears (or 30s timeout)
+    const startedAt = Date.now();
+    const timer = root.setInterval(() => {
+      if (tryPatch() || Date.now() - startedAt >= 30_000) {
+        root.clearInterval(timer);
+      }
+    }, 50);
+  };
+
+  /**
+   * Install the NLUtil patch on the current context.
+   * Must be called after every context creation (launch, launchHeaded,
+   * recreateContext, recreateContextWithVideo, stopVideoRecording, handoff).
+   */
+  private async installNlUtilPatch(): Promise<void> {
+    if (!this.context) return;
+    await this.context.addInitScript(BrowserManager.nlUtilPatchFn);
+  }
+
   // ─── Ref Map (snapshot → @e1, @e2, @c1, @c2, ...) ────────
   private refMap: Map<string, RefEntry> = new Map();
 
@@ -204,6 +284,9 @@ export class BrowserManager {
       await this.context.setExtraHTTPHeaders(this.extraHeaders);
     }
 
+    // Patch NLUtil.getFuncArgs for NetSuite strict-mode compatibility
+    await this.installNlUtilPatch();
+
     // Create first tab
     await this.newTab();
   }
@@ -294,6 +377,9 @@ export class BrowserManager {
     };
     await this.context.addInitScript(indicatorScript);
 
+    // Patch NLUtil.getFuncArgs for NetSuite strict-mode compatibility
+    await this.installNlUtilPatch();
+
     // Persistent context opens a default page — adopt it instead of creating a new one
     const existingPages = this.context.pages();
     if (existingPages.length > 0) {
@@ -302,8 +388,9 @@ export class BrowserManager {
       this.pages.set(id, page);
       this.activeTabId = id;
       this.wirePageEvents(page);
-      // Inject indicator on restored page (addInitScript only fires on new navigations)
+      // Inject indicator + NLUtil patch on restored page (addInitScript only fires on new navigations)
       try { await page.evaluate(indicatorScript); } catch {}
+      try { await page.evaluate(BrowserManager.nlUtilPatchFn); } catch {}
     } else {
       await this.newTab();
     }
@@ -493,6 +580,7 @@ export class BrowserManager {
     }
 
     this.context = await this.browser.newContext(contextOptions);
+    await this.installNlUtilPatch();
     await this.restoreState(state);
   }
 
@@ -524,6 +612,7 @@ export class BrowserManager {
     }
     if (!this.browser) throw new Error('Browser not available');
     this.context = await this.browser.newContext(contextOptions);
+    await this.installNlUtilPatch();
     await this.restoreState(state);
 
     return videoPath;
@@ -778,6 +867,7 @@ export class BrowserManager {
         contextOptions.userAgent = this.customUserAgent;
       }
       this.context = await this.browser.newContext(contextOptions);
+      await this.installNlUtilPatch();
 
       if (Object.keys(this.extraHeaders).length > 0) {
         await this.context.setExtraHTTPHeaders(this.extraHeaders);
@@ -800,6 +890,7 @@ export class BrowserManager {
           contextOptions.userAgent = this.customUserAgent;
         }
         this.context = await this.browser!.newContext(contextOptions);
+        await this.installNlUtilPatch();
         await this.newTab();
         this.clearRefs();
       } catch {
@@ -889,6 +980,7 @@ export class BrowserManager {
         });
       }
 
+      await this.installNlUtilPatch();
       await this.restoreState(state);
       this.isHeaded = true;
       this.dialogAutoAccept = false;  // User controls dialogs in headed mode
