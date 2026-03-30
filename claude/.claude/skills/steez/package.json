@@ -1,0 +1,13 @@
+{
+  "name": "steez",
+  "private": true,
+  "version": "0.1.0",
+  "description": "steez skill ecosystem — tests and validation",
+  "type": "module",
+  "scripts": {
+    "test": "bun test test/",
+    "test:skills": "bun test test/skill-validation.test.ts",
+    "test:browse": "cd browse && bun test src/core/test/ src/ns/test/ --ignore '**/*e2e*'",
+    "test:all": "bun test test/ && cd browse && bun test src/core/test/ src/ns/test/ --ignore '**/*e2e*'"
+  }
+}
