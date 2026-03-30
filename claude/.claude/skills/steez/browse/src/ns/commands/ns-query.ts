@@ -12,6 +12,8 @@
  */
 
 import type { BrowserManager } from '../../core/browser-manager';
+import type { NsCommandOutput } from '../format';
+import { formatNsError } from '../format';
 import { guardNsApi, nsOk, nsFail, validationError, notARecordPage } from '../errors';
 import { withMutex, nsMutex } from '../mutex';
 
@@ -20,40 +22,34 @@ const MAX_ROWS = 200;
 /** Statements that must never reach the SuiteQL endpoint. */
 const FORBIDDEN_KEYWORDS = /\b(INSERT|UPDATE|DELETE|DROP|TRUNCATE|ALTER|CREATE|MERGE|EXEC|EXECUTE|GRANT|REVOKE)\b/i;
 
-export async function nsQuery(args: string[], bm: BrowserManager): Promise<string> {
-  return withMutex(nsMutex, async () => {
-    const start = Date.now();
+export async function nsQuery(args: string[], bm: BrowserManager): Promise<NsCommandOutput> {
+  const start = Date.now();
 
-    // ── Build query string ────────────────────────────────────
-    const sql = args.join(' ').trim();
-    if (!sql) {
-      return JSON.stringify(nsFail(validationError('Empty query. Usage: ns query "SELECT ..."'), Date.now() - start));
-    }
+  // ── Build query string ────────────────────────────────────
+  const sql = args.join(' ').trim();
+  if (!sql) {
+    return { display: formatNsError('ns query', validationError('Empty query. Usage: ns query "SELECT ..."')), ok: false };
+  }
 
-    // ── Security gate: SELECT only ────────────────────────────
-    if (FORBIDDEN_KEYWORDS.test(sql)) {
-      return JSON.stringify(
-        nsFail(
-          validationError(`Only SELECT queries are allowed. Detected forbidden keyword in: ${sql}`),
-          Date.now() - start,
-        ),
-      );
-    }
+  // ── Security gate: SELECT only ────────────────────────────
+  if (FORBIDDEN_KEYWORDS.test(sql)) {
+    return { display: formatNsError('ns query', validationError(`Only SELECT queries are allowed. Detected forbidden keyword in: ${sql}`)), ok: false };
+  }
 
-    if (!/^\s*SELECT\b/i.test(sql)) {
-      return JSON.stringify(
-        nsFail(
-          validationError(`Query must start with SELECT. Got: ${sql.slice(0, 40)}...`),
-          Date.now() - start,
-        ),
-      );
-    }
+  if (!/^\s*SELECT\b/i.test(sql)) {
+    return { display: formatNsError('ns query', validationError(`Query must start with SELECT. Got: ${sql.slice(0, 40)}...`)), ok: false };
+  }
 
+  type QueryResult =
+    | { ok: true; rows: Record<string, unknown>[]; truncated: boolean }
+    | { ok: false; error: string };
+
+  const queryResult = await withMutex(nsMutex, async (): Promise<QueryResult> => {
     // ── NS API guard ──────────────────────────────────────────
     const target = bm.getActiveFrameOrPage();
     const apiErr = await guardNsApi(target);
     if (apiErr) {
-      return JSON.stringify(nsFail(apiErr, Date.now() - start));
+      return { ok: false, error: formatNsError('ns query', apiErr) };
     }
 
     // ── Execute via fetch on the page (uses session cookie) ───
@@ -97,34 +93,37 @@ export async function nsQuery(args: string[], bm: BrowserManager): Promise<strin
       { sql, limit: MAX_ROWS },
     );
 
-    const elapsed = Date.now() - start;
-
-    // ── Error response ────────────────────────────────────────
     if (response.error) {
-      return JSON.stringify(
-        nsFail(
-          validationError(`SuiteQL error: ${response.error}`),
-          elapsed,
-        ),
-      );
+      return { ok: false, error: formatNsError('ns query', validationError(`SuiteQL error: ${response.error}`)) };
     }
 
-    // ── Success response ──────────────────────────────────────
     const allRows = response.items ?? [];
     const truncated = allRows.length > MAX_ROWS;
     const rows = truncated ? allRows.slice(0, MAX_ROWS) : allRows;
 
-    return JSON.stringify(
-      nsOk(
-        {
-          query: sql,
-          rowCount: rows.length,
-          rows,
-          truncated,
-          ...(truncated ? { note: `Results limited to ${MAX_ROWS} rows. Refine your query for complete data.` } : {}),
-        },
-        elapsed,
-      ),
-    );
+    return { ok: true, rows, truncated };
   }, { label: 'ns query' });
+
+  // ── Format output ──────────────────────────────────────────
+  if (!queryResult.ok) {
+    return { display: queryResult.error, ok: false };
+  }
+
+  const { rows, truncated } = queryResult;
+  const header = truncated
+    ? `QUERY OK | Rows: ${rows.length} shown of ${rows.length}+ total`
+    : `QUERY OK | Rows: ${rows.length}`;
+
+  // Strip links:[] noise and emit NDJSON
+  const ndjsonLines = rows.map(row => {
+    const cleaned = Object.fromEntries(
+      Object.entries(row).filter(([k]) => k !== 'links'),
+    );
+    return JSON.stringify(cleaned);
+  });
+
+  return {
+    display: [header, ...ndjsonLines].join('\n'),
+    ok: true,
+  };
 }

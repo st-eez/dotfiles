@@ -84,7 +84,6 @@ beforeAll(async () => {
   baseUrl = testServer.url;
   bm = new BrowserManager();
   await bm.launch();
-  // Navigate to the NS form stub (provides nlapiGetField for guardNsApi)
   await bm.getPage().goto(baseUrl + '/ns-form.html');
 });
 
@@ -97,101 +96,88 @@ afterAll(() => {
 
 describe('ns query — security', () => {
   test('rejects empty query', async () => {
-    const raw = await nsQuery([], bm);
-    const result = JSON.parse(raw);
-    expect(result.ok).toBe(false);
-    expect(result.error.type).toBe('ValidationError');
-    expect(result.error.message).toContain('Empty query');
+    const output = await nsQuery([], bm);
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('Empty query');
   });
 
   test('rejects INSERT statement', async () => {
-    const raw = await nsQuery(['INSERT', 'INTO', 'customer', 'VALUES', '(1)'], bm);
-    const result = JSON.parse(raw);
-    expect(result.ok).toBe(false);
-    expect(result.error.type).toBe('ValidationError');
-    expect(result.error.message).toContain('forbidden keyword');
+    const output = await nsQuery(['INSERT', 'INTO', 'customer', 'VALUES', '(1)'], bm);
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('forbidden keyword');
   });
 
   test('rejects UPDATE statement', async () => {
-    const raw = await nsQuery(['UPDATE', 'customer', 'SET', 'companyname', '=', "'x'"], bm);
-    const result = JSON.parse(raw);
-    expect(result.ok).toBe(false);
-    expect(result.error.message).toContain('forbidden keyword');
+    const output = await nsQuery(['UPDATE', 'customer', 'SET', 'companyname', '=', "'x'"], bm);
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('forbidden keyword');
   });
 
   test('rejects DELETE statement', async () => {
-    const raw = await nsQuery(['DELETE', 'FROM', 'customer'], bm);
-    const result = JSON.parse(raw);
-    expect(result.ok).toBe(false);
-    expect(result.error.message).toContain('forbidden keyword');
+    const output = await nsQuery(['DELETE', 'FROM', 'customer'], bm);
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('forbidden keyword');
   });
 
   test('rejects DROP statement', async () => {
-    const raw = await nsQuery(['DROP', 'TABLE', 'customer'], bm);
-    const result = JSON.parse(raw);
-    expect(result.ok).toBe(false);
-    expect(result.error.message).toContain('forbidden keyword');
+    const output = await nsQuery(['DROP', 'TABLE', 'customer'], bm);
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('forbidden keyword');
   });
 
   test('rejects TRUNCATE statement', async () => {
-    const raw = await nsQuery(['TRUNCATE', 'TABLE', 'customer'], bm);
-    const result = JSON.parse(raw);
-    expect(result.ok).toBe(false);
-    expect(result.error.message).toContain('forbidden keyword');
+    const output = await nsQuery(['TRUNCATE', 'TABLE', 'customer'], bm);
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('forbidden keyword');
   });
 
   test('rejects ALTER statement', async () => {
-    const raw = await nsQuery(['ALTER', 'TABLE', 'customer', 'ADD', 'col'], bm);
-    const result = JSON.parse(raw);
-    expect(result.ok).toBe(false);
-    expect(result.error.message).toContain('forbidden keyword');
+    const output = await nsQuery(['ALTER', 'TABLE', 'customer', 'ADD', 'col'], bm);
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('forbidden keyword');
   });
 
   test('rejects CREATE statement', async () => {
-    const raw = await nsQuery(['CREATE', 'TABLE', 'foo', '(id int)'], bm);
-    const result = JSON.parse(raw);
-    expect(result.ok).toBe(false);
-    expect(result.error.message).toContain('forbidden keyword');
+    const output = await nsQuery(['CREATE', 'TABLE', 'foo', '(id int)'], bm);
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('forbidden keyword');
   });
 
   test('rejects query not starting with SELECT', async () => {
-    const raw = await nsQuery(['WITH', 'cte', 'AS', '(SELECT 1)'], bm);
-    const result = JSON.parse(raw);
-    expect(result.ok).toBe(false);
-    expect(result.error.message).toContain('must start with SELECT');
+    const output = await nsQuery(['WITH', 'cte', 'AS', '(SELECT 1)'], bm);
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('must start with SELECT');
   });
 });
 
 // ─── Successful query execution ────────────────────────────
 
 describe('ns query — execution', () => {
-  test('executes a SELECT query and returns rows', async () => {
-    const raw = await nsQuery(['SELECT', 'id,', 'companyname', 'FROM', 'customer', 'WHERE', 'id', '<', '100'], bm);
-    const result = JSON.parse(raw);
+  test('executes a SELECT query and returns NDJSON rows', async () => {
+    const output = await nsQuery(['SELECT', 'id,', 'companyname', 'FROM', 'customer', 'WHERE', 'id', '<', '100'], bm);
 
-    expect(result.ok).toBe(true);
-    expect(result.data.query).toBe('SELECT id, companyname FROM customer WHERE id < 100');
-    expect(result.data.rowCount).toBe(3);
-    expect(result.data.rows).toHaveLength(3);
-    expect(result.data.rows[0]).toEqual({ id: 1, companyname: 'Acme Corp' });
-    expect(result.data.truncated).toBe(false);
-    expect(result.elapsedMs).toBeGreaterThanOrEqual(0);
+    expect(output.ok).toBe(true);
+    expect(output.display).toContain('QUERY OK');
+    expect(output.display).toContain('Rows: 3');
+
+    // NDJSON: each row is a JSON object on its own line
+    const lines = output.display.split('\n');
+    expect(lines.length).toBe(4); // header + 3 rows
+    const firstRow = JSON.parse(lines[1]);
+    expect(firstRow).toEqual({ id: 1, companyname: 'Acme Corp' });
   });
 
   test('joins args into a single query string', async () => {
-    const raw = await nsQuery(['SELECT', '1'], bm);
-    const result = JSON.parse(raw);
-    expect(result.ok).toBe(true);
-    expect(result.data.query).toBe('SELECT 1');
+    const output = await nsQuery(['SELECT', '1'], bm);
+    expect(output.ok).toBe(true);
+    expect(output.display).toContain('QUERY OK');
   });
 
   test('handles query error response from server', async () => {
-    const raw = await nsQuery(['SELECT', 'ERROR_TRIGGER', 'FROM', 'customer'], bm);
-    const result = JSON.parse(raw);
+    const output = await nsQuery(['SELECT', 'ERROR_TRIGGER', 'FROM', 'customer'], bm);
 
-    expect(result.ok).toBe(false);
-    expect(result.error.type).toBe('ValidationError');
-    expect(result.error.message).toContain('SuiteQL error');
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('SuiteQL error');
   });
 });
 
@@ -202,13 +188,11 @@ describe('ns query — guardNsApi', () => {
     const page = bm.getPage();
     await page.goto('about:blank');
 
-    const raw = await nsQuery(['SELECT', '1'], bm);
-    const result = JSON.parse(raw);
+    const output = await nsQuery(['SELECT', '1'], bm);
 
-    expect(result.ok).toBe(false);
-    expect(result.error.type).toBe('NotARecordPage');
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('NotARecordPage');
 
-    // Navigate back for other tests
     await page.goto(baseUrl + '/ns-form.html');
   });
 });

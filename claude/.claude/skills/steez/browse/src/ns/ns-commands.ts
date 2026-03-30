@@ -64,7 +64,7 @@ export async function handleNsCommand(
       return nsSave(args, browserManager);
 
     case 'query':
-      return wrapLegacyResult(await nsQuery(args, browserManager));
+      return nsQuery(args, browserManager);
 
     case 'status':
       return nsStatus(args, browserManager);
