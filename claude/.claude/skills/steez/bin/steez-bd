@@ -246,8 +246,9 @@ cmd_handoff() {
     echo "steez-bd: warning — bead $bead_id is already closed. Appending note anyway." >&2
   fi
 
-  # Append note via stdin to handle special characters
-  echo "$summary" | bd note "$bead_id" --stdin >/dev/null 2>&1
+  # Append note via stdin to handle special characters safely
+  # printf avoids echo's interpretation of backslash sequences and leading dashes
+  printf '%s\n' "$summary" | bd note "$bead_id" --stdin >/dev/null 2>&1
 
   if [ "$do_close" = true ] && [ "$status" != "closed" ]; then
     bd close "$bead_id" >/dev/null 2>&1
