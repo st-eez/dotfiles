@@ -2,7 +2,7 @@
 name: steez-design-shotgun
 preamble-tier: 2
 version: 1.0.0
-description: Design shotgun: generate multiple AI design variants, open a comparison board, collect structured feedback, and iterate. Standalone design exploration you can run anytime. Use when: "explore designs", "show me options", "design variants", "visual brainstorm", or "I don't like how this looks". Proactively suggest when the user describes a UI feature but hasn't seen what it could look like.
+description: Design shotgun: generate multiple AI design variants, open a comparison board, collect structured feedback, and iterate. Standalone design exploration you can run anytime. Use when: "explore designs", "show me options", "design variants", "visual brainstorm", or "I don't like how this looks". Proactively suggest when the user describes a UI feature but hasn't seen what it could look like. (steez)
 allowed-tools:
   - Bash
   - Read
@@ -493,6 +493,7 @@ After all agents complete:
 image list from whatever variant files actually exist, not a hardcoded A/B/C list:
 
 ```bash
+setopt +o nomatch 2>/dev/null || true  # zsh compat
 _IMAGES=$(ls "$_DESIGN_DIR"/variant-*.png 2>/dev/null | tr '\n' ',' | sed 's/,$//')
 ```
 

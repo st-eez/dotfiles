@@ -2,7 +2,7 @@
 name: steez-office-hours
 preamble-tier: 3
 version: 2.0.0
-description: Office Hours — two modes. Startup mode: six forcing questions that expose demand reality, status quo, desperate specificity, narrowest wedge, observation, and future-fit. Builder mode: design thinking brainstorming for side projects, hackathons, learning, and open source. Saves a design doc. Use when asked to "brainstorm this", "I have an idea", "help me think through this", "office hours", or "is this worth building". Proactively suggest when the user describes a new product idea or is exploring whether something is worth building — before any code is written. Use before /steez-plan-ceo-review or /steez-plan-eng-review.
+description: Office Hours — two modes. Startup mode: six forcing questions that expose demand reality, status quo, desperate specificity, narrowest wedge, observation, and future-fit. Builder mode: design thinking brainstorming for side projects, hackathons, learning, and open source. Saves a design doc. Use when asked to "brainstorm this", "I have an idea", "help me think through this", "office hours", or "is this worth building". Proactively suggest when the user describes a new product idea or is exploring whether something is worth building — before any code is written. Use before /steez-plan-ceo-review or /steez-plan-eng-review. (steez)
 allowed-tools:
   - Bash
   - Read

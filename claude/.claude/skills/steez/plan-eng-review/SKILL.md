@@ -2,7 +2,7 @@
 name: steez-plan-eng-review
 preamble-tier: 3
 version: 1.0.0
-description: Eng manager-mode plan review. Lock in the execution plan — architecture, data flow, diagrams, edge cases, test coverage, performance. Walks through issues interactively with opinionated recommendations. Use when asked to "review the architecture", "engineering review", or "lock in the plan". Proactively suggest when the user has a plan or design doc and is about to start coding — to catch architecture issues before implementation. See also /steez-plan-ceo-review and /steez-plan-design-review.
+description: Eng manager-mode plan review. Lock in the execution plan — architecture, data flow, diagrams, edge cases, test coverage, performance. Walks through issues interactively with opinionated recommendations. Use when asked to "review the architecture", "engineering review", or "lock in the plan". Proactively suggest when the user has a plan or design doc and is about to start coding — to catch architecture issues before implementation. See also /steez-plan-ceo-review and /steez-plan-design-review. (steez)
 benefits-from: [office-hours]
 allowed-tools:
   - Read
@@ -232,7 +232,7 @@ plan's living status.
 Review this plan thoroughly before making any code changes. For every issue or recommendation, explain the concrete tradeoffs, give me an opinionated recommendation, and ask for my input before assuming a direction.
 
 ## Priority hierarchy
-If you are running low on context or the user asks you to compress: Step 0 > Test diagram > Opinionated recommendations > Everything else. Never skip Step 0 or the test diagram.
+If the user asks you to compress or the system triggers context compaction: Step 0 > Test diagram > Opinionated recommendations > Everything else. Never skip Step 0 or the test diagram. Do not preemptively warn about context limits -- the system handles compaction automatically.
 
 ## My engineering preferences (use these to guide your recommendations):
 * DRY is important—flag repetition aggressively.
