@@ -12,6 +12,8 @@
  */
 
 import type { BrowserManager } from '../../core/browser-manager';
+import type { NsCommandOutput } from '../format';
+import { formatNsError, truncateValue } from '../format';
 import type { NsCommandResult } from '../errors';
 import type { NsFieldMetadata, NsFormMode } from '../utils/introspect-field';
 import { guardNsApi, nsOk, nsFail, notARecordPage } from '../errors';
@@ -63,47 +65,72 @@ function parseInspectArgs(args: string[]): { fieldId: string | null; sublists: b
 
 // ─── ns inspect ─────────────────────────────────────────────
 
-export async function nsInspect(args: string[], bm: BrowserManager): Promise<string> {
-  return JSON.stringify(
-    await withMutex(nsMutex, async (): Promise<NsCommandResult<NsInspectData>> => {
-      const start = Date.now();
-      const target = bm.getActiveFrameOrPage();
+export async function nsInspect(args: string[], bm: BrowserManager): Promise<NsCommandOutput> {
+  const result = await withMutex(nsMutex, async (): Promise<NsCommandResult<NsInspectData>> => {
+    const start = Date.now();
+    const target = bm.getActiveFrameOrPage();
 
-      // Guard: must be on a NS page with client API
-      const guardErr = await guardNsApi(target);
-      if (guardErr) {
-        return nsFail(guardErr, Date.now() - start);
+    // Guard: must be on a NS page with client API
+    const guardErr = await guardNsApi(target);
+    if (guardErr) {
+      return nsFail(guardErr, Date.now() - start);
+    }
+
+    const { fieldId, sublists: includeSublists } = parseInspectArgs(args);
+
+    // Detect form mode
+    const mode = await detectFormMode(target);
+
+    // Introspect fields
+    let fields: NsFieldMetadata[];
+    if (fieldId) {
+      const single = await introspectField(target, fieldId);
+      fields = single ? [single] : [];
+    } else {
+      fields = await introspectAllFields(target);
+    }
+
+    // Optionally discover sublists from DOM
+    let sublists: NsSublistData[] | undefined;
+    if (includeSublists) {
+      sublists = await discoverSublists(bm);
+    }
+
+    const data: NsInspectData = {
+      mode,
+      fields,
+      ...(sublists ? { sublists } : {}),
+    };
+
+    return nsOk<NsInspectData>(data, Date.now() - start);
+  }, { label: 'ns inspect', operationTimeoutMs: 10000 });
+
+  if (!result.ok) {
+    return { display: formatNsError('ns inspect', result.error!), ok: false };
+  }
+
+  const d = result.data!;
+  const lines = [`INSPECT OK | Mode: ${d.mode} | ${d.fields.length} fields`];
+
+  for (const f of d.fields) {
+    const flags: string[] = [];
+    if (f.mandatory) flags.push('mandatory');
+    if (f.disabled) flags.push('disabled');
+    if (f.isEntityRef) flags.push('entityRef');
+    lines.push(`${f.id} | ${truncateValue(f.value)} | ${f.type} | ${flags.join(',') || '-'}`);
+  }
+
+  if (d.sublists) {
+    for (const sub of d.sublists) {
+      lines.push(`Sublist: ${sub.id} (${sub.lineCount} lines, ${sub.columns.length} columns)`);
+      for (const line of sub.lines) {
+        const vals = sub.columns.map(c => `${c.id}=${truncateValue(line.values[c.id])}`).join(', ');
+        lines.push(`  ${line.line}: ${vals}`);
       }
+    }
+  }
 
-      const { fieldId, sublists: includeSublists } = parseInspectArgs(args);
-
-      // Detect form mode
-      const mode = await detectFormMode(target);
-
-      // Introspect fields
-      let fields: NsFieldMetadata[];
-      if (fieldId) {
-        const single = await introspectField(target, fieldId);
-        fields = single ? [single] : [];
-      } else {
-        fields = await introspectAllFields(target);
-      }
-
-      // Optionally discover sublists from DOM
-      let sublists: NsSublistData[] | undefined;
-      if (includeSublists) {
-        sublists = await discoverSublists(bm);
-      }
-
-      const data: NsInspectData = {
-        mode,
-        fields,
-        ...(sublists ? { sublists } : {}),
-      };
-
-      return nsOk<NsInspectData>(data, Date.now() - start);
-    }, { label: 'ns inspect', operationTimeoutMs: 10000 }),
-  );
+  return { display: lines.join('\n'), ok: true };
 }
 
 // ─── Sublist Discovery ──────────────────────────────────────

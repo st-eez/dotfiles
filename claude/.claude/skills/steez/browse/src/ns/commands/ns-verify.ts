@@ -12,6 +12,8 @@
  */
 
 import type { BrowserManager } from '../../core/browser-manager';
+import type { NsCommandOutput } from '../format';
+import { formatNsError, truncateValue } from '../format';
 import type { NsCommandResult } from '../errors';
 import type { NsFormMode } from '../utils/introspect-field';
 import { RECORD_URL_MAP } from '../tier1';
@@ -90,39 +92,30 @@ function parseVerifyArgs(args: string[]): VerifyArgs {
 
 // ─── ns verify ──────────────────────────────────────────────
 
-export async function nsVerify(args: string[], bm: BrowserManager): Promise<string> {
+export async function nsVerify(args: string[], bm: BrowserManager): Promise<NsCommandOutput> {
   const start = Date.now();
 
   if (args.length === 0) {
-    const result: NsCommandResult = nsFail(
-      validationError('Missing arguments. Usage: ns verify <recordType> <id> field=value ... | ns verify --current field=value ...'),
-      Date.now() - start,
-    );
-    return JSON.stringify(result);
+    return { display: formatNsError('ns verify', validationError('Missing arguments. Usage: ns verify <recordType> <id> field=value ... | ns verify --current field=value ...')), ok: false };
   }
 
   const parsed = parseVerifyArgs(args);
 
   if (parsed.expectations.length === 0) {
-    const result: NsCommandResult = nsFail(
-      validationError('No field=value expectations provided. Usage: ns verify ... field=value [field=value ...]'),
-      Date.now() - start,
-    );
-    return JSON.stringify(result);
+    return { display: formatNsError('ns verify', validationError('No field=value expectations provided. Usage: ns verify ... field=value [field=value ...]')), ok: false };
   }
 
-  return withMutex(nsMutex, async () => {
+  const result = await withMutex(nsMutex, async (): Promise<NsCommandResult<NsVerifyData>> => {
     try {
       const page = bm.getPage();
 
       // Navigate if not --current
       if (!parsed.current) {
         if (!parsed.recordType) {
-          const result: NsCommandResult = nsFail(
+          return nsFail(
             validationError('Missing record type. Usage: ns verify <recordType> <id> field=value ...'),
             Date.now() - start,
           );
-          return JSON.stringify(result);
         }
 
         const relativePath = RECORD_URL_MAP.buildUrl(
@@ -150,8 +143,7 @@ export async function nsVerify(args: string[], bm: BrowserManager): Promise<stri
       const target = bm.getActiveFrameOrPage();
       const guardErr = await guardNsApi(target);
       if (guardErr) {
-        const result: NsCommandResult = nsFail(guardErr, Date.now() - start);
-        return JSON.stringify(result);
+        return nsFail(guardErr, Date.now() - start);
       }
 
       // Introspect all fields
@@ -169,7 +161,6 @@ export async function nsVerify(args: string[], bm: BrowserManager): Promise<stri
         const field = fieldMap.get(exp.field);
 
         if (!field) {
-          // Field not found on the page — counts as mismatch
           mismatches.push({
             field: exp.field,
             expected: exp.value,
@@ -178,7 +169,6 @@ export async function nsVerify(args: string[], bm: BrowserManager): Promise<stri
           continue;
         }
 
-        // Match against both value and displayValue — either match counts as pass
         const valueMatch = field.value === exp.value;
         const displayMatch = field.displayValue === exp.value;
 
@@ -197,27 +187,46 @@ export async function nsVerify(args: string[], bm: BrowserManager): Promise<stri
         }
       }
 
-      const data: NsVerifyData = {
-        verified: mismatches.length === 0,
-        mismatches,
-        matched,
-        record: {
-          type: parsed.recordType,
-          id: parsed.id,
-          mode,
-          fieldCount: fields.length,
+      return nsOk<NsVerifyData>(
+        {
+          verified: mismatches.length === 0,
+          mismatches,
+          matched,
+          record: {
+            type: parsed.recordType,
+            id: parsed.id,
+            mode,
+            fieldCount: fields.length,
+          },
         },
-      };
-
-      const result: NsCommandResult<NsVerifyData> = nsOk(data, Date.now() - start);
-      return JSON.stringify(result);
+        Date.now() - start,
+      );
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      const result: NsCommandResult = nsFail(
+      return nsFail(
         notARecordPage(`Verify failed: ${message}`),
         Date.now() - start,
       );
-      return JSON.stringify(result);
     }
   }, { label: 'ns verify' });
+
+  if (!result.ok) {
+    return { display: formatNsError('ns verify', result.error!), ok: false };
+  }
+
+  const d = result.data!;
+  const recordLabel = [d.record.type, d.record.id].filter(Boolean).join(' ') || 'current';
+  const header = d.verified
+    ? `VERIFY OK | Record: ${recordLabel}`
+    : `VERIFY FAILED | Record: ${recordLabel}`;
+
+  const lines = [header];
+  for (const m of d.matched) {
+    lines.push(`Matched: ${m.field} = ${truncateValue(m.actual)}`);
+  }
+  for (const m of d.mismatches) {
+    lines.push(`Mismatch: ${m.field} expected ${truncateValue(m.expected)} actual ${truncateValue(m.actual.value)}`);
+  }
+
+  return { display: lines.join('\n'), ok: true };
 }

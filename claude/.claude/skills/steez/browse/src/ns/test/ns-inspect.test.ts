@@ -54,76 +54,58 @@ afterAll(() => {
 // ─── ns inspect ───────────────────────────────────────────
 
 describe('ns inspect', () => {
-  test('inspect all fields returns 5 fields with correct metadata shape', async () => {
+  test('inspect all fields returns compact table with 5 fields', async () => {
     const page = bm.getPage();
     await page.goto(baseUrl + '/ns-form.html');
 
-    const raw = await nsInspect([], bm);
-    const result = JSON.parse(raw);
+    const output = await nsInspect([], bm);
 
-    expect(result.ok).toBe(true);
-    expect(result.data.fields).toBeArrayOfSize(5);
-    expect(typeof result.elapsedMs).toBe('number');
+    expect(output.ok).toBe(true);
+    expect(output.display).toContain('INSPECT OK');
+    expect(output.display).toContain('5 fields');
+    expect(output.display).toContain('Mode: create');
 
-    // Check metadata shape on each field
-    for (const field of result.data.fields) {
-      expect(typeof field.id).toBe('string');
-      expect(typeof field.label).toBe('string');
-      expect(typeof field.type).toBe('string');
-      expect(typeof field.mandatory).toBe('boolean');
-      expect(typeof field.disabled).toBe('boolean');
-      expect(typeof field.isEntityRef).toBe('boolean');
-      // value and displayValue can be string or null
-      expect(field.value === null || typeof field.value === 'string').toBe(true);
-      expect(field.displayValue === null || typeof field.displayValue === 'string').toBe(true);
-    }
+    // Check field lines: id | value | type | flags
+    expect(output.display).toContain('companyname');
+    expect(output.display).toContain('Acme Corp');
+    expect(output.display).toContain('text');
   });
 
-  test('inspect with --field returns single field', async () => {
+  test('inspect with --field returns single field line', async () => {
     const page = bm.getPage();
     await page.goto(baseUrl + '/ns-form.html');
 
-    const raw = await nsInspect(['--field', 'companyname'], bm);
-    const result = JSON.parse(raw);
+    const output = await nsInspect(['--field', 'companyname'], bm);
 
-    expect(result.ok).toBe(true);
-    expect(result.data.fields).toBeArrayOfSize(1);
-    expect(result.data.fields[0].id).toBe('companyname');
-    expect(result.data.fields[0].label).toBe('Company Name');
-    expect(result.data.fields[0].type).toBe('text');
-    expect(result.data.fields[0].value).toBe('Acme Corp');
+    expect(output.ok).toBe(true);
+    expect(output.display).toContain('1 fields');
+    expect(output.display).toContain('companyname');
+    expect(output.display).toContain('Acme Corp');
+    expect(output.display).toContain('text');
   });
 
-  test('inspect with --field for nonexistent field returns empty array', async () => {
+  test('inspect with --field for nonexistent field returns 0 fields', async () => {
     const page = bm.getPage();
     await page.goto(baseUrl + '/ns-form.html');
 
-    const raw = await nsInspect(['--field', 'nonexistent_field_xyz'], bm);
-    const result = JSON.parse(raw);
+    const output = await nsInspect(['--field', 'nonexistent_field_xyz'], bm);
 
-    expect(result.ok).toBe(true);
-    expect(result.data.fields).toBeArrayOfSize(0);
+    expect(output.ok).toBe(true);
+    expect(output.display).toContain('0 fields');
   });
 
   test('inspect returns form mode', async () => {
     const page = bm.getPage();
     await page.goto(baseUrl + '/ns-form.html');
 
-    const raw = await nsInspect([], bm);
-    const result = JSON.parse(raw);
-
-    expect(result.ok).toBe(true);
-    expect(result.data.mode).toBe('create');
+    const output = await nsInspect([], bm);
+    expect(output.display).toContain('Mode: create');
 
     // Edit mode
     await page.goto(baseUrl + '/ns-form.html?id=123&e=T');
-    const rawEdit = await nsInspect([], bm);
-    const resultEdit = JSON.parse(rawEdit);
+    const outputEdit = await nsInspect([], bm);
+    expect(outputEdit.display).toContain('Mode: edit');
 
-    expect(resultEdit.ok).toBe(true);
-    expect(resultEdit.data.mode).toBe('edit');
-
-    // Navigate back
     await page.goto(baseUrl + '/ns-form.html');
   });
 
@@ -131,58 +113,39 @@ describe('ns inspect', () => {
     const page = bm.getPage();
     await page.goto(baseUrl + '/ns-form.html');
 
-    const raw = await nsInspect(['--sublists'], bm);
-    const result = JSON.parse(raw);
+    const output = await nsInspect(['--sublists'], bm);
 
-    expect(result.ok).toBe(true);
-    expect(result.data.sublists).toBeDefined();
-    expect(Array.isArray(result.data.sublists)).toBe(true);
-    expect(result.data.sublists.length).toBeGreaterThanOrEqual(1);
+    expect(output.ok).toBe(true);
+    expect(output.display).toContain('Sublist: item');
+    expect(output.display).toContain('2 lines');
+    expect(output.display).toContain('4 columns');
 
-    // Find the 'item' sublist
-    const itemSublist = result.data.sublists.find((s: any) => s.id === 'item');
-    expect(itemSublist).toBeDefined();
-
-    // Column headers
-    expect(itemSublist.columns).toBeArrayOfSize(4);
-    const labels = itemSublist.columns.map((c: any) => c.label);
-    expect(labels).toContain('Item');
-    expect(labels).toContain('Quantity');
-    expect(labels).toContain('Rate');
-    expect(labels).toContain('Amount');
-
-    // Line count and values
-    expect(itemSublist.lineCount).toBe(2);
-    expect(itemSublist.lines).toBeArrayOfSize(2);
-    expect(itemSublist.lines[0].line).toBe(1);
-    expect(itemSublist.lines[0].values.item).toBe('100');
-    expect(itemSublist.lines[0].values.quantity).toBe('5');
-    expect(itemSublist.lines[1].line).toBe(2);
-    expect(itemSublist.lines[1].values.item).toBe('200');
+    // Line values
+    expect(output.display).toContain('1:');
+    expect(output.display).toContain('item=100');
+    expect(output.display).toContain('2:');
+    expect(output.display).toContain('item=200');
   });
 
-  test('inspect on non-NS page returns NotARecordPage error', async () => {
+  test('inspect on non-NS page returns error', async () => {
     const page = bm.getPage();
     await page.goto('about:blank');
 
-    const raw = await nsInspect([], bm);
-    const result = JSON.parse(raw);
+    const output = await nsInspect([], bm);
 
-    expect(result.ok).toBe(false);
-    expect(result.error.type).toBe('NotARecordPage');
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('NotARecordPage');
 
-    // Navigate back for subsequent tests
     await page.goto(baseUrl + '/ns-form.html');
   });
 
-  test('inspect without --sublists does not include sublists key', async () => {
+  test('inspect without --sublists does not include Sublist lines', async () => {
     const page = bm.getPage();
     await page.goto(baseUrl + '/ns-form.html');
 
-    const raw = await nsInspect([], bm);
-    const result = JSON.parse(raw);
+    const output = await nsInspect([], bm);
 
-    expect(result.ok).toBe(true);
-    expect(result.data.sublists).toBeUndefined();
+    expect(output.ok).toBe(true);
+    expect(output.display).not.toContain('Sublist:');
   });
 });

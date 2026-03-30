@@ -1,14 +1,13 @@
 /**
  * NetSuite command dispatcher.
  *
- * Commands are migrating from JSON (NsCommandResult) to NsCommandOutput.
- * During transition, legacy string returns are wrapped via wrapLegacyResult().
- * Once a command returns NsCommandOutput directly, remove its wrapper call.
+ * All NS commands return NsCommandOutput { display, ok, metadata? }.
+ * The server uses .display as the HTTP response body and .metadata
+ * for the activity stream.
  */
 
 import type { BrowserManager } from '../core/browser-manager';
 import type { NsCommandOutput } from './format';
-import { extractNsMetadata } from './ns-metadata';
 import { nsNavigate } from './commands/ns-navigate';
 import { nsQuery } from './commands/ns-query';
 import { nsStatus } from './commands/ns-status';
@@ -20,25 +19,6 @@ import { nsAddRow } from './commands/ns-add-row';
 import { nsDiff } from './commands/ns-diff';
 import { nsVerify } from './commands/ns-verify';
 import { nsLogin } from './commands/ns-login';
-
-// ─── Legacy adapter ────────────────────────────────────────────
-// Wraps a JSON string (NsCommandResult) into NsCommandOutput during
-// the migration. Remove once all commands return NsCommandOutput directly.
-
-function wrapLegacyResult(jsonStr: string): NsCommandOutput {
-  try {
-    const parsed = JSON.parse(jsonStr);
-    return {
-      display: jsonStr,
-      ok: parsed.ok ?? false,
-      metadata: extractNsMetadata(jsonStr),
-    };
-  } catch {
-    return { display: jsonStr, ok: false };
-  }
-}
-
-// ─── Dispatcher ─────────────────────────────────────────────────
 
 export async function handleNsCommand(
   command: string,
@@ -52,7 +32,7 @@ export async function handleNsCommand(
       return nsNavigate(args, browserManager);
 
     case 'inspect':
-      return wrapLegacyResult(await nsInspect(args, browserManager));
+      return nsInspect(args, browserManager);
 
     case 'set':
       return nsSet(args, browserManager);
@@ -76,7 +56,7 @@ export async function handleNsCommand(
       return nsDiff(args, browserManager);
 
     case 'verify':
-      return wrapLegacyResult(await nsVerify(args, browserManager));
+      return nsVerify(args, browserManager);
 
     case 'login':
       return nsLogin(args, browserManager);

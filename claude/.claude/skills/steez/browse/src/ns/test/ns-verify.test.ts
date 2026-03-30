@@ -54,18 +54,17 @@ afterAll(() => {
 // ─── ns verify ──────────────────────────────────────────────
 
 describe('ns verify', () => {
-  test('verify --current with matching values returns verified: true', async () => {
+  test('verify --current with matching values returns VERIFY OK', async () => {
     const page = bm.getPage();
     await page.goto(baseUrl + '/ns-form.html');
 
-    const raw = await nsVerify(['--current', 'companyname=Acme Corp', 'total=1500.00'], bm);
-    const result = JSON.parse(raw);
+    const output = await nsVerify(['--current', 'companyname=Acme Corp', 'total=1500.00'], bm);
 
-    expect(result.ok).toBe(true);
-    expect(result.data.verified).toBe(true);
-    expect(result.data.mismatches).toBeArrayOfSize(0);
-    expect(result.data.matched).toBeArrayOfSize(2);
-    expect(result.data.record.fieldCount).toBe(5);
+    expect(output.ok).toBe(true);
+    expect(output.display).toContain('VERIFY OK');
+    expect(output.display).toContain('Matched: companyname');
+    expect(output.display).toContain('Matched: total');
+    expect(output.display).not.toContain('Mismatch');
   });
 
   test('verify --current matches on displayValue as well', async () => {
@@ -73,118 +72,88 @@ describe('ns verify', () => {
     await page.goto(baseUrl + '/ns-form.html');
 
     // total displayValue is '$1,500.00', value is '1500.00'
-    const raw = await nsVerify(['--current', 'total=$1,500.00'], bm);
-    const result = JSON.parse(raw);
+    const output = await nsVerify(['--current', 'total=$1,500.00'], bm);
 
-    expect(result.ok).toBe(true);
-    expect(result.data.verified).toBe(true);
-    expect(result.data.matched).toBeArrayOfSize(1);
-    expect(result.data.matched[0].field).toBe('total');
+    expect(output.ok).toBe(true);
+    expect(output.display).toContain('VERIFY OK');
+    expect(output.display).toContain('Matched: total');
   });
 
-  test('verify --current with mismatched values returns verified: false with mismatches', async () => {
+  test('verify --current with mismatched values returns VERIFY FAILED', async () => {
     const page = bm.getPage();
     await page.goto(baseUrl + '/ns-form.html');
 
-    const raw = await nsVerify(['--current', 'companyname=Wrong Name', 'total=9999.00'], bm);
-    const result = JSON.parse(raw);
+    const output = await nsVerify(['--current', 'companyname=Wrong Name', 'total=9999.00'], bm);
 
-    expect(result.ok).toBe(true);
-    expect(result.data.verified).toBe(false);
-    expect(result.data.mismatches).toBeArrayOfSize(2);
-    expect(result.data.matched).toBeArrayOfSize(0);
-
-    // Check mismatch structure
-    const companyMismatch = result.data.mismatches.find((m: any) => m.field === 'companyname');
-    expect(companyMismatch).toBeDefined();
-    expect(companyMismatch.expected).toBe('Wrong Name');
-    expect(companyMismatch.actual.value).toBe('Acme Corp');
-    expect(companyMismatch.actual.displayValue).toBe('Acme Corp');
-
-    const totalMismatch = result.data.mismatches.find((m: any) => m.field === 'total');
-    expect(totalMismatch).toBeDefined();
-    expect(totalMismatch.expected).toBe('9999.00');
-    expect(totalMismatch.actual.value).toBe('1500.00');
+    expect(output.ok).toBe(true);
+    expect(output.display).toContain('VERIFY FAILED');
+    expect(output.display).toContain('Mismatch: companyname');
+    expect(output.display).toContain('Mismatch: total');
+    expect(output.display).not.toContain('Matched:');
   });
 
   test('verify with no args returns error', async () => {
-    const raw = await nsVerify([], bm);
-    const result = JSON.parse(raw);
+    const output = await nsVerify([], bm);
 
-    expect(result.ok).toBe(false);
-    expect(result.error.type).toBe('ValidationError');
-    expect(result.error.message).toContain('Missing arguments');
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('Missing arguments');
   });
 
   test('verify with no field=value expectations returns error', async () => {
-    const raw = await nsVerify(['--current'], bm);
-    const result = JSON.parse(raw);
+    const output = await nsVerify(['--current'], bm);
 
-    expect(result.ok).toBe(false);
-    expect(result.error.type).toBe('ValidationError');
-    expect(result.error.message).toContain('No field=value expectations');
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('No field=value expectations');
   });
 
-  test('verify on non-NS page returns NotARecordPage', async () => {
+  test('verify on non-NS page returns error', async () => {
     const page = bm.getPage();
     await page.goto('about:blank');
 
-    const raw = await nsVerify(['--current', 'companyname=Acme Corp'], bm);
-    const result = JSON.parse(raw);
+    const output = await nsVerify(['--current', 'companyname=Acme Corp'], bm);
 
-    expect(result.ok).toBe(false);
-    expect(result.error.type).toBe('NotARecordPage');
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('NotARecordPage');
 
-    // Navigate back for subsequent tests
     await page.goto(baseUrl + '/ns-form.html');
   });
 
-  test('mismatches include field, expected, and actual values', async () => {
+  test('mismatch shows expected and actual values', async () => {
     const page = bm.getPage();
     await page.goto(baseUrl + '/ns-form.html');
 
-    const raw = await nsVerify(['--current', 'salesrep=999'], bm);
-    const result = JSON.parse(raw);
+    const output = await nsVerify(['--current', 'salesrep=999'], bm);
 
-    expect(result.ok).toBe(true);
-    expect(result.data.verified).toBe(false);
-    expect(result.data.mismatches).toBeArrayOfSize(1);
-
-    const mismatch = result.data.mismatches[0];
-    expect(mismatch.field).toBe('salesrep');
-    expect(mismatch.expected).toBe('999');
-    expect(mismatch.actual).toHaveProperty('value');
-    expect(mismatch.actual).toHaveProperty('displayValue');
-    expect(mismatch.actual.value).toBe('42');
-    expect(mismatch.actual.displayValue).toBe('Jane Smith');
+    expect(output.ok).toBe(true);
+    expect(output.display).toContain('VERIFY FAILED');
+    expect(output.display).toContain('Mismatch: salesrep');
+    expect(output.display).toContain('expected');
+    expect(output.display).toContain('999');
+    expect(output.display).toContain('actual');
+    expect(output.display).toContain('42');
   });
 
-  test('verify nonexistent field returns mismatch with null actuals', async () => {
+  test('verify nonexistent field shows mismatch with null', async () => {
     const page = bm.getPage();
     await page.goto(baseUrl + '/ns-form.html');
 
-    const raw = await nsVerify(['--current', 'nonexistent_field=foo'], bm);
-    const result = JSON.parse(raw);
+    const output = await nsVerify(['--current', 'nonexistent_field=foo'], bm);
 
-    expect(result.ok).toBe(true);
-    expect(result.data.verified).toBe(false);
-    expect(result.data.mismatches).toBeArrayOfSize(1);
-    expect(result.data.mismatches[0].actual.value).toBeNull();
-    expect(result.data.mismatches[0].actual.displayValue).toBeNull();
+    expect(output.ok).toBe(true);
+    expect(output.display).toContain('VERIFY FAILED');
+    expect(output.display).toContain('Mismatch: nonexistent_field');
+    expect(output.display).toContain('(null)');
   });
 
   test('verify mix of matching and mismatching fields', async () => {
     const page = bm.getPage();
     await page.goto(baseUrl + '/ns-form.html');
 
-    const raw = await nsVerify(['--current', 'companyname=Acme Corp', 'total=9999.00'], bm);
-    const result = JSON.parse(raw);
+    const output = await nsVerify(['--current', 'companyname=Acme Corp', 'total=9999.00'], bm);
 
-    expect(result.ok).toBe(true);
-    expect(result.data.verified).toBe(false);
-    expect(result.data.matched).toBeArrayOfSize(1);
-    expect(result.data.matched[0].field).toBe('companyname');
-    expect(result.data.mismatches).toBeArrayOfSize(1);
-    expect(result.data.mismatches[0].field).toBe('total');
+    expect(output.ok).toBe(true);
+    expect(output.display).toContain('VERIFY FAILED');
+    expect(output.display).toContain('Matched: companyname');
+    expect(output.display).toContain('Mismatch: total');
   });
 });
