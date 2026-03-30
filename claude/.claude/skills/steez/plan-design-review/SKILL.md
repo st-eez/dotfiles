@@ -1095,7 +1095,8 @@ After displaying the Review Readiness Dashboard, recommend the next review(s) ba
 Use AskUserQuestion to present the next step. Include only applicable options:
 - **A)** Run /steez-plan-eng-review next (required gate)
 - **B)** Run /steez-plan-ceo-review (only if fundamental product gaps found)
-- **C)** Skip — I'll handle reviews manually
+- **C)** Run /steez-design-html — generate Pretext-native HTML from approved mockups
+- **D)** Skip — I'll handle reviews manually
 
 ## Formatting Rules
 * NUMBER issues (1, 2, 3...) and LETTERS for options (A, B, C...).
