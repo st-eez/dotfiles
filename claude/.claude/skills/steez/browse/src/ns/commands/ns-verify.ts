@@ -14,10 +14,10 @@
 import type { BrowserManager } from '../../core/browser-manager';
 import type { NsCommandOutput } from '../format';
 import { formatNsError, truncateValue } from '../format';
-import type { NsCommandResult } from '../errors';
+import type { NsResult } from '../errors';
 import type { NsFormMode } from '../utils/introspect-field';
 import { RECORD_URL_MAP } from '../tier1';
-import { guardNsApi, nsOk, nsFail, notARecordPage, validationError } from '../errors';
+import { guardNsApi, notARecordPage, validationError } from '../errors';
 import { introspectAllFields, detectFormMode } from '../utils/introspect-field';
 import { withMutex, nsMutex } from '../mutex';
 
@@ -105,17 +105,14 @@ export async function nsVerify(args: string[], bm: BrowserManager): Promise<NsCo
     return { display: formatNsError('ns verify', validationError('No field=value expectations provided. Usage: ns verify ... field=value [field=value ...]')), ok: false };
   }
 
-  const result = await withMutex(nsMutex, async (): Promise<NsCommandResult<NsVerifyData>> => {
+  const result = await withMutex(nsMutex, async (): Promise<NsResult<NsVerifyData>> => {
     try {
       const page = bm.getPage();
 
       // Navigate if not --current
       if (!parsed.current) {
         if (!parsed.recordType) {
-          return nsFail(
-            validationError('Missing record type. Usage: ns verify <recordType> <id> field=value ...'),
-            Date.now() - start,
-          );
+          return { ok: false as const, error: validationError('Missing record type. Usage: ns verify <recordType> <id> field=value ...') };
         }
 
         const relativePath = RECORD_URL_MAP.buildUrl(
@@ -143,7 +140,7 @@ export async function nsVerify(args: string[], bm: BrowserManager): Promise<NsCo
       const target = bm.getActiveFrameOrPage();
       const guardErr = await guardNsApi(target);
       if (guardErr) {
-        return nsFail(guardErr, Date.now() - start);
+        return { ok: false as const, error: guardErr };
       }
 
       // Introspect all fields
@@ -187,26 +184,18 @@ export async function nsVerify(args: string[], bm: BrowserManager): Promise<NsCo
         }
       }
 
-      return nsOk<NsVerifyData>(
-        {
+      return {
+        ok: true as const,
+        data: {
           verified: mismatches.length === 0,
           mismatches,
           matched,
-          record: {
-            type: parsed.recordType,
-            id: parsed.id,
-            mode,
-            fieldCount: fields.length,
-          },
+          record: { type: parsed.recordType, id: parsed.id, mode, fieldCount: fields.length },
         },
-        Date.now() - start,
-      );
+      };
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      return nsFail(
-        notARecordPage(`Verify failed: ${message}`),
-        Date.now() - start,
-      );
+      return { ok: false as const, error: notARecordPage(`Verify failed: ${message}`) };
     }
   }, { label: 'ns verify' });
 

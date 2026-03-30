@@ -16,9 +16,9 @@
 import type { BrowserManager } from '../../core/browser-manager';
 import type { NsCommandOutput } from '../format';
 import { formatNsError, truncateValue } from '../format';
-import type { NsCommandResult } from '../errors';
+import type { NsResult } from '../errors';
 import type { NsFieldMetadata } from '../utils/introspect-field';
-import { guardNsApi, nsOk, nsFail, validationError } from '../errors';
+import { guardNsApi, validationError } from '../errors';
 import { introspectAllFields } from '../utils/introspect-field';
 import { createPageGetter, waitForFieldConvergence } from '../convergence';
 import { withMutex, nsMutex } from '../mutex';
@@ -58,14 +58,13 @@ function toSnapshotMap(fields: NsFieldMetadata[]): Record<string, FieldSnapshot>
 // ─── ns diff ────────────────────────────────────────────────
 
 export async function nsDiff(args: string[], bm: BrowserManager): Promise<NsCommandOutput> {
-  const result = await withMutex(nsMutex, async (): Promise<NsCommandResult<NsDiffData>> => {
-      const start = Date.now();
+  const result = await withMutex(nsMutex, async (): Promise<NsResult<NsDiffData>> => {
       const target = bm.getActiveFrameOrPage();
 
       // ── Guard: must be on a NS page with client API ──────────
       const guardErr = await guardNsApi(target);
       if (guardErr) {
-        return nsFail(guardErr, Date.now() - start);
+        return { ok: false as const, error: guardErr };
       }
 
       // ── Snapshot "before" ────────────────────────────────────
@@ -81,19 +80,19 @@ export async function nsDiff(args: string[], bm: BrowserManager): Promise<NsComm
         const action = args[0];
 
         if (action !== 'set') {
-          return nsFail(
-            validationError(`Unknown diff action: "${action}". Supported actions: set`),
-            Date.now() - start,
-          );
+          return {
+            ok: false as const,
+            error: validationError(`Unknown diff action: "${action}". Supported actions: set`),
+          };
         }
 
         const actionArgs = args.slice(1);
 
         if (actionArgs.length < 2) {
-          return nsFail(
-            validationError('Missing arguments. Usage: ns diff set <fieldId> <value>'),
-            Date.now() - start,
-          );
+          return {
+            ok: false as const,
+            error: validationError('Missing arguments. Usage: ns diff set <fieldId> <value>'),
+          };
         }
 
         const fieldId = actionArgs[0];
@@ -106,10 +105,10 @@ export async function nsDiff(args: string[], bm: BrowserManager): Promise<NsComm
         // Determine cascading behavior: fire for entity-ref fields
         const fieldMeta = beforeFields.find(f => f.id === fieldId);
         if (!fieldMeta) {
-          return nsFail(
-            validationError(`Field "${fieldId}" not found on this form`),
-            Date.now() - start,
-          );
+          return {
+            ok: false as const,
+            error: validationError(`Field "${fieldId}" not found on this form`),
+          };
         }
 
         const fireCascading = fieldMeta.isEntityRef;
@@ -164,18 +163,16 @@ export async function nsDiff(args: string[], bm: BrowserManager): Promise<NsComm
         }
       }
 
-      const elapsed = Date.now() - start;
-
-      return nsOk<NsDiffData>(
-        {
+      return {
+        ok: true as const,
+        data: {
           action: actionLabel,
           before: beforeMap,
           after: afterMap,
           changed,
           unchanged,
         },
-        elapsed,
-      );
+      };
     }, { label: 'ns diff' });
 
   if (!result.ok) {

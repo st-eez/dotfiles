@@ -14,9 +14,9 @@ import type { BrowserManager } from '../../core/browser-manager';
 import type { NsMetadata } from '../../core/activity';
 import type { NsCommandOutput } from '../format';
 import { formatNsError } from '../format';
-import type { NsCommandResult } from '../errors';
+import type { NsResult } from '../errors';
 import { RECORD_URL_MAP } from '../tier1';
-import { guardNsApi, detectSessionExpiry, nsOk, nsFail, notARecordPage, validationError } from '../errors';
+import { guardNsApi, detectSessionExpiry, notARecordPage, validationError } from '../errors';
 import { detectFormMode } from '../utils/introspect-field';
 import { withMutex, nsMutex } from '../mutex';
 
@@ -50,7 +50,6 @@ function parseNavigateArgs(args: string[]): { recordType: string | null; id: str
 }
 
 export async function nsNavigate(args: string[], bm: BrowserManager): Promise<NsCommandOutput> {
-  const start = Date.now();
 
   const { recordType, id, edit } = parseNavigateArgs(args);
 
@@ -59,7 +58,7 @@ export async function nsNavigate(args: string[], bm: BrowserManager): Promise<Ns
     return { display: formatNsError('ns navigate', err), ok: false };
   }
 
-  const result = await withMutex(nsMutex, async (): Promise<NsCommandResult<NsNavigateData>> => {
+  const result = await withMutex(nsMutex, async (): Promise<NsResult<NsNavigateData>> => {
     try {
       const page = bm.getPage();
       const relativePath = RECORD_URL_MAP.buildUrl(recordType, id, edit);
@@ -85,26 +84,23 @@ export async function nsNavigate(args: string[], bm: BrowserManager): Promise<Ns
 
       const sessionError = await detectSessionExpiry(target);
       if (sessionError) {
-        return nsFail(sessionError, Date.now() - start);
+        return { ok: false as const, error: sessionError };
       }
 
       const apiError = await guardNsApi(target);
       if (apiError) {
-        return nsFail(apiError, Date.now() - start);
+        return { ok: false as const, error: apiError };
       }
 
       const mode = await detectFormMode(target);
 
-      return nsOk<NsNavigateData>(
-        { url: page.url(), recordType, mode, sessionValid: true },
-        Date.now() - start,
-      );
+      return { ok: true as const, data: { url: page.url(), recordType, mode, sessionValid: true } };
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      return nsFail(
-        notARecordPage(`Navigation failed: ${message}`),
-        Date.now() - start,
-      );
+      return {
+        ok: false as const,
+        error: notARecordPage(`Navigation failed: ${message}`),
+      };
     }
   }, { label: 'ns navigate' });
 

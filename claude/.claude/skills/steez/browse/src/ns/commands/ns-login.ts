@@ -40,8 +40,8 @@ import type { BrowserManager } from '../../core/browser-manager';
 import type { NsMetadata } from '../../core/activity';
 import type { NsCommandOutput } from '../format';
 import { formatNsError } from '../format';
-import type { NsCommandResult } from '../errors';
-import { nsOk, nsFail, validationError } from '../errors';
+import type { NsResult } from '../errors';
+import { validationError } from '../errors';
 import { withMutex, nsMutex } from '../mutex';
 
 // ─── Account Locking ──────────────────────────────────────
@@ -343,7 +343,7 @@ export async function nsLogin(
   const nsAccountId = creds.accountId || accountId;
 
   // 3. Navigate and fill credentials under mutex
-  const result = await withMutex(nsMutex, async (): Promise<NsCommandResult<NsLoginData>> => {
+  const result = await withMutex(nsMutex, async (): Promise<NsResult<NsLoginData>> => {
     try {
       const page = bm.getPage();
 
@@ -384,10 +384,7 @@ export async function nsLogin(
       ).count().then(c => c > 0).catch(() => false);
 
       if (has2FA) {
-        return nsOk<NsLoginData>(
-          { loggedIn: false, account: nsAccountId, slot: accountId, requires2FA: true },
-          Date.now() - start,
-        );
+        return { ok: true as const, data: { loggedIn: false, account: nsAccountId, slot: accountId, requires2FA: true } };
       }
 
       // Check for security question page
@@ -395,10 +392,7 @@ export async function nsLogin(
 
       if (onSecurityQuestionPage) {
         if (!creds.securityQuestions || Object.keys(creds.securityQuestions).length === 0) {
-          return nsFail(
-            validationError('Security question page detected but no securityQuestions configured in auth.json'),
-            Date.now() - start,
-          );
+          return { ok: false as const, error: validationError('Security question page detected but no securityQuestions configured in auth.json') };
         }
 
         const pageText = await page.locator('body').innerText().catch(() => null);
@@ -425,10 +419,7 @@ export async function nsLogin(
 
             await page.waitForURL((url) => !url.pathname.toLowerCase().includes('securityquestions.nl'), { timeout: 15000 });
           } else {
-            return nsFail(
-              validationError(`Security question not matched. Page text: "${pageText.trim().slice(0, 200)}"`),
-              Date.now() - start,
-            );
+            return { ok: false as const, error: validationError(`Security question not matched. Page text: "${pageText.trim().slice(0, 200)}"`) };
           }
         }
       }
@@ -438,22 +429,13 @@ export async function nsLogin(
       const isLoggedIn = await detectLoginSuccess(page, finalUrl);
 
       if (!isLoggedIn) {
-        return nsFail(
-          validationError(`Landed on ${finalUrl} — login may have failed`),
-          Date.now() - start,
-        );
+        return { ok: false as const, error: validationError(`Landed on ${finalUrl} — login may have failed`) };
       }
 
-      return nsOk<NsLoginData>(
-        { loggedIn: true, account: nsAccountId, slot: accountId },
-        Date.now() - start,
-      );
+      return { ok: true as const, data: { loggedIn: true, account: nsAccountId, slot: accountId } };
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      return nsFail(
-        validationError(`Login failed: ${message}`),
-        Date.now() - start,
-      );
+      return { ok: false as const, error: validationError(`Login failed: ${message}`) };
     }
   }, { label: 'ns login', operationTimeoutMs: 60000 });
 

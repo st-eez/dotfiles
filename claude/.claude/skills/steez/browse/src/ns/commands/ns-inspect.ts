@@ -14,9 +14,9 @@
 import type { BrowserManager } from '../../core/browser-manager';
 import type { NsCommandOutput } from '../format';
 import { formatNsError, truncateValue } from '../format';
-import type { NsCommandResult } from '../errors';
+import type { NsResult } from '../errors';
 import type { NsFieldMetadata, NsFormMode } from '../utils/introspect-field';
-import { guardNsApi, nsOk, nsFail, notARecordPage } from '../errors';
+import { guardNsApi } from '../errors';
 import { introspectField, introspectAllFields, detectFormMode } from '../utils/introspect-field';
 import { withMutex, nsMutex } from '../mutex';
 
@@ -66,14 +66,13 @@ function parseInspectArgs(args: string[]): { fieldId: string | null; sublists: b
 // ─── ns inspect ─────────────────────────────────────────────
 
 export async function nsInspect(args: string[], bm: BrowserManager): Promise<NsCommandOutput> {
-  const result = await withMutex(nsMutex, async (): Promise<NsCommandResult<NsInspectData>> => {
-    const start = Date.now();
+  const result = await withMutex(nsMutex, async (): Promise<NsResult<NsInspectData>> => {
     const target = bm.getActiveFrameOrPage();
 
     // Guard: must be on a NS page with client API
     const guardErr = await guardNsApi(target);
     if (guardErr) {
-      return nsFail(guardErr, Date.now() - start);
+      return { ok: false as const, error: guardErr };
     }
 
     const { fieldId, sublists: includeSublists } = parseInspectArgs(args);
@@ -102,7 +101,7 @@ export async function nsInspect(args: string[], bm: BrowserManager): Promise<NsC
       ...(sublists ? { sublists } : {}),
     };
 
-    return nsOk<NsInspectData>(data, Date.now() - start);
+    return { ok: true as const, data };
   }, { label: 'ns inspect', operationTimeoutMs: 10000 });
 
   if (!result.ok) {

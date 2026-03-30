@@ -9,7 +9,7 @@ import type { BrowserManager } from '../../core/browser-manager';
 import type { NsMetadata } from '../../core/activity';
 import type { NsCommandOutput } from '../format';
 import { formatNsError } from '../format';
-import { guardNsApi, detectSessionExpiry, nsOk, nsFail, type NsCommandResult } from '../errors';
+import { guardNsApi, detectSessionExpiry, type NsResult } from '../errors';
 import { detectFormMode, type NsFormMode } from '../utils/introspect-field';
 import { detectDomModal, type DomModal } from '../utils/with-dialog-handler';
 import { withMutex, nsMutex } from '../mutex';
@@ -46,20 +46,19 @@ export interface NsStatusData {
 }
 
 export async function nsStatus(args: string[], bm: BrowserManager): Promise<NsCommandOutput> {
-  const result = await withMutex(nsMutex, async (): Promise<NsCommandResult<NsStatusData>> => {
-    const start = Date.now();
+  const result = await withMutex(nsMutex, async (): Promise<NsResult<NsStatusData>> => {
     const target = bm.getActiveFrameOrPage();
 
     // Guard: must be on a NS page with client API
     const guardErr = await guardNsApi(target);
     if (guardErr) {
-      return nsFail(guardErr, Date.now() - start);
+      return { ok: false as const, error: guardErr };
     }
 
     // Check session expiry
     const sessionErr = await detectSessionExpiry(target);
     if (sessionErr) {
-      return nsFail(sessionErr, Date.now() - start);
+      return { ok: false as const, error: sessionErr };
     }
 
     // Gather page state
@@ -68,10 +67,7 @@ export async function nsStatus(args: string[], bm: BrowserManager): Promise<NsCo
     const mode = await detectFormMode(target);
     const modal = await detectDomModal(target);
 
-    return nsOk<NsStatusData>(
-      { url, recordType, mode, sessionValid: true, modal },
-      Date.now() - start,
-    );
+    return { ok: true as const, data: { url, recordType, mode, sessionValid: true, modal } };
   }, { label: 'ns status' });
 
   if (!result.ok) {

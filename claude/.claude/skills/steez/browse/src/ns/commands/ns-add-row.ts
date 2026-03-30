@@ -19,9 +19,9 @@
 import type { BrowserManager } from '../../core/browser-manager';
 import type { NsCommandOutput } from '../format';
 import { formatNsError, truncateValue } from '../format';
-import type { NsCommandResult } from '../errors';
+import type { NsResult } from '../errors';
 import type { CapturedDialog } from '../utils/with-dialog-handler';
-import { guardNsApi, nsOk, nsFail, validationError } from '../errors';
+import { guardNsApi, validationError } from '../errors';
 import { pollUntilConverged, type FieldValueGetter } from '../convergence';
 import { withDialogHandler } from '../utils/with-dialog-handler';
 import { withMutex, nsMutex } from '../mutex';
@@ -84,7 +84,7 @@ function createLineItemGetter(
 // ─── ns add-row ─────────────────────────────────────────────
 
 export async function nsAddRow(args: string[], bm: BrowserManager): Promise<NsCommandOutput> {
-  const result = await withMutex(nsMutex, async (): Promise<NsCommandResult<NsAddRowData>> => {
+  const result = await withMutex(nsMutex, async (): Promise<NsResult<NsAddRowData>> => {
       const start = Date.now();
       const target = bm.getActiveFrameOrPage();
 
@@ -92,22 +92,16 @@ export async function nsAddRow(args: string[], bm: BrowserManager): Promise<NsCo
       const { sublistId, fieldValues } = parseAddRowArgs(args);
 
       if (!sublistId) {
-        return nsFail(
-          validationError('Missing sublist ID. Usage: ns add-row <sublistId> col1=val1 col2=val2 ...'),
-          Date.now() - start,
-        );
+        return { ok: false as const, error: validationError('Missing sublist ID. Usage: ns add-row <sublistId> col1=val1 col2=val2 ...') };
       }
 
       if (fieldValues.length === 0) {
-        return nsFail(
-          validationError('No field values provided. Usage: ns add-row <sublistId> col1=val1 col2=val2 ...'),
-          Date.now() - start,
-        );
+        return { ok: false as const, error: validationError('No field values provided. Usage: ns add-row <sublistId> col1=val1 col2=val2 ...') };
       }
 
       // ── Guard ────────────────────────────────────────────────
       const guardErr = await guardNsApi(target);
-      if (guardErr) return nsFail(guardErr, Date.now() - start);
+      if (guardErr) return { ok: false as const, error: guardErr };
 
       // ── Idempotency guard: capture line count before ─────────
       const lineCountBefore = await target.evaluate(
@@ -197,8 +191,9 @@ export async function nsAddRow(args: string[], bm: BrowserManager): Promise<NsCo
 
       const elapsed = Date.now() - start;
 
-      return nsOk<NsAddRowData>(
-        {
+      return {
+        ok: true as const,
+        data: {
           sublist: sublistId,
           lineNumber: addResult.lineNumber,
           values: addResult.values,
@@ -206,9 +201,8 @@ export async function nsAddRow(args: string[], bm: BrowserManager): Promise<NsCo
           elapsedMs: elapsed,
           dialogs,
         },
-        elapsed,
-        { dialogs },
-      );
+        dialogs,
+      };
     }, { label: 'ns add-row' });
 
   if (!result.ok) {

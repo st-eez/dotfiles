@@ -9,7 +9,7 @@
 import type { BrowserManager } from '../../core/browser-manager';
 import type { NsCommandOutput } from '../format';
 import { formatNsError } from '../format';
-import { guardNsApi, nsOk, nsFail, notARecordPage, type NsCommandResult } from '../errors';
+import { guardNsApi, notARecordPage, type NsResult } from '../errors';
 import { withDialogHandler, type CapturedDialog } from '../utils/with-dialog-handler';
 import { withMutex, nsMutex } from '../mutex';
 
@@ -21,14 +21,13 @@ export interface NsCancelData {
 }
 
 export async function nsCancel(args: string[], bm: BrowserManager): Promise<NsCommandOutput> {
-  const result = await withMutex(nsMutex, async (): Promise<NsCommandResult<NsCancelData>> => {
-    const start = Date.now();
+  const result = await withMutex(nsMutex, async (): Promise<NsResult<NsCancelData>> => {
     const target = bm.getActiveFrameOrPage();
 
     // Guard: must be on a NS page with client API
     const guardErr = await guardNsApi(target);
     if (guardErr) {
-      return nsFail(guardErr, Date.now() - start);
+      return { ok: false as const, error: guardErr };
     }
 
     // Use withDialogHandler to capture any "unsaved changes" dialogs
@@ -67,18 +66,14 @@ export async function nsCancel(args: string[], bm: BrowserManager): Promise<NsCo
     );
 
     if (!cancelled) {
-      return nsFail(
-        notARecordPage('nlapiCancel not available and Cancel button not found'),
-        Date.now() - start,
-        { dialogs },
-      );
+      return {
+        ok: false as const,
+        error: notARecordPage('nlapiCancel not available and Cancel button not found'),
+        dialogs,
+      };
     }
 
-    return nsOk<NsCancelData>(
-      { cancelled: true, dialogs },
-      Date.now() - start,
-      { dialogs },
-    );
+    return { ok: true as const, data: { cancelled: true, dialogs }, dialogs };
   }, { label: 'ns cancel' });
 
   if (!result.ok) {

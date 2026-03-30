@@ -5,9 +5,6 @@
  *   - type: discriminant for switch/match
  *   - recoverable: can the agent retry or must the human intervene?
  *   - suggestedAction: plain-English guidance for the agent
- *
- * NS commands also return structured results (NsCommandResult) that include
- * timing, error type, snapshot diffs, and captured dialog text.
  */
 
 import type { Page, Frame } from 'playwright';
@@ -76,38 +73,13 @@ export function notARecordPage(message: string): NsError {
   };
 }
 
-// ─── Structured Command Result ──────────────────────────────
+// ─── Internal Result Type ──────────────────────────────────
+// Lean discriminated union for command internals. Commands convert
+// NsResult into NsCommandOutput (plain text) before returning.
 
-export interface NsCommandResult<T = unknown> {
-  ok: boolean;
-  data?: T;
-  error?: NsError;
-  elapsedMs: number;
-  dialogs?: CapturedDialog[];
-  /** Snapshot diff for write commands (set, add-row, save) */
-  diff?: { before: string; after: string };
-}
-
-/** Build a success result */
-export function nsOk<T>(data: T, elapsedMs: number, extras?: { dialogs?: CapturedDialog[]; diff?: { before: string; after: string } }): NsCommandResult<T> {
-  return {
-    ok: true,
-    data,
-    elapsedMs,
-    ...(extras?.dialogs?.length ? { dialogs: extras.dialogs } : {}),
-    ...(extras?.diff ? { diff: extras.diff } : {}),
-  };
-}
-
-/** Build an error result */
-export function nsFail(error: NsError, elapsedMs: number, extras?: { dialogs?: CapturedDialog[] }): NsCommandResult {
-  return {
-    ok: false,
-    error,
-    elapsedMs,
-    ...(extras?.dialogs?.length ? { dialogs: extras.dialogs } : {}),
-  };
-}
+export type NsResult<T = unknown> =
+  | { ok: true; data: T; dialogs?: CapturedDialog[] }
+  | { ok: false; error: NsError; dialogs?: CapturedDialog[] };
 
 // ─── NS API Availability Guard ──────────────────────────────
 

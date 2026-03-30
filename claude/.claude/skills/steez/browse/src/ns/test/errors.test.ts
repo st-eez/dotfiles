@@ -10,15 +10,12 @@ import {
   sessionExpired,
   saveTimeout,
   notARecordPage,
-  nsOk,
-  nsFail,
   guardNsApi,
   detectSessionExpiry,
   detectConcurrencyFromMessage,
   detectValidationFromMessage,
   classifyMessage,
   type NsError,
-  type NsCommandResult,
 } from '../errors';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -112,40 +109,6 @@ describe('Error constructors', () => {
     for (const err of errors) {
       expect(err.suggestedAction.length).toBeGreaterThan(0);
     }
-  });
-});
-
-// ─── Structured results ─────────────────────────────────────
-
-describe('NsCommandResult', () => {
-  test('nsOk builds success result', () => {
-    const result = nsOk({ fields: ['a', 'b'] }, 150);
-    expect(result.ok).toBe(true);
-    expect(result.data).toEqual({ fields: ['a', 'b'] });
-    expect(result.elapsedMs).toBe(150);
-    expect(result.error).toBeUndefined();
-  });
-
-  test('nsOk includes optional dialogs and diff', () => {
-    const result = nsOk('saved', 500, {
-      dialogs: [{ type: 'alert', message: 'Saved', action: 'accepted' }],
-      diff: { before: 'old', after: 'new' },
-    });
-    expect(result.dialogs).toHaveLength(1);
-    expect(result.diff).toBeDefined();
-  });
-
-  test('nsOk omits empty dialogs array', () => {
-    const result = nsOk('ok', 100, { dialogs: [] });
-    expect(result.dialogs).toBeUndefined();
-  });
-
-  test('nsFail builds error result', () => {
-    const err = validationError('bad value');
-    const result = nsFail(err, 200);
-    expect(result.ok).toBe(false);
-    expect(result.error).toBe(err);
-    expect(result.data).toBeUndefined();
   });
 });
 

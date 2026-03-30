@@ -17,11 +17,9 @@ import type { NsCommandOutput } from '../format';
 import { formatNsError } from '../format';
 import {
   guardNsApi,
-  nsOk,
-  nsFail,
   saveTimeout,
   classifyMessage,
-  type NsCommandResult,
+  type NsResult,
 } from '../errors';
 import { withDialogHandler, detectDomModal, type CapturedDialog } from '../utils/with-dialog-handler';
 import { waitForSettle } from '../utils/with-retry';
@@ -59,14 +57,14 @@ function sleep(ms: number): Promise<void> {
 // ─── ns save ──────────────────────────────────────────────
 
 export async function nsSave(args: string[], bm: BrowserManager): Promise<NsCommandOutput> {
-  const result = await withMutex(nsMutex, async (): Promise<NsCommandResult<NsSaveData>> => {
+  const result = await withMutex(nsMutex, async (): Promise<NsResult<NsSaveData>> => {
       const start = Date.now();
       const target = bm.getActiveFrameOrPage();
 
       // Guard: must be on a NS page with client API
       const guardErr = await guardNsApi(target);
       if (guardErr) {
-        return nsFail(guardErr, Date.now() - start);
+        return { ok: false as const, error: guardErr };
       }
 
       const page = bm.getPage();
@@ -77,10 +75,7 @@ export async function nsSave(args: string[], bm: BrowserManager): Promise<NsComm
       const saveBtn = await page.$(saveSelector);
 
       if (!saveBtn) {
-        return nsFail(
-          saveTimeout('Save button not found on page'),
-          Date.now() - start,
-        );
+        return { ok: false as const, error: saveTimeout('Save button not found on page') };
       }
 
       // Use withDialogHandler to capture dialogs during the save operation.
@@ -112,7 +107,7 @@ export async function nsSave(args: string[], bm: BrowserManager): Promise<NsComm
           const lastMessage = dialogs[dialogs.length - 1].message;
           const classified = classifyMessage(lastMessage);
           if (classified) {
-            return nsFail(classified, Date.now() - start, { dialogs });
+            return { ok: false as const, error: classified, dialogs };
           }
           // Unclassified dialog — treat as informational, keep waiting
         }
@@ -122,11 +117,7 @@ export async function nsSave(args: string[], bm: BrowserManager): Promise<NsComm
         if (currentUrl !== urlBeforeSave) {
           const recordId = extractRecordId(currentUrl);
           if (recordId) {
-            return nsOk<NsSaveData>(
-              { saved: true, recordId, url: currentUrl, dialogs },
-              Date.now() - start,
-              { dialogs },
-            );
+            return { ok: true as const, data: { saved: true, recordId, url: currentUrl, dialogs }, dialogs };
           }
 
           // URL changed but no ?id= — wait for page to settle, then check
@@ -136,7 +127,7 @@ export async function nsSave(args: string[], bm: BrowserManager): Promise<NsComm
             if (postRedirectModal) {
               const classified = classifyMessage(postRedirectModal.message);
               if (classified) {
-                return nsFail(classified, Date.now() - start, { dialogs });
+                return { ok: false as const, error: classified, dialogs };
               }
             }
           } catch {
@@ -144,11 +135,7 @@ export async function nsSave(args: string[], bm: BrowserManager): Promise<NsComm
           }
 
           // URL changed, no id, no error — treat as success (some saves don't have ?id=)
-          return nsOk<NsSaveData>(
-            { saved: true, url: currentUrl, dialogs },
-            Date.now() - start,
-            { dialogs },
-          );
+          return { ok: true as const, data: { saved: true, url: currentUrl, dialogs }, dialogs };
         }
 
         // 3. Check for DOM-based error modals (requires evaluate — may throw during nav)
@@ -157,7 +144,7 @@ export async function nsSave(args: string[], bm: BrowserManager): Promise<NsComm
           if (domModal) {
             const classified = classifyMessage(domModal.message);
             if (classified) {
-              return nsFail(classified, Date.now() - start, { dialogs });
+              return { ok: false as const, error: classified, dialogs };
             }
           }
         } catch {
@@ -169,11 +156,7 @@ export async function nsSave(args: string[], bm: BrowserManager): Promise<NsComm
       }
 
       // ── Timeout ──
-      return nsFail(
-        saveTimeout(`Save did not complete within ${SAVE_TIMEOUT_MS}ms`),
-        Date.now() - start,
-        { dialogs },
-      );
+      return { ok: false as const, error: saveTimeout(`Save did not complete within ${SAVE_TIMEOUT_MS}ms`), dialogs };
     }, { label: 'ns save', operationTimeoutMs: SAVE_TIMEOUT_MS + 5_000 });
 
   if (!result.ok) {

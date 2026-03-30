@@ -14,7 +14,7 @@
 import type { BrowserManager } from '../../core/browser-manager';
 import type { NsCommandOutput } from '../format';
 import { formatNsError } from '../format';
-import { guardNsApi, nsOk, nsFail, validationError, notARecordPage } from '../errors';
+import { guardNsApi, validationError } from '../errors';
 import { withMutex, nsMutex } from '../mutex';
 
 const MAX_ROWS = 200;

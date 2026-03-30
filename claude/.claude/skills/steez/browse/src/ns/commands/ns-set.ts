@@ -18,9 +18,9 @@
 import type { BrowserManager } from '../../core/browser-manager';
 import type { NsCommandOutput } from '../format';
 import { formatNsError, truncateValue } from '../format';
-import type { NsCommandResult } from '../errors';
+import type { NsResult } from '../errors';
 import type { CapturedDialog } from '../utils/with-dialog-handler';
-import { guardNsApi, nsOk, nsFail, validationError } from '../errors';
+import { guardNsApi, validationError } from '../errors';
 import { introspectField, introspectAllFields } from '../utils/introspect-field';
 import { createPageGetter, waitForFieldConvergence } from '../convergence';
 import { withDialogHandler } from '../utils/with-dialog-handler';
@@ -75,7 +75,7 @@ function parseSetArgs(args: string[]): {
 // ─── ns set ─────────────────────────────────────────────────
 
 export async function nsSet(args: string[], bm: BrowserManager): Promise<NsCommandOutput> {
-  const result = await withMutex(nsMutex, async (): Promise<NsCommandResult<NsSetData>> => {
+  const result = await withMutex(nsMutex, async (): Promise<NsResult<NsSetData>> => {
       const start = Date.now();
       const target = bm.getActiveFrameOrPage();
 
@@ -83,25 +83,25 @@ export async function nsSet(args: string[], bm: BrowserManager): Promise<NsComma
       const { fieldId, value, forceSource } = parseSetArgs(args);
 
       if (!fieldId || value === null) {
-        return nsFail(
-          validationError('Missing arguments. Usage: ns set <fieldId> <value> [--source|--no-source]'),
-          Date.now() - start,
-        );
+        return {
+          ok: false as const,
+          error: validationError('Missing arguments. Usage: ns set <fieldId> <value> [--source|--no-source]'),
+        };
       }
 
       // ── Guard: must be on a NS page with client API ──────────
       const guardErr = await guardNsApi(target);
       if (guardErr) {
-        return nsFail(guardErr, Date.now() - start);
+        return { ok: false as const, error: guardErr };
       }
 
       // ── Introspect the target field ──────────────────────────
       const fieldMeta = await introspectField(target, fieldId);
       if (!fieldMeta) {
-        return nsFail(
-          validationError(`Field "${fieldId}" not found on this form`),
-          Date.now() - start,
-        );
+        return {
+          ok: false as const,
+          error: validationError(`Field "${fieldId}" not found on this form`),
+        };
       }
 
       // ── Decide cascading strategy ────────────────────────────
@@ -186,8 +186,9 @@ export async function nsSet(args: string[], bm: BrowserManager): Promise<NsComma
 
       const elapsed = Date.now() - start;
 
-      return nsOk<NsSetData>(
-        {
+      return {
+        ok: true as const,
+        data: {
           fieldId,
           value,
           cascading: cascadingLabel,
@@ -196,9 +197,8 @@ export async function nsSet(args: string[], bm: BrowserManager): Promise<NsComma
           diff: { changed },
           dialogs,
         },
-        elapsed,
-        { dialogs },
-      );
+        dialogs,
+      };
     }, { label: 'ns set' });
 
   if (!result.ok) {
