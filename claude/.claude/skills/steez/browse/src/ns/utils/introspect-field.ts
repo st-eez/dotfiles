@@ -44,8 +44,11 @@ export async function introspectField(
     const label: string = field.getLabel?.() ?? '';
     const mandatory: boolean = !!field.isMandatory?.();
     const disabled: boolean = !!field.isDisabled?.();
-    const value: string | null = w.nlapiGetFieldValue?.(fid) ?? null;
-    const displayValue: string | null = w.nlapiGetFieldText?.(fid) ?? null;
+    // Subrecord fields (billingaddress, shippingaddress) throw nlobjError on value access
+    let value: string | null = null;
+    let displayValue: string | null = null;
+    try { value = w.nlapiGetFieldValue?.(fid) ?? null; } catch {}
+    try { displayValue = w.nlapiGetFieldText?.(fid) ?? null; } catch {}
 
     // Entity-ref detection: NetSuite creates a hidden _display companion element
     const displayEl = document.getElementById(fid + '_display');

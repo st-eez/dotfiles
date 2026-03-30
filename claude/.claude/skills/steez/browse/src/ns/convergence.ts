@@ -152,7 +152,8 @@ export function createPageGetter(target: Page | Frame): FieldValueGetter {
     return target.evaluate((ids: string[]) => {
       const result: Record<string, string | null> = {};
       for (const id of ids) {
-        result[id] = (window as any).nlapiGetFieldValue?.(id) ?? null;
+        // Subrecord fields (billingaddress, shippingaddress) throw nlobjError
+        try { result[id] = (window as any).nlapiGetFieldValue?.(id) ?? null; } catch { result[id] = null; }
       }
       return result;
     }, fieldIds);
