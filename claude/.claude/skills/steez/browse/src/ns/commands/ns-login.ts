@@ -401,22 +401,19 @@ export async function nsLogin(
       }
 
       // Check for security question page (URL-based — the page has no unique element IDs)
-      const onSecurityQuestionPage = /securityquestions\.nl/i.test(currentUrl);
+      const onSecurityQuestionPage = new URL(currentUrl).pathname.toLowerCase().includes('securityquestions.nl');
 
       if (onSecurityQuestionPage) {
         if (!creds.securityQuestions || Object.keys(creds.securityQuestions).length === 0) {
-          const data: NsLoginData = {
-            loggedIn: false,
-            account: nsAccountId,
-            slot: accountId,
-            error: 'Security question page detected but no securityQuestions configured in auth.json',
-          };
-          const result: NsCommandResult<NsLoginData> = nsOk(data, Date.now() - start);
+          const result: NsCommandResult = nsFail(
+            validationError('Security question page detected but no securityQuestions configured in auth.json'),
+            Date.now() - start,
+          );
           return JSON.stringify(result);
         }
 
-        // Get visible page text to find the question (elements are unlabeled)
-        const pageText = await page.locator('body').textContent().catch(() => null);
+        // Get visible page text to find the question (innerText excludes <script> content)
+        const pageText = await page.locator('body').innerText().catch(() => null);
 
         if (pageText) {
           const normalizedPage = pageText.trim().toLowerCase();
@@ -431,23 +428,21 @@ export async function nsLogin(
 
           if (answer) {
             // The actual NS page has an unlabeled text input and Submit button
-            const answerField = page.locator('input[type="text"]').first();
+            const answerField = page.locator('input[type="text"]:visible').first();
             await answerField.fill(answer);
 
             const securitySubmit = page.locator(
-              'input[type="submit"], button[type="submit"]',
+              'input[type="submit"]:visible, button[type="submit"]:visible',
             ).first();
             await securitySubmit.click();
 
-            await page.waitForLoadState('domcontentloaded', { timeout: 15000 });
+            // Wait for navigation away from the security question page
+            await page.waitForURL((url) => !url.pathname.toLowerCase().includes('securityquestions.nl'), { timeout: 15000 });
           } else {
-            const data: NsLoginData = {
-              loggedIn: false,
-              account: nsAccountId,
-              slot: accountId,
-              error: `Security question not matched. Page text: "${pageText.trim().slice(0, 200)}"`,
-            };
-            const result: NsCommandResult<NsLoginData> = nsOk(data, Date.now() - start);
+            const result: NsCommandResult = nsFail(
+              validationError(`Security question not matched. Page text: "${pageText.trim().slice(0, 200)}"`),
+              Date.now() - start,
+            );
             return JSON.stringify(result);
           }
         }
@@ -491,13 +486,15 @@ async function detectLoginSuccess(
   page: import('playwright').Page,
   url: string,
 ): Promise<boolean> {
+  const pathname = new URL(url).pathname.toLowerCase();
+
   // Still on credential login page → not logged in
-  if (/\/pages\/customerlogin/i.test(url)) {
+  if (pathname.includes('/pages/customerlogin')) {
     return false;
   }
   // Other /app/login/ pages (e.g. error, role select) — but exclude
   // securityquestions.nl which is a valid mid-flow page handled separately
-  if (/\/app\/login/i.test(url) && !/securityquestions\.nl/i.test(url)) {
+  if (pathname.includes('/app/login') && !pathname.includes('securityquestions.nl')) {
     return false;
   }
 

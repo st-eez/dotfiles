@@ -29,6 +29,10 @@ function startLoginTestServer(port: number = 0) {
       let filePath: string;
       if (pathname === '/pages/customerlogin.jsp' || pathname === '/') {
         filePath = 'ns-login.html';
+      } else if (pathname === '/pages/customerlogin-security.jsp') {
+        filePath = 'ns-login-security.html';
+      } else if (pathname === '/app/login/secure/securityquestions.nl') {
+        filePath = 'ns-security-question.html';
       } else if (pathname === '/ns-form.html') {
         filePath = 'ns-form.html';
       } else {
@@ -54,12 +58,14 @@ let testServer: ReturnType<typeof startLoginTestServer>;
 let bm: BrowserManager;
 let baseUrl: string;
 let loginUrl: string;
+let securityLoginUrl: string;
 let tmpDir: string;
 
 beforeAll(async () => {
   testServer = startLoginTestServer(0);
   baseUrl = testServer.url;
   loginUrl = `${baseUrl}/pages/customerlogin.jsp`;
+  securityLoginUrl = `${baseUrl}/pages/customerlogin-security.jsp`;
   bm = new BrowserManager();
   await bm.launch();
 
@@ -214,6 +220,63 @@ describe('ns login — auth config validation', () => {
     expect(result.error.type).toBe('ValidationError');
     expect(result.error.message).toContain('insecure permissions');
     expect(result.error.message).toContain('chmod 600');
+  });
+});
+
+// ─── Security question flow ───────────────────────────────
+
+describe('ns login — security question', () => {
+  test('answers security question and completes login', async () => {
+    const authPath = createAuthConfig({
+      'SEC_ACCT': {
+        email: 'sec@example.com',
+        password: 'secpass',
+        securityQuestions: { 'favorite color': 'blue' },
+      },
+    });
+
+    const result = JSON.parse(
+      await nsLogin([], bm, authPath, securityLoginUrl),
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.data.loggedIn).toBe(true);
+    expect(result.data.account).toBe('SEC_ACCT');
+  });
+
+  test('returns validation error when securityQuestions not configured', async () => {
+    const authPath = createAuthConfig({
+      'NO_SEC_ACCT': {
+        email: 'nosec@example.com',
+        password: 'nosecpass',
+      },
+    });
+
+    const result = JSON.parse(
+      await nsLogin([], bm, authPath, securityLoginUrl),
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.error.type).toBe('ValidationError');
+    expect(result.error.message).toContain('securityQuestions');
+  });
+
+  test('returns validation error when no question keyword matches', async () => {
+    const authPath = createAuthConfig({
+      'WRONG_SEC_ACCT': {
+        email: 'wrong@example.com',
+        password: 'wrongpass',
+        securityQuestions: { 'pet name': 'Fluffy' },
+      },
+    });
+
+    const result = JSON.parse(
+      await nsLogin([], bm, authPath, securityLoginUrl),
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.error.type).toBe('ValidationError');
+    expect(result.error.message).toContain('not matched');
   });
 });
 
