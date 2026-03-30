@@ -101,7 +101,10 @@ Skills write session data and analytics to `~/.steez/` (not in dotfiles):
     {slug}/
       *-design-*.md         # design docs from /steez-office-hours
       *-reviews.jsonl       # review logs from /steez-review, /steez-ship
-  browse/                   # browse daemon state (chromium profile, sessions)
+  browse/                   # browse daemon state
+    auth.json               # NS credentials (chmod 600, slot-keyed for multi-agent)
+    locks/                  # account lock files (auto-managed, PID + 2h TTL)
+    chromium-profile/       # persistent browser profile
 ```
 
 ## Philosophy

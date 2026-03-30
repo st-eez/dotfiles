@@ -44,6 +44,8 @@ dotfiles/claude/.claude/skills/
   skill-reports/                      # Skill Self-Report bug reports
   projects/{slug}/                    # per-project design docs + review logs
   browse/                             # chromium profile, sidebar sessions
+    auth.json                         # NS credentials (chmod 600, slot-keyed)
+    locks/                            # account lock files (PID + TTL)
 ```
 
 ### Stow deployment
@@ -207,6 +209,50 @@ B=""
 Resolution order: repo-local binary first, global fallback second. This allows per-project browse versions while defaulting to the stowed version.
 
 The browse binary is a compiled Bun daemon built on the Playwright npm library (v1.58.2). It provides a long-lived Chromium session with sub-second command latency. See the browse skill for architecture details.
+
+### NetSuite authentication
+
+NS commands (`$B ns login`, `$B ns navigate`, etc.) authenticate via `~/.steez/browse/auth.json` (chmod 600 required). The file uses slot-keyed accounts to support multiple users on the same sandbox:
+
+```json
+{
+  "accounts": {
+    "5582598-sb2:account2": {
+      "email": "user+2@example.com",
+      "password": "...",
+      "accountId": "5582598-sb2",
+      "securityQuestions": { "keyword": "answer" }
+    },
+    "5582598-sb2:account3": {
+      "email": "user+3@example.com",
+      "password": "...",
+      "accountId": "5582598-sb2",
+      "securityQuestions": { "keyword": "answer" }
+    }
+  }
+}
+```
+
+**Slot keys** (e.g. `5582598-sb2:account2`) are the locking unit. The `accountId` field is the real NS account ID used for the login URL. When `accountId` is omitted, the slot key itself is used (backwards compatible with single-user setups where the key is just `5582598-sb2`).
+
+**Security questions** use case-insensitive substring matching. Store keywords ("city", "nickname"), not full question text.
+
+### Account locking
+
+Parallel agents (e.g. A/B eval via tmux split) must not share the same NS user session. `$B ns login` manages this automatically via lock files at `~/.steez/browse/locks/<slot>.lock`.
+
+```
+$B ns login                              → picks first unlocked slot
+$B ns login --account 5582598-sb2:account3 → claims specific slot
+$B ns login --release                    → releases all locks held by this process
+```
+
+Lock lifecycle:
+1. **Acquire:** atomic file write (`O_EXCL`) on login. Contains `{ pid, ts }`.
+2. **Release:** automatic on browse shutdown (SIGTERM/SIGINT handler).
+3. **Stale detection:** before honoring a lock, check if PID is alive (`kill -0`). Dead PID = stale lock, reclaimed immediately. Fallback: locks older than 2h TTL are ignored.
+
+This means crashed sessions don't permanently block accounts. The next agent to check will find the dead PID and reclaim the slot.
 
 ## Error philosophy
 
