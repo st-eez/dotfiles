@@ -360,6 +360,28 @@ Examples: run codex (always yes), run evals (always yes), reduce scope on a comp
 2. **Borderline scope** — in blast radius but 3-5 files, or ambiguous radius.
 3. **Codex disagreements** — codex recommends differently and has a valid point.
 
+**User Challenge** — both models agree the user's stated direction should change.
+This is qualitatively different from taste decisions. When Claude and Codex both
+recommend merging, splitting, adding, or removing features/skills/workflows that
+the user specified, this is a User Challenge. It is NEVER auto-decided.
+
+User Challenges go to the final approval gate with richer context than taste
+decisions:
+- **What the user said:** (their original direction)
+- **What both models recommend:** (the change)
+- **Why:** (the models' reasoning)
+- **What context we might be missing:** (explicit acknowledgment of blind spots)
+- **If we're wrong, the cost is:** (what happens if the user's original direction
+  was right and we changed it)
+
+The user's original direction is the default. The models must make the case for
+change, not the other way around.
+
+**Exception:** If both models flag the change as a security vulnerability or
+feasibility blocker (not a preference), the AskUserQuestion framing explicitly
+warns: "Both models believe this is a security/feasibility risk, not just a
+preference." The user still decides, but the framing is appropriately urgent.
+
 ---
 
 ## Sequential Execution — MANDATORY
@@ -387,6 +409,12 @@ AskUserQuestion: you do, using the 6 principles, instead of the user.
 - DECIDE each issue using the 6 principles (instead of asking the user)
 - LOG each decision in the audit trail
 - WRITE all required artifacts to disk
+
+**Two exceptions — never auto-decided:**
+1. Premises (Phase 1) — require human judgment about what problem to solve.
+2. User Challenges — when both models agree the user's stated direction should change
+   (merge, split, add, remove features/workflows). The user always has context models
+   lack. See Decision Classification above.
 
 **You MUST NOT:**
 - Compress a review section into a one-liner table row
@@ -496,7 +524,7 @@ Override: every AskUserQuestion → auto-decide using the 6 principles.
   Duplicates → reject (P4). Borderline (3-5 files) → mark TASTE DECISION.
 - All 10 review sections: run fully, auto-decide each issue, log every decision.
 - Dual voices: always run BOTH Claude subagent AND Codex if available (P6).
-  Run them simultaneously (Agent tool for subagent, Bash for Codex).
+  Run them sequentially in foreground (Agent tool for subagent first, then Bash for Codex).
 
   **Codex CEO voice** (via Bash):
   ```bash
@@ -544,7 +572,9 @@ Step 0 (0A-0F) — run each sub-step and produce:
 - 0E: Temporal interrogation (HOUR 1 → HOUR 6+)
 - 0F: Mode selection confirmation
 
-Step 0.5 (Dual Voices): Run Claude subagent AND Codex simultaneously. Present
+Step 0.5 (Dual Voices): Run Claude subagent and Codex sequentially in foreground.
+First the Claude subagent (Agent tool, foreground — do NOT use run_in_background),
+then Codex (Bash). Both must complete before building the consensus table. Present
 Codex output under CODEX SAYS (CEO — strategy challenge) header. Present subagent
 output under CLAUDE SUBAGENT (CEO — strategic independence) header. Produce CEO
 consensus table:
@@ -649,7 +679,7 @@ Override: every AskUserQuestion → auto-decide using the 6 principles.
 
 1. Step 0 (Design Scope): Rate completeness 0-10. Check DESIGN.md. Map existing patterns.
 
-2. Step 0.5 (Dual Voices): Run Claude subagent AND Codex simultaneously. Present under
+2. Step 0.5 (Dual Voices): Run Claude subagent and Codex sequentially in foreground. Present under
    CODEX SAYS (design — UX challenge) and CLAUDE SUBAGENT (design — independent review)
    headers. Produce design litmus scorecard (consensus table). Use the litmus scorecard
    format from plan-design-review. Include CEO phase findings in Codex prompt ONLY
@@ -722,7 +752,7 @@ Override: every AskUserQuestion → auto-decide using the 6 principles.
 1. Step 0 (Scope Challenge): Read actual code referenced by the plan. Map each
    sub-problem to existing code. Run the complexity check. Produce concrete findings.
 
-2. Step 0.5 (Dual Voices): Run Claude subagent AND Codex simultaneously. Present
+2. Step 0.5 (Dual Voices): Run Claude subagent and Codex sequentially in foreground. Present
    Codex output under CODEX SAYS (eng — architecture challenge) header. Present subagent
    output under CLAUDE SUBAGENT (eng — independent review) header. Produce eng consensus
    table:
@@ -782,8 +812,8 @@ After each auto-decision, append a row to the plan file using Edit:
 <!-- AUTONOMOUS DECISION LOG -->
 ## Decision Audit Trail
 
-| # | Phase | Decision | Principle | Rationale | Rejected |
-|---|-------|----------|-----------|-----------|----------|
+| # | Phase | Decision | Classification | Principle | Rationale | Rejected |
+|---|-------|----------|----------------|-----------|-----------|----------|
 ```
 
 Write one row per decision incrementally (via Edit). This keeps the audit on disk,
@@ -850,7 +880,19 @@ Present as a message, then use AskUserQuestion:
 ### Plan Summary
 [1-3 sentence summary]
 
-### Decisions Made: [N] total ([M] auto-decided, [K] choices for you)
+### Decisions Made: [N] total ([M] auto-decided, [K] taste choices, [J] user challenges)
+
+### User Challenges (both models disagree with your stated direction)
+[For each user challenge:]
+**Challenge [N]: [title]** (from [phase])
+You said: [user's original direction]
+Both models recommend: [the change]
+Why: [reasoning]
+What we might be missing: [blind spots]
+If we're wrong, the cost is: [downside of changing]
+[If security/feasibility: "Both models flag this as a security/feasibility risk, not just a preference."]
+
+Your call — your original direction stands unless you explicitly change it.
 
 ### Your Choices (taste decisions)
 [For each taste decision:]
@@ -878,6 +920,7 @@ I recommend [X] — [principle]. But [Y] is also viable:
 ```
 
 **Cognitive load management:**
+- 0 user challenges: skip "User Challenges" section
 - 0 taste decisions: skip "Your Choices" section
 - 1-7 taste decisions: flat list
 - 8+: group by phase. Add warning: "This plan had unusually high ambiguity ([N] taste decisions). Review carefully."
@@ -885,6 +928,7 @@ I recommend [X] — [principle]. But [Y] is also viable:
 AskUserQuestion options:
 - A) Approve as-is (accept all recommendations)
 - B) Approve with overrides (specify which taste decisions to change)
+- B2) Approve with user challenge responses (accept or reject each challenge)
 - C) Interrogate (ask about any specific decision)
 - D) Revise (the plan itself needs changes)
 - E) Reject (start over)
@@ -940,7 +984,7 @@ Suggest next step: `/steez-ship` when ready to create the PR.
 ## Important Rules
 
 - **Never abort.** The user chose /steez-autoplan. Respect that choice. Surface all taste decisions, never redirect to interactive review.
-- **Premises are the one gate.** The only non-auto-decided AskUserQuestion is the premise confirmation in Phase 1.
+- **Two gates.** The non-auto-decided AskUserQuestions are: (1) premise confirmation in Phase 1, and (2) User Challenges — when both models agree the user's stated direction should change. Everything else is auto-decided using the 6 principles.
 - **Log every decision.** No silent auto-decisions. Every choice gets a row in the audit trail.
 - **Full depth means full depth.** Do not compress or skip sections from the loaded skill files (except the skip list in Phase 0). "Full depth" means: read the code the section asks you to read, produce the outputs the section requires, identify every issue, and decide each one. A one-sentence summary of a section is not "full depth" — it is a skip. If you catch yourself writing fewer than 3 sentences for any review section, you are likely compressing.
 - **Artifacts are deliverables.** Test plan artifact, failure modes registry, error/rescue table, ASCII diagrams — these must exist on disk or in the plan file when the review completes. If they don't exist, the review is incomplete.
