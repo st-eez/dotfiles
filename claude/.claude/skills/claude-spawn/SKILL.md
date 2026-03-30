@@ -11,13 +11,51 @@ Spawn a new Claude Code instance in a tmux target. This skill is project-agnosti
 
 Extract everything from what the user already said. The user's request IS the configuration — do not ask questions the user already answered or that have obvious defaults.
 
-**Tmux target** — infer from the user's words:
-- "beside", "next to", "side by side", "split" → horizontal split
-- "in this window", "in this pane", "here" → horizontal split (stay in current window)
-- "below", "above", "stacked" → vertical split
-- "new window", "new tab" → new window
-- "new session" → new session (ask for session name only if not provided)
-- If unclear or unspecified → default to **new window**
+Parse these three fields **independently**, then combine into script args:
+
+### 1. Topology (how to create the pane)
+
+- Explicit "new window" or "new tab" → `new-window`
+- Explicit "new session" → `new-session` (ask for session name only if not provided)
+- "beside", "next to", "side by side", "split" → `split-h`
+- "in this window", "in this pane", "here" → `split-h`
+- "below", "above", "stacked" → `split-v`
+- **Default** (no locality or split cue at all) → `new-window`
+
+**Precedence rule:** If the user said ANY locality word ("this", "here", "beside", "in window"), that is a split cue. The default `new-window` ONLY applies when there is zero locality language. Never let the default override an explicit split cue.
+
+### 2. Anchor (where to create it)
+
+- "this pane", "beside me", "here" (no window number) → current pane (no `--target` needed)
+- "this window", "in this window" (no number) → current pane (no `--target` needed)
+- "window N", "this window (N)", "in tmux window (N)", "in window N" → target window N
+  - If N is the caller's current window → no `--target` needed
+  - If N is a different window → use `--target <session>:N.1` (first pane in that window)
+- "pane N.M", explicit `session:window.pane` → use `--target` with exact address
+- Parenthetical numbers like `(2)` are **identifiers** — the user naming which window they mean. They are NOT requests to create a new window.
+
+### 3. Combine into script args
+
+| Topology | Anchor | Script call |
+|----------|--------|-------------|
+| `split-h` | current pane | `spawn.sh split-h` |
+| `split-h` | window N (same as current) | `spawn.sh split-h` |
+| `split-h` | window N (different) | `spawn.sh split-h --target <session>:N.1` |
+| `split-h` | exact pane | `spawn.sh split-h --target <pane-addr>` |
+| `split-v` | (same patterns) | `spawn.sh split-v [--target ...]` |
+| `new-window` | — | `spawn.sh new-window` |
+| `new-session` | — | `spawn.sh new-session [--session <name>]` |
+
+**Examples of correct parsing:**
+
+| User says | Topology | Anchor | Result |
+|-----------|----------|--------|--------|
+| "spawn claude beside me" | `split-h` | current pane | `split-h` |
+| "spawn a claude in this tmux window (2)" | `split-h` | window 2 | `split-h` (if already in 2) |
+| "put claude in window 3" | `split-h` | window 3 | `split-h --target mac:3.1` |
+| "new window with claude" | `new-window` | — | `new-window` |
+| "spawn claude" (no locality) | `new-window` | — | `new-window` |
+| "start claude below" | `split-v` | current pane | `split-v` |
 
 **Working directory** — tmux inherits the cwd of the source pane on split/new-window, so skip this entirely unless the user explicitly mentions a different path or worktree. Rules:
 - User mentions a specific path → cd to that path after creating the pane
