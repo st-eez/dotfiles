@@ -1,11 +1,14 @@
 /**
  * NetSuite command dispatcher.
  *
- * All NS commands follow the pattern: (command, args, browserManager) → string (JSON).
- * Each returns a typed NsCommandResult via nsOk/nsFail.
+ * Commands are migrating from JSON (NsCommandResult) to NsCommandOutput.
+ * During transition, legacy string returns are wrapped via wrapLegacyResult().
+ * Once a command returns NsCommandOutput directly, remove its wrapper call.
  */
 
 import type { BrowserManager } from '../core/browser-manager';
+import type { NsCommandOutput } from './format';
+import { extractNsMetadata } from './ns-metadata';
 import { nsNavigate } from './commands/ns-navigate';
 import { nsQuery } from './commands/ns-query';
 import { nsStatus } from './commands/ns-status';
@@ -18,51 +21,70 @@ import { nsDiff } from './commands/ns-diff';
 import { nsVerify } from './commands/ns-verify';
 import { nsLogin } from './commands/ns-login';
 
+// ─── Legacy adapter ────────────────────────────────────────────
+// Wraps a JSON string (NsCommandResult) into NsCommandOutput during
+// the migration. Remove once all commands return NsCommandOutput directly.
+
+function wrapLegacyResult(jsonStr: string): NsCommandOutput {
+  try {
+    const parsed = JSON.parse(jsonStr);
+    return {
+      display: jsonStr,
+      ok: parsed.ok ?? false,
+      metadata: extractNsMetadata(jsonStr),
+    };
+  } catch {
+    return { display: jsonStr, ok: false };
+  }
+}
+
+// ─── Dispatcher ─────────────────────────────────────────────────
+
 export async function handleNsCommand(
   command: string,
   args: string[],
   browserManager: BrowserManager,
-): Promise<string> {
+): Promise<NsCommandOutput> {
   const nsCommand = command.replace(/^ns\s+/, '');
 
   switch (nsCommand) {
     case 'navigate':
-      return nsNavigate(args, browserManager);
+      return wrapLegacyResult(await nsNavigate(args, browserManager));
 
     case 'inspect':
-      return nsInspect(args, browserManager);
+      return wrapLegacyResult(await nsInspect(args, browserManager));
 
     case 'set':
-      return nsSet(args, browserManager);
+      return wrapLegacyResult(await nsSet(args, browserManager));
 
     case 'add-row':
-      return nsAddRow(args, browserManager);
+      return wrapLegacyResult(await nsAddRow(args, browserManager));
 
     case 'save':
-      return nsSave(args, browserManager);
+      return wrapLegacyResult(await nsSave(args, browserManager));
 
     case 'query':
-      return nsQuery(args, browserManager);
+      return wrapLegacyResult(await nsQuery(args, browserManager));
 
     case 'status':
-      return nsStatus(args, browserManager);
+      return wrapLegacyResult(await nsStatus(args, browserManager));
 
     case 'cancel':
-      return nsCancel(args, browserManager);
+      return wrapLegacyResult(await nsCancel(args, browserManager));
 
     case 'diff':
-      return nsDiff(args, browserManager);
+      return wrapLegacyResult(await nsDiff(args, browserManager));
 
     case 'verify':
-      return nsVerify(args, browserManager);
+      return wrapLegacyResult(await nsVerify(args, browserManager));
 
     case 'login':
-      return nsLogin(args, browserManager);
+      return wrapLegacyResult(await nsLogin(args, browserManager));
 
     default:
-      return JSON.stringify({
-        error: `Unknown NS command: ${nsCommand}`,
-        hint: 'Available: navigate, inspect, set, add-row, save, query, status, cancel, diff, verify, login',
-      });
+      return {
+        display: `Unknown NS command: ${nsCommand}\nAvailable: navigate, inspect, set, add-row, save, query, status, cancel, diff, verify, login`,
+        ok: false,
+      };
   }
 }

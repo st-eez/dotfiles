@@ -569,7 +569,6 @@ export { READ_COMMANDS, WRITE_COMMANDS, META_COMMANDS, NS_COMMANDS, PLAYWRIGHT_C
 
 // ─── NS + Playwright handlers ───────────────────────────────────
 import { handleNsCommand } from '../ns/ns-commands';
-import { extractNsMetadata } from '../ns/ns-metadata';
 import { releaseAllLocks } from '../ns/commands/ns-login';
 import { handleTracingCommand } from '../playwright/tracing';
 import { handleRoutingCommand } from '../playwright/routing';
@@ -674,6 +673,7 @@ async function handleCommand(body: any): Promise<Response> {
 
   try {
     let result: string;
+    let nsMetadata: import('../core/activity').NsMetadata | undefined;
 
     if (READ_COMMANDS.has(command)) {
       result = await handleReadCommand(command, args, browserManager);
@@ -703,7 +703,9 @@ async function handleCommand(body: any): Promise<Response> {
     } else if (command === 'ns' && args.length > 0 && NS_COMMANDS.has(`ns ${args[0]}`)) {
       // NS commands: "ns navigate ..." → handleNsCommand("ns navigate", [...])
       const nsSubCommand = args[0];
-      result = await handleNsCommand(`ns ${nsSubCommand}`, args.slice(1), browserManager);
+      const nsOutput = await handleNsCommand(`ns ${nsSubCommand}`, args.slice(1), browserManager);
+      result = nsOutput.display;
+      nsMetadata = nsOutput.metadata;
     } else if (PLAYWRIGHT_COMMANDS.has(command)) {
       // Playwright commands: tracing-start, route, video-start, etc.
       if (command.startsWith('tracing')) {
@@ -730,8 +732,6 @@ async function handleCommand(body: any): Promise<Response> {
     }
 
     // Activity: emit command_end (success)
-    // For NS commands, extract metadata (recordType, recordId, environment) from the result
-    const nsMetadata = command === 'ns' ? extractNsMetadata(result) : undefined;
     emitActivity({
       type: 'command_end',
       command,
