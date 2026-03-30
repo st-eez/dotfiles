@@ -54,17 +54,16 @@ afterAll(() => {
 // ─── ns save ──────────────────────────────────────────────
 
 describe('ns save', () => {
-  test('save on non-NS page returns NotARecordPage error', async () => {
+  test('save on non-NS page returns error', async () => {
     const page = bm.getPage();
     await page.goto('about:blank');
 
-    const raw = await nsSave([], bm);
-    const result = JSON.parse(raw);
+    const output = await nsSave([], bm);
 
-    expect(result.ok).toBe(false);
-    expect(result.error.type).toBe('NotARecordPage');
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('ns save failed');
+    expect(output.display).toContain('NotARecordPage');
 
-    // Navigate back for subsequent tests
     await page.goto(baseUrl + '/ns-form.html');
   });
 
@@ -72,56 +71,50 @@ describe('ns save', () => {
     const page = bm.getPage();
     await page.goto(baseUrl + '/ns-form.html');
 
-    // Success behavior: onclick navigates to same page with ?id=12345
     await page.evaluate(() => {
       (window as any).__saveBehavior = 'success';
     });
 
-    const raw = await nsSave([], bm);
-    const result = JSON.parse(raw);
+    const output = await nsSave([], bm);
 
-    expect(result.ok).toBe(true);
-    expect(result.data.saved).toBe(true);
-    expect(result.data.recordId).toBe('12345');
-    expect(result.data.url).toContain('?id=12345');
-    expect(typeof result.elapsedMs).toBe('number');
+    expect(output.ok).toBe(true);
+    expect(output.display).toContain('SAVE OK');
+    expect(output.display).toContain('Record: 12345');
+    expect(output.display).toContain('id=12345');
+    expect(output.metadata?.recordId).toBe('12345');
   }, 15_000);
 
   test('save captures dialog on validation error', async () => {
     const page = bm.getPage();
     await page.goto(baseUrl + '/ns-form.html');
 
-    // Set validation error behavior
     await page.evaluate(() => {
       (window as any).__saveBehavior = 'validation';
     });
 
-    const raw = await nsSave([], bm);
-    const result = JSON.parse(raw);
+    const output = await nsSave([], bm);
 
-    expect(result.ok).toBe(false);
-    expect(result.error.type).toBe('ValidationError');
-    expect(result.error.message).toContain('Please enter a value for Company Name');
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('ns save failed');
+    expect(output.display).toContain('Please enter a value for Company Name');
   }, 15_000);
 
   test('save captures dialog on concurrency error', async () => {
     const page = bm.getPage();
     await page.goto(baseUrl + '/ns-form.html');
 
-    // Set concurrency error behavior
     await page.evaluate(() => {
       (window as any).__saveBehavior = 'concurrency';
     });
 
-    const raw = await nsSave([], bm);
-    const result = JSON.parse(raw);
+    const output = await nsSave([], bm);
 
-    expect(result.ok).toBe(false);
-    expect(result.error.type).toBe('ConcurrencyError');
-    expect(result.error.message).toContain('record has been changed');
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('ns save failed');
+    expect(output.display).toContain('ConcurrencyError');
   }, 15_000);
 
-  test('dialogs array is present in error results', async () => {
+  test('error includes Dialog lines from captured dialogs', async () => {
     const page = bm.getPage();
     await page.goto(baseUrl + '/ns-form.html');
 
@@ -129,12 +122,9 @@ describe('ns save', () => {
       (window as any).__saveBehavior = 'validation';
     });
 
-    const raw = await nsSave([], bm);
-    const result = JSON.parse(raw);
+    const output = await nsSave([], bm);
 
-    expect(result.ok).toBe(false);
-    expect(Array.isArray(result.dialogs)).toBe(true);
-    expect(result.dialogs.length).toBeGreaterThan(0);
-    expect(result.dialogs[0].type).toBe('alert');
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('Dialog (alert)');
   }, 15_000);
 });

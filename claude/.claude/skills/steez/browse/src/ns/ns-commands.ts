@@ -55,13 +55,13 @@ export async function handleNsCommand(
       return wrapLegacyResult(await nsInspect(args, browserManager));
 
     case 'set':
-      return wrapLegacyResult(await nsSet(args, browserManager));
+      return nsSet(args, browserManager);
 
     case 'add-row':
-      return wrapLegacyResult(await nsAddRow(args, browserManager));
+      return nsAddRow(args, browserManager);
 
     case 'save':
-      return wrapLegacyResult(await nsSave(args, browserManager));
+      return nsSave(args, browserManager);
 
     case 'query':
       return wrapLegacyResult(await nsQuery(args, browserManager));
@@ -73,7 +73,7 @@ export async function handleNsCommand(
       return nsCancel(args, browserManager);
 
     case 'diff':
-      return wrapLegacyResult(await nsDiff(args, browserManager));
+      return nsDiff(args, browserManager);
 
     case 'verify':
       return wrapLegacyResult(await nsVerify(args, browserManager));

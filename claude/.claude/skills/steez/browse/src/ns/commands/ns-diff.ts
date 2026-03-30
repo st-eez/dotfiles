@@ -14,6 +14,8 @@
  */
 
 import type { BrowserManager } from '../../core/browser-manager';
+import type { NsCommandOutput } from '../format';
+import { formatNsError, truncateValue } from '../format';
 import type { NsCommandResult } from '../errors';
 import type { NsFieldMetadata } from '../utils/introspect-field';
 import { guardNsApi, nsOk, nsFail, validationError } from '../errors';
@@ -55,9 +57,8 @@ function toSnapshotMap(fields: NsFieldMetadata[]): Record<string, FieldSnapshot>
 
 // ─── ns diff ────────────────────────────────────────────────
 
-export async function nsDiff(args: string[], bm: BrowserManager): Promise<string> {
-  return JSON.stringify(
-    await withMutex(nsMutex, async (): Promise<NsCommandResult<NsDiffData>> => {
+export async function nsDiff(args: string[], bm: BrowserManager): Promise<NsCommandOutput> {
+  const result = await withMutex(nsMutex, async (): Promise<NsCommandResult<NsDiffData>> => {
       const start = Date.now();
       const target = bm.getActiveFrameOrPage();
 
@@ -175,6 +176,18 @@ export async function nsDiff(args: string[], bm: BrowserManager): Promise<string
         },
         elapsed,
       );
-    }, { label: 'ns diff' }),
-  );
+    }, { label: 'ns diff' });
+
+  if (!result.ok) {
+    return { display: formatNsError('ns diff', result.error!), ok: false };
+  }
+
+  const d = result.data!;
+  const actionLabel = d.action ? `Action: ${d.action}` : 'Baseline snapshot';
+  const lines = [`DIFF OK | ${actionLabel} | ${d.changed.length} changed, ${d.unchanged} unchanged`];
+  for (const c of d.changed) {
+    lines.push(`Changed: ${c.id} ${truncateValue(c.before.value)} → ${truncateValue(c.after.value)}`);
+  }
+
+  return { display: lines.join('\n'), ok: true };
 }

@@ -16,6 +16,8 @@
  */
 
 import type { BrowserManager } from '../../core/browser-manager';
+import type { NsCommandOutput } from '../format';
+import { formatNsError, truncateValue } from '../format';
 import type { NsCommandResult } from '../errors';
 import type { CapturedDialog } from '../utils/with-dialog-handler';
 import { guardNsApi, nsOk, nsFail, validationError } from '../errors';
@@ -72,9 +74,8 @@ function parseSetArgs(args: string[]): {
 
 // ─── ns set ─────────────────────────────────────────────────
 
-export async function nsSet(args: string[], bm: BrowserManager): Promise<string> {
-  return JSON.stringify(
-    await withMutex(nsMutex, async (): Promise<NsCommandResult<NsSetData>> => {
+export async function nsSet(args: string[], bm: BrowserManager): Promise<NsCommandOutput> {
+  const result = await withMutex(nsMutex, async (): Promise<NsCommandResult<NsSetData>> => {
       const start = Date.now();
       const target = bm.getActiveFrameOrPage();
 
@@ -198,6 +199,22 @@ export async function nsSet(args: string[], bm: BrowserManager): Promise<string>
         elapsed,
         { dialogs },
       );
-    }, { label: 'ns set' }),
-  );
+    }, { label: 'ns set' });
+
+  if (!result.ok) {
+    return { display: formatNsError('ns set', result.error!), ok: false };
+  }
+
+  const d = result.data!;
+  const lines = [`SET OK | Field: ${d.fieldId} = ${truncateValue(d.value)} | Cascading: ${d.cascading} | Settled: ${d.settled ? 'yes' : 'no'}`];
+  for (const c of d.diff.changed) {
+    lines.push(`Changed: ${c.id} ${truncateValue(c.before)} → ${truncateValue(c.after)}`);
+  }
+  if (d.dialogs.length > 0) {
+    for (const dl of d.dialogs) {
+      lines.push(`Dialog (${dl.type}): ${truncateValue(dl.message)}`);
+    }
+  }
+
+  return { display: lines.join('\n'), ok: true };
 }

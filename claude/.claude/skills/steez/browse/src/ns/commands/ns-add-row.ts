@@ -17,6 +17,8 @@
  */
 
 import type { BrowserManager } from '../../core/browser-manager';
+import type { NsCommandOutput } from '../format';
+import { formatNsError, truncateValue } from '../format';
 import type { NsCommandResult } from '../errors';
 import type { CapturedDialog } from '../utils/with-dialog-handler';
 import { guardNsApi, nsOk, nsFail, validationError } from '../errors';
@@ -81,9 +83,8 @@ function createLineItemGetter(
 
 // ─── ns add-row ─────────────────────────────────────────────
 
-export async function nsAddRow(args: string[], bm: BrowserManager): Promise<string> {
-  return JSON.stringify(
-    await withMutex(nsMutex, async (): Promise<NsCommandResult<NsAddRowData>> => {
+export async function nsAddRow(args: string[], bm: BrowserManager): Promise<NsCommandOutput> {
+  const result = await withMutex(nsMutex, async (): Promise<NsCommandResult<NsAddRowData>> => {
       const start = Date.now();
       const target = bm.getActiveFrameOrPage();
 
@@ -208,6 +209,21 @@ export async function nsAddRow(args: string[], bm: BrowserManager): Promise<stri
         elapsed,
         { dialogs },
       );
-    }, { label: 'ns add-row' }),
-  );
+    }, { label: 'ns add-row' });
+
+  if (!result.ok) {
+    return { display: formatNsError('ns add-row', result.error!), ok: false };
+  }
+
+  const d = result.data!;
+  const lines = [`ADD-ROW OK | Sublist: ${d.sublist} | Line: ${d.lineNumber} | Settled: ${d.settled ? 'yes' : 'no'}`];
+  const vals = Object.entries(d.values).map(([k, v]) => `${k}=${truncateValue(v)}`).join(', ');
+  if (vals) lines.push(`Values: ${vals}`);
+  if (d.dialogs.length > 0) {
+    for (const dl of d.dialogs) {
+      lines.push(`Dialog (${dl.type}): ${truncateValue(dl.message)}`);
+    }
+  }
+
+  return { display: lines.join('\n'), ok: true };
 }

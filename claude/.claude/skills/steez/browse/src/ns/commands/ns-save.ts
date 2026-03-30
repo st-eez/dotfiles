@@ -12,6 +12,9 @@
  */
 
 import type { BrowserManager } from '../../core/browser-manager';
+import type { NsMetadata } from '../../core/activity';
+import type { NsCommandOutput } from '../format';
+import { formatNsError } from '../format';
 import {
   guardNsApi,
   nsOk,
@@ -55,9 +58,8 @@ function sleep(ms: number): Promise<void> {
 
 // ─── ns save ──────────────────────────────────────────────
 
-export async function nsSave(args: string[], bm: BrowserManager): Promise<string> {
-  return JSON.stringify(
-    await withMutex(nsMutex, async (): Promise<NsCommandResult<NsSaveData>> => {
+export async function nsSave(args: string[], bm: BrowserManager): Promise<NsCommandOutput> {
+  const result = await withMutex(nsMutex, async (): Promise<NsCommandResult<NsSaveData>> => {
       const start = Date.now();
       const target = bm.getActiveFrameOrPage();
 
@@ -172,6 +174,34 @@ export async function nsSave(args: string[], bm: BrowserManager): Promise<string
         Date.now() - start,
         { dialogs },
       );
-    }, { label: 'ns save', operationTimeoutMs: SAVE_TIMEOUT_MS + 5_000 }),
-  );
+    }, { label: 'ns save', operationTimeoutMs: SAVE_TIMEOUT_MS + 5_000 });
+
+  if (!result.ok) {
+    const lines = [formatNsError('ns save', result.error!)];
+    if (result.dialogs?.length) {
+      for (const dl of result.dialogs) {
+        lines.push(`Dialog (${dl.type}): ${dl.message}`);
+      }
+    }
+    return { display: lines.join('\n'), ok: false };
+  }
+
+  const d = result.data!;
+  const parts = ['SAVE OK'];
+  if (d.recordId) parts.push(`Record: ${d.recordId}`);
+  parts.push(d.url);
+
+  const metadata: NsMetadata = {};
+  if (d.recordId) metadata.recordId = d.recordId;
+  if (/_SB\d*/i.test(d.url) || /sandbox/i.test(d.url)) {
+    metadata.environment = 'sandbox';
+  } else if (d.url.startsWith('http')) {
+    metadata.environment = 'production';
+  }
+
+  return {
+    display: parts.join(' | '),
+    ok: true,
+    metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
+  };
 }

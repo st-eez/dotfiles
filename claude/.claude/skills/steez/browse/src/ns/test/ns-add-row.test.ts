@@ -44,64 +44,55 @@ afterAll(() => {
 });
 
 beforeEach(async () => {
-  // Fresh page state for each test
   await bm.getPage().goto(baseUrl + '/ns-form.html');
 });
 
 describe('ns add-row', () => {
   test('adds a row with field values', async () => {
-    const raw = await nsAddRow(['item', 'item=300', 'quantity=10', 'rate=15.00', 'amount=150.00'], bm);
-    const result = JSON.parse(raw);
+    const output = await nsAddRow(['item', 'item=300', 'quantity=10', 'rate=15.00', 'amount=150.00'], bm);
 
-    expect(result.ok).toBe(true);
-    expect(result.data.sublist).toBe('item');
-    expect(result.data.lineNumber).toBe(3); // 2 existing + 1 new
-    expect(result.data.values.item).toBe('300');
-    expect(result.data.values.quantity).toBe('10');
+    expect(output.ok).toBe(true);
+    expect(output.display).toContain('ADD-ROW OK');
+    expect(output.display).toContain('Sublist: item');
+    expect(output.display).toContain('Line: 3'); // 2 existing + 1 new
+    expect(output.display).toContain('Values:');
+    expect(output.display).toContain('item=300');
+    expect(output.display).toContain('quantity=10');
   });
 
   test('returns error for missing sublist ID', async () => {
-    const raw = await nsAddRow([], bm);
-    const result = JSON.parse(raw);
+    const output = await nsAddRow([], bm);
 
-    expect(result.ok).toBe(false);
-    expect(result.error.type).toBe('ValidationError');
-    expect(result.error.message).toContain('Missing sublist');
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('Missing sublist');
   });
 
   test('returns error for missing field values', async () => {
-    const raw = await nsAddRow(['item'], bm);
-    const result = JSON.parse(raw);
+    const output = await nsAddRow(['item'], bm);
 
-    expect(result.ok).toBe(false);
-    expect(result.error.type).toBe('ValidationError');
-    expect(result.error.message).toContain('No field values');
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('No field values');
   });
 
-  test('returns NotARecordPage on non-NS page', async () => {
+  test('returns error on non-NS page', async () => {
     await bm.getPage().goto('about:blank');
-    const raw = await nsAddRow(['item', 'item=100'], bm);
-    const result = JSON.parse(raw);
+    const output = await nsAddRow(['item', 'item=100'], bm);
 
-    expect(result.ok).toBe(false);
-    expect(result.error.type).toBe('NotARecordPage');
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('NotARecordPage');
   });
 
-  test('includes dialogs array in result', async () => {
-    const raw = await nsAddRow(['item', 'item=400', 'quantity=1'], bm);
-    const result = JSON.parse(raw);
+  test('successful add-row has no Dialog line when empty', async () => {
+    const output = await nsAddRow(['item', 'item=400', 'quantity=1'], bm);
 
-    expect(result.ok).toBe(true);
-    expect(Array.isArray(result.data.dialogs)).toBe(true);
+    expect(output.ok).toBe(true);
+    expect(output.display).not.toContain('Dialog');
   });
 
-  test('result includes timing info', async () => {
-    const raw = await nsAddRow(['item', 'item=500', 'quantity=2'], bm);
-    const result = JSON.parse(raw);
+  test('display includes settled status', async () => {
+    const output = await nsAddRow(['item', 'item=500', 'quantity=2'], bm);
 
-    expect(result.ok).toBe(true);
-    expect(typeof result.data.elapsedMs).toBe('number');
-    expect(result.data.elapsedMs).toBeGreaterThanOrEqual(0);
-    expect(typeof result.data.settled).toBe('boolean');
+    expect(output.ok).toBe(true);
+    expect(output.display).toMatch(/Settled: (yes|no)/);
   });
 });

@@ -47,3 +47,12 @@ export function formatNsError(commandName: string, error: NsError): string {
     `  → ${error.suggestedAction}`,
   ].join('\n');
 }
+
+// ─── Value Formatting ─────────────────────────────────────
+
+/** Truncate a value to maxLen chars and escape newlines for display. */
+export function truncateValue(val: string | null | undefined, maxLen: number = 100): string {
+  if (val == null) return '(null)';
+  const escaped = val.replace(/\n/g, '\\n').replace(/\r/g, '\\r');
+  return escaped.length > maxLen ? escaped.slice(0, maxLen) + '…' : escaped;
+}

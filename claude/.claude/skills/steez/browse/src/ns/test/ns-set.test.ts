@@ -55,21 +55,19 @@ afterAll(() => {
 
 describe('ns set', () => {
   beforeEach(async () => {
-    // Reset to a fresh page before each test
     const page = bm.getPage();
     await page.goto(baseUrl + '/ns-form.html');
   });
 
   test('set text field suppresses cascading', async () => {
-    const raw = await nsSet(['companyname', 'New Company'], bm);
-    const result = JSON.parse(raw);
+    const output = await nsSet(['companyname', 'New Company'], bm);
 
-    expect(result.ok).toBe(true);
-    expect(result.data.fieldId).toBe('companyname');
-    expect(result.data.value).toBe('New Company');
-    expect(result.data.cascading).toBe('suppressed');
-    expect(result.data.settled).toBe(true);
-    expect(typeof result.elapsedMs).toBe('number');
+    expect(output.ok).toBe(true);
+    expect(output.display).toContain('SET OK');
+    expect(output.display).toContain('companyname');
+    expect(output.display).toContain('New Company');
+    expect(output.display).toContain('Cascading: suppressed');
+    expect(output.display).toContain('Settled: yes');
 
     // Verify value was actually set
     const page = bm.getPage();
@@ -78,93 +76,77 @@ describe('ns set', () => {
   });
 
   test('set entity-ref field auto-detects and fires cascading', async () => {
-    const raw = await nsSet(['salesrep', '99'], bm);
-    const result = JSON.parse(raw);
+    const output = await nsSet(['salesrep', '99'], bm);
 
-    expect(result.ok).toBe(true);
-    expect(result.data.fieldId).toBe('salesrep');
-    expect(result.data.value).toBe('99');
-    expect(result.data.cascading).toBe('fired');
-    expect(result.data.settled).toBe(true);
-    expect(typeof result.elapsedMs).toBe('number');
+    expect(output.ok).toBe(true);
+    expect(output.display).toContain('SET OK');
+    expect(output.display).toContain('salesrep');
+    expect(output.display).toContain('Cascading: fired');
 
     // The mock sourcing cascade should have updated companyname
     const page = bm.getPage();
     const companyValue = await page.evaluate(() => (window as any).nlapiGetFieldValue('companyname'));
     expect(companyValue).toBe('Sourced Company');
 
-    // Diff should include the cascaded change
-    expect(result.data.diff.changed.length).toBeGreaterThan(0);
-    const companyChange = result.data.diff.changed.find((c: any) => c.id === 'companyname');
-    expect(companyChange).toBeDefined();
-    expect(companyChange.before).toBe('Acme Corp');
-    expect(companyChange.after).toBe('Sourced Company');
+    // Diff should show the cascaded change
+    expect(output.display).toContain('Changed: companyname');
+    expect(output.display).toContain('Acme Corp');
+    expect(output.display).toContain('Sourced Company');
   });
 
   test('--source flag forces cascading on text field', async () => {
-    const raw = await nsSet(['companyname', 'Forced', '--source'], bm);
-    const result = JSON.parse(raw);
+    const output = await nsSet(['companyname', 'Forced', '--source'], bm);
 
-    expect(result.ok).toBe(true);
-    expect(result.data.cascading).toBe('fired');
-    expect(result.data.settled).toBe(true);
+    expect(output.ok).toBe(true);
+    expect(output.display).toContain('Cascading: fired');
   });
 
   test('--no-source flag suppresses cascading on entity-ref field', async () => {
-    const raw = await nsSet(['salesrep', '99', '--no-source'], bm);
-    const result = JSON.parse(raw);
+    const output = await nsSet(['salesrep', '99', '--no-source'], bm);
 
-    expect(result.ok).toBe(true);
-    expect(result.data.cascading).toBe('suppressed');
-
-    // With cascading suppressed, diff.changed should be empty
-    expect(result.data.diff.changed).toEqual([]);
+    expect(output.ok).toBe(true);
+    expect(output.display).toContain('Cascading: suppressed');
+    // With cascading suppressed, no Changed lines
+    expect(output.display).not.toContain('Changed:');
   });
 
-  test('set nonexistent field returns validation error', async () => {
-    const raw = await nsSet(['nonexistent', 'value'], bm);
-    const result = JSON.parse(raw);
+  test('set nonexistent field returns error', async () => {
+    const output = await nsSet(['nonexistent', 'value'], bm);
 
-    expect(result.ok).toBe(false);
-    expect(result.error.type).toBe('ValidationError');
-    expect(result.error.message).toContain('nonexistent');
-    expect(result.error.message).toContain('not found');
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('ns set failed');
+    expect(output.display).toContain('nonexistent');
+    expect(output.display).toContain('not found');
   });
 
-  test('set on non-NS page returns NotARecordPage', async () => {
+  test('set on non-NS page returns error', async () => {
     const page = bm.getPage();
     await page.goto('about:blank');
 
-    const raw = await nsSet(['companyname', 'test'], bm);
-    const result = JSON.parse(raw);
+    const output = await nsSet(['companyname', 'test'], bm);
 
-    expect(result.ok).toBe(false);
-    expect(result.error.type).toBe('NotARecordPage');
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('NotARecordPage');
   });
 
-  test('missing args returns validation error', async () => {
-    const raw = await nsSet([], bm);
-    const result = JSON.parse(raw);
+  test('missing args returns error', async () => {
+    const output = await nsSet([], bm);
 
-    expect(result.ok).toBe(false);
-    expect(result.error.type).toBe('ValidationError');
-    expect(result.error.message).toContain('Missing arguments');
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('Missing arguments');
   });
 
-  test('missing value arg returns validation error', async () => {
-    const raw = await nsSet(['companyname'], bm);
-    const result = JSON.parse(raw);
+  test('missing value arg returns error', async () => {
+    const output = await nsSet(['companyname'], bm);
 
-    expect(result.ok).toBe(false);
-    expect(result.error.type).toBe('ValidationError');
-    expect(result.error.message).toContain('Missing arguments');
+    expect(output.ok).toBe(false);
+    expect(output.display).toContain('Missing arguments');
   });
 
-  test('dialogs array is present in result data', async () => {
-    const raw = await nsSet(['companyname', 'Test'], bm);
-    const result = JSON.parse(raw);
+  test('successful set has no Dialog line when empty', async () => {
+    const output = await nsSet(['companyname', 'Test'], bm);
 
-    expect(result.ok).toBe(true);
-    expect(Array.isArray(result.data.dialogs)).toBe(true);
+    expect(output.ok).toBe(true);
+    expect(output.display).not.toContain('Dialog');
   });
 });
