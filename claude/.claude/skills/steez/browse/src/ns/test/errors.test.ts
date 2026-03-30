@@ -184,6 +184,14 @@ describe('detectSessionExpiry', () => {
     const err = await detectSessionExpiry(target);
     expect(err).toBeNull();
   });
+
+  test('returns null on a page with i18n script tags containing session-expired text', async () => {
+    const page = bm.getPage();
+    await page.goto(baseUrl + '/ns-form-i18n.html');
+    const target = bm.getActiveFrameOrPage();
+    const err = await detectSessionExpiry(target);
+    expect(err).toBeNull();
+  });
 });
 
 // ─── Message classification ─────────────────────────────────

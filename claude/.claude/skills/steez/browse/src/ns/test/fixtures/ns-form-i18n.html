@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head><title>NetSuite Form Stub — with i18n script tags</title></head>
+<body>
+<!--
+  Reproduces the false-positive session-expired bug:
+  NetSuite embeds i18n translation dictionaries in inline <script> tags
+  that contain phrases like "session has timed out". Using textContent
+  on document.body picks these up; innerText correctly ignores them.
+-->
+
+<form id="main_form">
+  <input id="companyname" type="text" value="Acme Corp" />
+</form>
+
+<!-- This is what real NS pages embed — i18n translation dictionaries -->
+<script id="data_1484647539">
+{"translations":{"NLAlertContext.PLEASE_LOG_INTO_THE_APPLICATION_AND_OPEN_THE_HELP_WINDOW_AGAIN":"Help is unavailable because your connection has timed out.\\nPlease log in to the application and open the Help window again.","NLAlertContext.SESSION_EXPIRED":"Your session has expired. Please log in again."}}
+</script>
+
+<script>
+// Minimal nlapi stubs so guardNsApi passes
+window.nlapiGetField = function(id) {
+  if (id === 'companyname') {
+    return { getType: () => 'text', getLabel: () => 'Company Name', isMandatory: () => false, isDisabled: () => false, getSelectOptions: () => [] };
+  }
+  return null;
+};
+window.nlapiGetFieldValue = function() { return null; };
+window.nlapiGetFieldText = function() { return null; };
+window.nlapiGetFieldIds = function() { return ['companyname']; };
+</script>
+</body>
+</html>

@@ -144,7 +144,7 @@ export async function detectSessionExpiry(target: Page | Frame): Promise<NsError
     }
 
     // Session timeout message in page
-    const body = document.body?.textContent ?? '';
+    const body = document.body?.innerText ?? '';
     if (/session has (timed out|expired)/i.test(body)) {
       return 'Session timeout detected';
     }
