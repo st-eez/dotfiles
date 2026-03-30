@@ -25,7 +25,7 @@ find "$STEEZ_HOME/sessions" -mmin +120 -type f -delete 2>/dev/null || true
 _BRANCH=$(git branch --show-current 2>/dev/null || echo "unknown")
 echo "BRANCH: $_BRANCH"
 # Config
-_PROACTIVE=$("$STEEZ_BIN/steez-config" get proactive 2>/dev/null || { echo "[steez] WARNING: steez-config failed, defaulting proactive=true" >\&2; echo "true"; })
+_PROACTIVE=$("$STEEZ_BIN/steez-config" get proactive 2>/dev/null || { echo "[steez] WARNING: steez-config failed, defaulting proactive=true" >&2; echo "true"; })
 echo "PROACTIVE: $_PROACTIVE"
 # Repo mode (hardcoded — always solo)
 REPO_MODE=solo
@@ -188,7 +188,7 @@ Run this bash:
 _TEL_END=$(date +%s)
 _TEL_DUR=$(( _TEL_END - _TEL_START ))
 # Local analytics only (no remote telemetry)
-echo '{"skill":"steez-codex","duration_s":"'"$_TEL_DUR"'","outcome":"OUTCOME","browse":"USED_BROWSE","session":"'"$_SESSION_ID"'","ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' >> ~/.steez/analytics/skill-usage.jsonl 2>/dev/null || echo "[steez] WARNING: telemetry write failed" >\&2
+echo '{"skill":"steez-codex","duration_s":"'"$_TEL_DUR"'","outcome":"OUTCOME","browse":"USED_BROWSE","session":"'"$_SESSION_ID"'","ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' >> ~/.steez/analytics/skill-usage.jsonl 2>/dev/null || echo "[steez] WARNING: telemetry write failed" >&2
 ```
 
 Replace `OUTCOME` with success/error/abort, and `USED_BROWSE` with true/false based

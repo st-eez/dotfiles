@@ -591,7 +591,7 @@ Use the Write tool to save the JSON file with this schema:
     "ai_assisted_commits": 32
   },
   "authors": {
-    "Garry Tan": { "commits": 32, "insertions": 2400, "deletions": 300, "test_ratio": 0.41, "top_area": "browse/" },
+    "Steve D": { "commits": 32, "insertions": 2400, "deletions": 300, "test_ratio": 0.41, "top_area": "browse/" },
     "Alice": { "commits": 12, "insertions": 800, "deletions": 150, "test_ratio": 0.35, "top_area": "app/services/" }
   },
   "version_range": ["1.16.0.0", "1.16.1.0"],
