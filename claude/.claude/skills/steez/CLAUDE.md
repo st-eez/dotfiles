@@ -72,7 +72,7 @@ steez/                                    # shared home (this directory)
 ├── README.md                             # ecosystem overview
 └── CLAUDE.md                             # this file
 
-steez-{skill}/                            # 21 workflow skills, each in its own directory
+steez-{skill}/                            # 22 workflow skills, each in its own directory
 ├── SKILL.md                              # skill definition (read by Claude Code)
 └── (optional assets)                     # checklists, templates, references
     steez-review/   → checklist.md, design-checklist.md, greptile-triage.md, TODOS-format.md
@@ -114,7 +114,7 @@ SKILL.md files are **hand-edited directly**. There is no template system, no
 generation step, no `.tmpl` files. Edit a SKILL.md, it's live immediately.
 
 **Tradeoff:** shared-section updates (preamble, voice, AskUserQuestion format)
-must be applied to all 21 files manually. Use search-and-replace across
+must be applied to all 22 files manually. Use search-and-replace across
 `steez-*/SKILL.md`.
 
 When editing preambles across multiple skills, verify with:
