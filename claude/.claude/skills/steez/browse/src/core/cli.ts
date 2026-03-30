@@ -386,7 +386,7 @@ async function sendCommand(state: ServerState, command: string, args: string[], 
         'Authorization': `Bearer ${state.token}`,
       },
       body,
-      signal: AbortSignal.timeout(30000),
+      signal: AbortSignal.timeout(command === 'ns' ? 90000 : 30000),
     });
 
     if (resp.status === 401) {

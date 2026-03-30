@@ -375,11 +375,17 @@ export async function nsLogin(
       await passwordField.fill(creds.password);
 
       // Click login
-      const submitButton = page.locator('#submitButton, input[type="submit"]').first();
+      const submitButton = page.locator('#login-submit, #submitButton, button[type="submit"], input[type="submit"]').first();
       await submitButton.click();
 
-      // Wait for navigation after login
-      await page.waitForLoadState('domcontentloaded', { timeout: 15000 });
+      // Wait for navigation past intermediate redirects (transport.nl, etc.)
+      await page.waitForURL(
+        (url) => {
+          const p = url.pathname.toLowerCase();
+          return !p.includes('customerlogin') && !p.includes('transport.nl');
+        },
+        { timeout: 30000, waitUntil: 'domcontentloaded' },
+      );
 
       // 4. Detect post-login state
       const currentUrl = page.url();
@@ -427,8 +433,8 @@ export async function nsLogin(
           }
 
           if (answer) {
-            // The actual NS page has an unlabeled text input and Submit button
-            const answerField = page.locator('input[type="text"]:visible').first();
+            // The answer field may be type="text" or type="password" (when "Hide Answer" is checked)
+            const answerField = page.locator('input[name="answer"], input[type="text"]:visible, input[type="password"]:visible').first();
             await answerField.fill(answer);
 
             const securitySubmit = page.locator(
@@ -475,7 +481,7 @@ export async function nsLogin(
       );
       return JSON.stringify(result);
     }
-  }, { label: 'ns login', operationTimeoutMs: 30000 });
+  }, { label: 'ns login', operationTimeoutMs: 60000 });
 }
 
 /**
