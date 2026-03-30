@@ -18,10 +18,14 @@ if ! command -v bd >/dev/null 2>&1; then
   exit 1
 fi
 
-# Guard: must be in a beads project
-if ! bd list --limit=0 >/dev/null 2>&1; then
-  echo "steez-bd: not in a beads project (no .beads/ found)." >&2
-  exit 1
+# Use dedicated steez beads database (not project-scoped)
+export BEADS_DIR="$HOME/.steez/.beads"
+
+# Auto-init on first use (server mode required — embedded mode has discovery bugs)
+if [ ! -f "$BEADS_DIR/metadata.json" ]; then
+  echo "steez-bd: initializing beads database at $BEADS_DIR..." >&2
+  mkdir -p "$HOME/.steez"
+  (cd "$HOME/.steez" && git init -q 2>/dev/null || true; bd init --prefix steez --skip-hooks --skip-agents --server --quiet) 2>&1
 fi
 
 cmd_resume() {
