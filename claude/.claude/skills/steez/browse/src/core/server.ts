@@ -570,6 +570,7 @@ export { READ_COMMANDS, WRITE_COMMANDS, META_COMMANDS, NS_COMMANDS, PLAYWRIGHT_C
 // ─── NS + Playwright handlers ───────────────────────────────────
 import { handleNsCommand } from '../ns/ns-commands';
 import { extractNsMetadata } from '../ns/ns-metadata';
+import { releaseAllLocks } from '../ns/commands/ns-login';
 import { handleTracingCommand } from '../playwright/tracing';
 import { handleRoutingCommand } from '../playwright/routing';
 import { handleVideoCommand } from '../playwright/video';
@@ -810,6 +811,9 @@ async function shutdown(exitCode: number = 0) {
 
   // Clean up state file
   try { fs.unlinkSync(config.stateFile); } catch {}
+
+  // Release NS account locks held by this process
+  releaseAllLocks();
 
   process.exit(exitCode);
 }

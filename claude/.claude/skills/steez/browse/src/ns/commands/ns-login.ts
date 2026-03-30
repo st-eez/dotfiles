@@ -1,25 +1,35 @@
 /**
- * ns login — Automated NetSuite login using stored credentials.
+ * ns login — Automated NetSuite login using stored credentials with account locking.
  *
  * Usage:
- *   ns login                     → login using default (first) account from auth config
- *   ns login --account 12345_SB1 → login to specific account
+ *   ns login                              → login using first available (unlocked) account
+ *   ns login --account 5582598-sb2:account2 → login to specific slot
+ *   ns login --release                    → release all locks held by this process
  *
  * Auth config is read from ~/.steez/browse/auth.json (must be 600 perms).
  * Format:
  *   {
  *     "accounts": {
- *       "<accountId>": {
+ *       "<slot>": {
  *         "email": "...",
  *         "password": "...",
- *         "securityQuestions": { "question text": "answer" }
+ *         "accountId": "5582598-sb2",      // optional: actual NS account ID (defaults to slot key)
+ *         "securityQuestions": { "keyword": "answer" }
  *       }
  *     }
  *   }
  *
+ * Slots allow multiple users on the same sandbox (e.g. "5582598-sb2:account2", "5582598-sb2:account3").
+ * The accountId field is the real NS account; the slot key is used for locking.
+ *
+ * Locking:
+ *   - On login, a lock file is written to ~/.steez/browse/locks/<slot>.lock
+ *   - Parallel agents auto-select the first unlocked slot
+ *   - Locks are released on shutdown, or when PID dies, or after 2h TTL
+ *
  * Handles:
  *   - Credential fill + submit
- *   - Security question detection + answer
+ *   - Security question detection + answer (case-insensitive keyword match)
  *   - 2FA detection (returns requires2FA, does not solve)
  *   - Success detection via URL redirect or NS client API presence
  */
@@ -31,11 +41,133 @@ import type { NsCommandResult } from '../errors';
 import { nsOk, nsFail, validationError } from '../errors';
 import { withMutex, nsMutex } from '../mutex';
 
+// ─── Account Locking ──────────────────────────────────────
+
+const LOCK_DIR = path.join(
+  process.env.HOME || '/tmp',
+  '.steez',
+  'browse',
+  'locks',
+);
+
+const LOCK_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
+
+interface LockData {
+  pid: number;
+  ts: string;
+}
+
+function ensureLockDir(): void {
+  if (!fs.existsSync(LOCK_DIR)) {
+    fs.mkdirSync(LOCK_DIR, { recursive: true });
+  }
+}
+
+function lockPath(accountId: string): string {
+  return path.join(LOCK_DIR, `${accountId}.lock`);
+}
+
+function isPidAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function isLockValid(accountId: string): boolean {
+  const lp = lockPath(accountId);
+  if (!fs.existsSync(lp)) return false;
+
+  try {
+    const raw = fs.readFileSync(lp, 'utf-8');
+    const lock: LockData = JSON.parse(raw);
+
+    // Stale if PID is dead
+    if (!isPidAlive(lock.pid)) {
+      fs.unlinkSync(lp);
+      return false;
+    }
+
+    // Stale if older than TTL
+    const age = Date.now() - new Date(lock.ts).getTime();
+    if (age > LOCK_TTL_MS) {
+      fs.unlinkSync(lp);
+      return false;
+    }
+
+    // Lock is held by another live process
+    return lock.pid !== process.pid;
+  } catch {
+    // Corrupt lock file — remove it
+    try { fs.unlinkSync(lp); } catch { /* ignore */ }
+    return false;
+  }
+}
+
+function acquireLock(accountId: string): boolean {
+  ensureLockDir();
+  const lp = lockPath(accountId);
+  const data: LockData = { pid: process.pid, ts: new Date().toISOString() };
+
+  try {
+    // O_EXCL: fail if file already exists (atomic)
+    fs.writeFileSync(lp, JSON.stringify(data), { flag: 'wx' });
+    return true;
+  } catch {
+    // File exists — check if it's our own stale lock or another process
+    if (!isLockValid(accountId)) {
+      // Stale or same-PID lock — force overwrite (isLockValid may not unlink
+      // same-PID files, so 'wx' would fail again; use plain write instead)
+      try {
+        fs.writeFileSync(lp, JSON.stringify(data));
+        return true;
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  }
+}
+
+function releaseLock(accountId: string): void {
+  const lp = lockPath(accountId);
+  if (!fs.existsSync(lp)) return;
+
+  try {
+    const raw = fs.readFileSync(lp, 'utf-8');
+    const lock: LockData = JSON.parse(raw);
+    // Only release our own lock
+    if (lock.pid === process.pid) {
+      fs.unlinkSync(lp);
+    }
+  } catch {
+    // Best effort
+  }
+}
+
+/** Release all locks held by this process (call on shutdown). */
+export function releaseAllLocks(): void {
+  ensureLockDir();
+  try {
+    for (const file of fs.readdirSync(LOCK_DIR)) {
+      if (!file.endsWith('.lock')) continue;
+      const accountId = file.replace('.lock', '');
+      releaseLock(accountId);
+    }
+  } catch {
+    // Best effort
+  }
+}
+
 // ─── Auth Config Types ─────────────────────────────────────
 
 interface AuthAccount {
   email: string;
   password: string;
+  /** Actual NS account ID when the key is a slot name (e.g. "5582598-sb2:account2"). Falls back to the key itself. */
+  accountId?: string;
   securityQuestions?: Record<string, string>;
 }
 
@@ -48,6 +180,7 @@ interface AuthConfig {
 interface NsLoginData {
   loggedIn: boolean;
   account: string;
+  slot?: string; // slot key from auth.json (e.g. "5582598-sb2:account2")
   requires2FA?: boolean;
   error?: string;
 }
@@ -122,18 +255,21 @@ function readAuthConfig(authPath: string): AuthConfig | string {
 }
 
 /**
- * Parse ns login args: [--account <id>]
+ * Parse ns login args: [--account <id>] [--release]
  */
-function parseLoginArgs(args: string[]): { account: string | null } {
+function parseLoginArgs(args: string[]): { account: string | null; release: boolean } {
   let account: string | null = null;
+  let release = false;
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--account' && i + 1 < args.length) {
       account = args[++i];
+    } else if (args[i] === '--release') {
+      release = true;
     }
   }
 
-  return { account };
+  return { account, release };
 }
 
 // ─── Main Command ──────────────────────────────────────────
@@ -160,9 +296,19 @@ export async function nsLogin(
 
   const config = configOrError;
 
-  // 2. Resolve account
-  const { account: requestedAccount } = parseLoginArgs(args);
+  // 2. Resolve account (with locking)
+  const { account: requestedAccount, release } = parseLoginArgs(args);
   const accountIds = Object.keys(config.accounts);
+
+  // Handle --release: release all locks held by this process
+  if (release) {
+    releaseAllLocks();
+    const result: NsCommandResult = nsOk(
+      { loggedIn: false, account: '', released: true } as any,
+      Date.now() - start,
+    );
+    return JSON.stringify(result);
+  }
 
   let accountId: string;
   if (requestedAccount) {
@@ -177,10 +323,35 @@ export async function nsLogin(
     }
     accountId = requestedAccount;
   } else {
-    accountId = accountIds[0];
+    // Pick first unlocked account
+    const available = accountIds.find(id => !isLockValid(id));
+    if (!available) {
+      const result: NsCommandResult = nsFail(
+        validationError(
+          `All accounts are locked by other sessions. Available accounts: ${accountIds.join(', ')}. Use --release in the other session or wait for locks to expire (2h TTL).`,
+        ),
+        Date.now() - start,
+      );
+      return JSON.stringify(result);
+    }
+    accountId = available;
+  }
+
+  // Acquire lock
+  if (!acquireLock(accountId)) {
+    // Another process grabbed it between our check and acquire (race)
+    const result: NsCommandResult = nsFail(
+      validationError(
+        `Account "${accountId}" was claimed by another session. Try again or specify --account <id>.`,
+      ),
+      Date.now() - start,
+    );
+    return JSON.stringify(result);
   }
 
   const creds = config.accounts[accountId];
+  // Resolve actual NS account ID (slot key may differ, e.g. "5582598-sb2:account2")
+  const nsAccountId = creds.accountId || accountId;
 
   // 3. Navigate and fill credentials under mutex
   return withMutex(nsMutex, async () => {
@@ -221,38 +392,46 @@ export async function nsLogin(
       if (has2FA) {
         const data: NsLoginData = {
           loggedIn: false,
-          account: accountId,
+          account: nsAccountId,
+          slot: accountId,
           requires2FA: true,
         };
         const result: NsCommandResult<NsLoginData> = nsOk(data, Date.now() - start);
         return JSON.stringify(result);
       }
 
-      // Check for security question page
-      const securityQuestionEl = await page.locator(
-        '#securityquestion, .security-question, input[name="answer"], #answer',
-      ).first().isVisible().catch(() => false);
+      // Check for security question page (URL-based — the page has no unique element IDs)
+      const onSecurityQuestionPage = /securityquestions\.nl/i.test(currentUrl);
 
-      if (securityQuestionEl && creds.securityQuestions) {
-        // Try to read the question text
-        const questionText = await page.locator(
-          '#securityquestion, .security-question, label[for="answer"]',
-        ).first().textContent().catch(() => null);
+      if (onSecurityQuestionPage) {
+        if (!creds.securityQuestions || Object.keys(creds.securityQuestions).length === 0) {
+          const data: NsLoginData = {
+            loggedIn: false,
+            account: nsAccountId,
+            slot: accountId,
+            error: 'Security question page detected but no securityQuestions configured in auth.json',
+          };
+          const result: NsCommandResult<NsLoginData> = nsOk(data, Date.now() - start);
+          return JSON.stringify(result);
+        }
 
-        if (questionText) {
-          // Match against stored security Q&A (case-insensitive, trimmed)
-          const normalizedQuestion = questionText.trim().toLowerCase();
+        // Get visible page text to find the question (elements are unlabeled)
+        const pageText = await page.locator('body').textContent().catch(() => null);
+
+        if (pageText) {
+          const normalizedPage = pageText.trim().toLowerCase();
           let answer: string | null = null;
 
           for (const [q, a] of Object.entries(creds.securityQuestions)) {
-            if (normalizedQuestion.includes(q.toLowerCase().trim())) {
+            if (normalizedPage.includes(q.toLowerCase().trim())) {
               answer = a;
               break;
             }
           }
 
           if (answer) {
-            const answerField = page.locator('input[name="answer"], #answer').first();
+            // The actual NS page has an unlabeled text input and Submit button
+            const answerField = page.locator('input[type="text"]').first();
             await answerField.fill(answer);
 
             const securitySubmit = page.locator(
@@ -261,6 +440,15 @@ export async function nsLogin(
             await securitySubmit.click();
 
             await page.waitForLoadState('domcontentloaded', { timeout: 15000 });
+          } else {
+            const data: NsLoginData = {
+              loggedIn: false,
+              account: nsAccountId,
+              slot: accountId,
+              error: `Security question not matched. Page text: "${pageText.trim().slice(0, 200)}"`,
+            };
+            const result: NsCommandResult<NsLoginData> = nsOk(data, Date.now() - start);
+            return JSON.stringify(result);
           }
         }
       }
@@ -271,7 +459,8 @@ export async function nsLogin(
 
       const data: NsLoginData = {
         loggedIn: isLoggedIn,
-        account: accountId,
+        account: nsAccountId,
+        slot: accountId,
         ...(isLoggedIn ? {} : { error: `Landed on ${finalUrl} — login may have failed` }),
       };
 
@@ -281,7 +470,8 @@ export async function nsLogin(
       const message = err instanceof Error ? err.message : String(err);
       const data: NsLoginData = {
         loggedIn: false,
-        account: accountId,
+        account: nsAccountId,
+        slot: accountId,
         error: message,
       };
       const result: NsCommandResult<NsLoginData> = nsFail(
@@ -301,8 +491,13 @@ async function detectLoginSuccess(
   page: import('playwright').Page,
   url: string,
 ): Promise<boolean> {
-  // Still on login page → not logged in
-  if (/\/pages\/customerlogin/i.test(url) || /\/app\/login/i.test(url)) {
+  // Still on credential login page → not logged in
+  if (/\/pages\/customerlogin/i.test(url)) {
+    return false;
+  }
+  // Other /app/login/ pages (e.g. error, role select) — but exclude
+  // securityquestions.nl which is a valid mid-flow page handled separately
+  if (/\/app\/login/i.test(url) && !/securityquestions\.nl/i.test(url)) {
     return false;
   }
 
