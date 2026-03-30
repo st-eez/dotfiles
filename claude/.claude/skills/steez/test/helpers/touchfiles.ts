@@ -39,6 +39,8 @@ export const E2E_TOUCHFILES: Record<string, string[]> = {
   'qa-b6-static':   ['qa/**', 'browse/src/**', 'browse/src/core/test/test-server.ts', 'test/helpers/llm-judge.ts', 'browse/src/core/test/fixtures/qa-eval.html', 'test/fixtures/qa-eval-ground-truth.json'],
   'qa-b7-spa':      ['qa/**', 'browse/src/**', 'browse/src/core/test/test-server.ts', 'test/helpers/llm-judge.ts', 'browse/src/core/test/fixtures/qa-eval-spa.html', 'test/fixtures/qa-eval-spa-ground-truth.json'],
   'qa-b8-checkout': ['qa/**', 'browse/src/**', 'browse/src/core/test/test-server.ts', 'test/helpers/llm-judge.ts', 'browse/src/core/test/fixtures/qa-eval-checkout.html', 'test/fixtures/qa-eval-checkout-ground-truth.json'],
+  // Beads Context preamble E2E
+  'beads-preamble': ['bin/steez-bd', 'steez-*/SKILL.md', 'test/skill-e2e-beads-context.test.ts'],
 };
 
 /**
@@ -48,6 +50,7 @@ export const E2E_TIERS: Record<string, 'gate' | 'periodic'> = {
   'qa-b6-static': 'periodic',
   'qa-b7-spa': 'periodic',
   'qa-b8-checkout': 'periodic',
+  'beads-preamble': 'gate',
 };
 
 /**
