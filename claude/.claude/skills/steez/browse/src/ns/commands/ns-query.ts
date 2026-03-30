@@ -76,7 +76,7 @@ export async function nsQuery(args: string[], bm: BrowserManager): Promise<strin
               'Content-Type': 'application/json',
               'Prefer': 'transient',
             },
-            body: JSON.stringify({ q: sql + ` FETCH FIRST ${limit + 1} ROWS ONLY` }),
+            body: JSON.stringify({ q: /\bFETCH\s+FIRST\b/i.test(sql) ? sql : sql + ` FETCH FIRST ${limit + 1} ROWS ONLY` }),
           });
 
           if (!res.ok) {
