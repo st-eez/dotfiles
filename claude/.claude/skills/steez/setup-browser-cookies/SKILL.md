@@ -39,7 +39,9 @@ _SESSION_ID="$$-$(date +%s)"
 ```
 
 If `PROACTIVE` is `"false"`, do not proactively suggest steez skills AND do not
-auto-invoke skills based on conversation context. Only run skills the user explicitly types.
+auto-invoke skills based on conversation context. Only run skills the user explicitly
+types. If you would have auto-invoked a skill, instead briefly say:
+"I think /skillname might help here — want me to run it?" and wait for confirmation.
 
 ## Voice
 
@@ -80,7 +82,24 @@ fi
 If `NEEDS_SETUP`:
 1. Tell the user: "steez-browse needs a one-time build (~10 seconds). OK to proceed?" Then STOP and wait.
 2. Run: `cd ~/.claude/skills/steez/browse && bun install && bun run build`
-3. If `bun` is not installed: `curl -fsSL https://bun.sh/install | bash`
+3. If `bun` is not installed:
+   ```bash
+   if ! command -v bun >/dev/null 2>&1; then
+     BUN_VERSION="1.3.10"
+     BUN_INSTALL_SHA="bab8acfb046aac8c72407bdcce903957665d655d7acaa3e11c7c4616beae68dd"
+     tmpfile=$(mktemp)
+     curl -fsSL "https://bun.sh/install" -o "$tmpfile"
+     actual_sha=$(shasum -a 256 "$tmpfile" | awk '{print $1}')
+     if [ "$actual_sha" != "$BUN_INSTALL_SHA" ]; then
+       echo "ERROR: bun install script checksum mismatch" >&2
+       echo "  expected: $BUN_INSTALL_SHA" >&2
+       echo "  got:      $actual_sha" >&2
+       rm "$tmpfile"; exit 1
+     fi
+     BUN_VERSION="$BUN_VERSION" bash "$tmpfile"
+     rm "$tmpfile"
+   fi
+   ```
 
 ## CDP mode check
 

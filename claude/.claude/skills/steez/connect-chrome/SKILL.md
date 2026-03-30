@@ -42,7 +42,9 @@ _SESSION_ID="$$-$(date +%s)"
 ```
 
 If `PROACTIVE` is `"false"`, do not proactively suggest steez skills AND do not
-auto-invoke skills based on conversation context. Only run skills the user explicitly types.
+auto-invoke skills based on conversation context. Only run skills the user explicitly
+types. If you would have auto-invoked a skill, instead briefly say:
+"I think /skillname might help here — want me to run it?" and wait for confirmation.
 
 ## Voice
 
@@ -159,7 +161,7 @@ This does several things:
 
 Expected output includes "Connected to real Chrome" and server status. If you see errors:
 - `SingletonLock`: Step 0 cleanup didn't finish. Wait 2 seconds, retry.
-- `extension not found`: The extension directory is missing. Check `~/.claude/skills/gstack/extension/manifest.json` exists.
+- `extension not found`: The extension directory is missing. Check `~/.claude/skills/steez/extension/manifest.json` (or `~/.claude/skills/gstack/extension/` as fallback) exists.
 - `EADDRINUSE`: Port 34567 is taken. Run `lsof -ti:34567 | xargs kill` then retry.
 
 ## Step 2: Verify
