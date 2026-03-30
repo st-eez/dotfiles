@@ -77,3 +77,6 @@ __pycache__/
 .dolt/
 *.db
 .steez/
+
+# Codex session state (from /steez-codex consult mode)
+.context/
