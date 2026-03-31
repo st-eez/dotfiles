@@ -123,24 +123,55 @@ function isFiltered(id: string): boolean {
   return false;
 }
 
+/** Bucket labels shown as section headers in output */
+const BUCKET_LABELS: Record<number, string> = {
+  1: 'Must fill',
+  2: 'Can fill',
+  3: 'Buttons',
+  4: 'Read-only',
+  5: 'Other',
+  6: 'Other',
+};
+
+function fieldBucket(f: NsFieldMetadata): number {
+  const isButton = BUTTON_IDS.has(f.id);
+  const hasLabel = !!f.label;
+  const editable = !f.disabled;
+  if (isButton) return 3;
+  if (hasLabel && editable && f.mandatory) return 1;
+  if (hasLabel && editable) return 2;
+  if (hasLabel && !editable) return 4;
+  if (!hasLabel && editable) return 5;
+  return 6;
+}
+
 /**
- * Sort fields by actionability bucket, preserving DOM order within each bucket.
- * Bucket order: mandatory editable → optional editable → buttons → labeled readonly → unlabeled editable → unlabeled readonly
+ * Group fields by actionability bucket, preserving DOM order within each bucket.
+ * Returns groups in bucket order, each with a label and field list.
  */
-function sortByBucket(fields: NsFieldMetadata[]): NsFieldMetadata[] {
-  function bucket(f: NsFieldMetadata): number {
-    const isButton = BUTTON_IDS.has(f.id);
-    const hasLabel = !!f.label;
-    const editable = !f.disabled;
-    if (isButton) return 3;
-    if (hasLabel && editable && f.mandatory) return 1;
-    if (hasLabel && editable) return 2;
-    if (hasLabel && !editable) return 4;
-    if (!hasLabel && editable) return 5;
-    return 6;
+function groupByBucket(fields: NsFieldMetadata[]): Array<{ label: string; fields: NsFieldMetadata[] }> {
+  const buckets = new Map<number, NsFieldMetadata[]>();
+  for (const f of fields) {
+    const b = fieldBucket(f);
+    if (!buckets.has(b)) buckets.set(b, []);
+    buckets.get(b)!.push(f);
   }
-  // Stable sort: equal buckets keep their original DOM order
-  return [...fields].sort((a, b) => bucket(a) - bucket(b));
+  // Merge buckets 5+6 into a single "Other" group
+  const b5 = buckets.get(5) ?? [];
+  const b6 = buckets.get(6) ?? [];
+  const merged = [...b5, ...b6];
+  buckets.delete(5);
+  buckets.delete(6);
+  if (merged.length > 0) buckets.set(5, merged);
+
+  const groups: Array<{ label: string; fields: NsFieldMetadata[] }> = [];
+  for (const key of [1, 2, 3, 4, 5]) {
+    const items = buckets.get(key);
+    if (items && items.length > 0) {
+      groups.push({ label: BUCKET_LABELS[key], fields: items });
+    }
+  }
+  return groups;
 }
 
 // ─── Arg Parsing ────────────────────────────────────────────
@@ -218,21 +249,25 @@ export async function nsInspect(args: string[], bm: BrowserManager): Promise<NsC
     : d.fields.filter(f => !isFiltered(f.id));
   const filtered = d.fields.length - visible.length;
 
-  // Sort by actionability bucket, preserve DOM order within each bucket
-  const sorted = sortByBucket(visible);
+  // Group by actionability bucket, preserve DOM order within each bucket
+  const groups = groupByBucket(visible);
 
   const header = filtered > 0
-    ? `INSPECT OK | Mode: ${d.mode} | ${sorted.length} fields (${filtered} internal hidden, use --all to show)`
-    : `INSPECT OK | Mode: ${d.mode} | ${sorted.length} fields`;
+    ? `INSPECT OK | Mode: ${d.mode} | ${visible.length} fields (${filtered} internal hidden, use --all to show)`
+    : `INSPECT OK | Mode: ${d.mode} | ${visible.length} fields`;
   const lines = [header];
 
-  for (const f of sorted) {
-    const flags: string[] = [];
-    if (f.mandatory) flags.push('mandatory');
-    if (f.disabled) flags.push('disabled');
-    if (f.isEntityRef) flags.push('entityRef');
-    const prefix = BUTTON_IDS.has(f.id) ? '[button] ' : '';
-    lines.push(`${prefix}${f.id} | ${f.label || '-'} | ${truncateValue(f.value)} | ${f.type} | ${flags.join(',') || '-'}`);
+  for (const group of groups) {
+    lines.push('');
+    lines.push(`── ${group.label} (${group.fields.length}) ──`);
+    for (const f of group.fields) {
+      const flags: string[] = [];
+      if (f.mandatory) flags.push('mandatory');
+      if (f.disabled) flags.push('disabled');
+      if (f.isEntityRef) flags.push('entityRef');
+      const prefix = BUTTON_IDS.has(f.id) ? '[button] ' : '';
+      lines.push(`${prefix}${f.id} | ${f.label || '-'} | ${truncateValue(f.value)} | ${f.type} | ${flags.join(',') || '-'}`);
+    }
   }
 
   if (d.sublists) {
