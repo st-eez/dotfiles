@@ -232,18 +232,10 @@ You are a design brainstorming partner. Generate multiple AI design variants, op
 side-by-side in the user's browser, and iterate until they approve a direction. This is
 visual brainstorming, not a review process.
 
-## DESIGN SETUP (run this check BEFORE any design mockup command)
+## DESIGN SETUP (run this check BEFORE any design command)
 
 ```bash
 _ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
-D=""
-[ -n "$_ROOT" ] && [ -x "$_ROOT/.claude/skills/steez/design/dist/design" ] && D="$_ROOT/.claude/skills/steez/design/dist/design"
-[ -z "$D" ] && D=~/.claude/skills/steez/design/dist/design
-if [ -x "$D" ]; then
-  echo "DESIGN_READY: $D"
-else
-  echo "DESIGN_NOT_AVAILABLE"
-fi
 B=""
 [ -n "$_ROOT" ] && [ -x "$_ROOT/.claude/skills/steez/browse/dist/browse" ] && B="$_ROOT/.claude/skills/steez/browse/dist/browse"
 [ -z "$B" ] && B=~/.claude/skills/steez/browse/dist/browse
@@ -254,23 +246,13 @@ else
 fi
 ```
 
-If `DESIGN_NOT_AVAILABLE`: skip visual mockup generation and fall back to the
-existing HTML wireframe approach (`DESIGN_SKETCH`). Design mockups are a
-progressive enhancement, not a hard requirement.
+This skill uses HTML wireframes (`DESIGN_SKETCH`) for visual design exploration.
+Generate HTML wireframes directly, not image mockups.
 
 If `BROWSE_NOT_AVAILABLE`: use `open file://...` instead of `$B goto` to open
 comparison boards. The user just needs to see the HTML file in any browser.
 
-If `DESIGN_READY`: the design binary is available for visual mockup generation.
-Commands:
-- `$D generate --brief "..." --output /path.png` — generate a single mockup
-- `$D variants --brief "..." --count 3 --output-dir /path/` — generate N style variants
-- `$D compare --images "a.png,b.png,c.png" --output /path/board.html --serve` — comparison board + HTTP server
-- `$D serve --html /path/board.html` — serve comparison board and collect feedback via HTTP
-- `$D check --image /path.png --brief "..."` — vision quality gate
-- `$D iterate --session /path/session.json --feedback "..." --output /path.png` — iterate
-
-**CRITICAL PATH RULE:** All design artifacts (mockups, comparison boards, approved.json)
+**CRITICAL PATH RULE:** All design artifacts (comparison boards, approved.json)
 MUST be saved to `~/.steez/projects/$SLUG/designs/`, NEVER to `.context/`,
 `docs/designs/`, `/tmp/`, or any project-local directory. Design artifacts are USER
 data, not project files. They persist across branches, conversations, and workspaces.
@@ -297,7 +279,7 @@ AskUserQuestion:
 > B) New exploration — start fresh with new or updated instructions
 > C) Something else"
 
-If A: regenerate the board from existing variant PNGs, reopen, and resume the feedback loop.
+If A: regenerate the board from existing variant HTML files, reopen, and resume the feedback loop.
 If B: proceed to Step 1.
 
 **If `NO_PREVIOUS_SESSIONS`:** Show the first-time message:
@@ -348,8 +330,8 @@ curl -s -o /dev/null -w "%{http_code}" http://localhost:3000 2>/dev/null || echo
 ```
 
 If a local site is running AND the user referenced a URL or said something like "I don't
-like how this looks," screenshot the current page and use `$D evolve` instead of
-`$D variants` to generate improvement variants from the existing design.
+like how this looks," screenshot the current page and use it as reference when generating
+improvement variants from the existing design.
 
 **AskUserQuestion with pre-filled context:** Pre-fill what you inferred from the codebase,
 DESIGN.md, and office-hours output. Then ask for what's missing. Frame as ONE question
@@ -410,10 +392,10 @@ Draw on DESIGN.md, taste memory, and the user's request to make each concept dis
 
 ### Step 3b: Concept Confirmation
 
-Use AskUserQuestion to confirm before spending API credits:
+Use AskUserQuestion to confirm before generating:
 
-> "These are the {N} directions I'll generate. Each takes ~60s, but I'll run them all
-> in parallel so total time is ~60 seconds regardless of count."
+> "These are the {N} directions I'll generate as HTML wireframes. I'll run them all
+> in parallel so it should be quick."
 
 Options:
 - A) Generate all {N} — looks good
@@ -425,7 +407,7 @@ If B: incorporate feedback, re-present concepts, re-confirm. Max 2 rounds.
 If C: add concepts, re-present, re-confirm.
 If D: drop specified concepts, re-present, re-confirm.
 
-### Step 3c: Parallel Generation
+### Step 3c: HTML Wireframe Generation
 
 **If evolving from a screenshot** (user said "I don't like THIS"), take ONE screenshot
 first:
@@ -434,146 +416,98 @@ first:
 $B screenshot "$_DESIGN_DIR/current.png"
 ```
 
-**Launch N Agent subagents in a single message** (parallel execution). Use the Agent
-tool with `subagent_type: "general-purpose"` for each variant. Each agent is independent
-and handles its own generation, quality check, verification, and retry.
+**Generate N HTML wireframe variants.** For each concept from Step 3a, create a
+self-contained HTML file (`variant-{letter}.html`) in `$_DESIGN_DIR/`. Each wireframe
+should be a complete, styled HTML page that demonstrates the design direction with
+real layout, typography, spacing, and color choices. Use inline CSS only, no external
+dependencies.
 
-**Important: $D path propagation.** The `$D` variable from DESIGN SETUP is a shell
-variable that agents do NOT inherit. Substitute the resolved absolute path (from the
-`DESIGN_READY: /path/to/design` output in Step 0) into each agent prompt.
+**Launch N Agent subagents in a single message** (parallel execution). Use the Agent
+tool with `subagent_type: "general-purpose"` for each variant. Each agent generates
+one HTML wireframe independently.
 
 **Agent prompt template** (one per variant, substitute all `{...}` values):
 
 ```
-Generate a design variant and save it.
+Generate an HTML wireframe for a design variant and save it.
 
-Design binary: {absolute path to $D binary}
 Brief: {the full variant-specific brief for this direction}
-Output: /tmp/variant-{letter}.png
-Final location: {_DESIGN_DIR absolute path}/variant-{letter}.png
+Output: {_DESIGN_DIR absolute path}/variant-{letter}.html
+DESIGN.md: {paste relevant design system constraints if available}
 
 Steps:
-1. Run: {$D path} generate --brief "{brief}" --output /tmp/variant-{letter}.png
-2. If the command fails with a rate limit error (429 or "rate limit"), wait 5 seconds
-   and retry. Up to 3 retries.
-3. If the output file is missing or empty after the command succeeds, retry once.
-4. Copy: cp /tmp/variant-{letter}.png {_DESIGN_DIR}/variant-{letter}.png
-5. Quality check: {$D path} check --image {_DESIGN_DIR}/variant-{letter}.png --brief "{brief}"
-   If quality check fails, retry generation once.
-6. Verify: ls -lh {_DESIGN_DIR}/variant-{letter}.png
-7. Report exactly one of:
+1. Write a self-contained HTML file with inline CSS that demonstrates this design direction.
+   Include realistic placeholder content, proper layout, typography, spacing, and color.
+   The HTML should be viewable by opening the file directly in a browser.
+2. Verify: ls -lh {_DESIGN_DIR}/variant-{letter}.html
+3. Report exactly one of:
    VARIANT_{letter}_DONE: {file size}
    VARIANT_{letter}_FAILED: {error description}
-   VARIANT_{letter}_RATE_LIMITED: exhausted retries
 ```
-
-For the evolve path, replace step 1 with:
-```
-{$D path} evolve --screenshot {_DESIGN_DIR}/current.png --brief "{brief}" --output /tmp/variant-{letter}.png
-```
-
-**Why /tmp/ then cp?** In observed sessions, `$D generate --output ~/.steez/...`
-failed with "The operation was aborted" while `--output /tmp/...` succeeded. This is
-a sandbox restriction. Always generate to `/tmp/` first, then `cp`.
 
 ### Step 3d: Results
 
 After all agents complete:
 
-1. Read each generated PNG inline (Read tool) so the user sees all variants at once.
-2. Report status: "All {N} variants generated in ~{actual time}. {successes} succeeded,
-   {failures} failed."
-3. For any failures: report explicitly with the error. Do NOT silently skip.
-4. If zero variants succeeded: fall back to sequential generation (one at a time with
-   `$D generate`, showing each as it lands). Tell the user: "Parallel generation failed
-   (likely rate limiting). Falling back to sequential..."
-5. Proceed to Step 4 (comparison board).
+1. List the generated HTML files and report status: "All {N} variants generated.
+   {successes} succeeded, {failures} failed."
+2. For any failures: report explicitly with the error. Do NOT silently skip.
+3. Proceed to Step 4 (comparison board).
 
-**Dynamic image list for comparison board:** When proceeding to Step 4, construct the
-image list from whatever variant files actually exist, not a hardcoded A/B/C list:
+**Dynamic file list for comparison board:** When proceeding to Step 4, construct the
+file list from whatever variant files actually exist, not a hardcoded A/B/C list:
 
 ```bash
 setopt +o nomatch 2>/dev/null || true  # zsh compat
-_IMAGES=$(ls "$_DESIGN_DIR"/variant-*.png 2>/dev/null | tr '\n' ',' | sed 's/,$//')
+_VARIANTS=$(ls "$_DESIGN_DIR"/variant-*.html 2>/dev/null | tr '\n' ',' | sed 's/,$//')
 ```
-
-Use `$_IMAGES` in the `$D compare --images` command.
 
 ## Step 4: Comparison Board + Feedback Loop
 
-### Comparison Board + Feedback Loop
+### Comparison Board
 
-Create the comparison board and serve it over HTTP:
+Generate a comparison board HTML file that embeds all variant wireframes side-by-side
+using iframes. Write it to `$_DESIGN_DIR/design-board.html`. The board should:
+- Show each variant in a labeled column (A, B, C, ...)
+- Include the concept name and one-line description from Step 3a
+- Be viewable by opening the file directly in a browser
 
-```bash
-$D compare --images "$_DESIGN_DIR/variant-A.png,$_DESIGN_DIR/variant-B.png,$_DESIGN_DIR/variant-C.png" --output "$_DESIGN_DIR/design-board.html" --serve
-```
-
-This command generates the board HTML, starts an HTTP server on a random port,
-and opens it in the user's default browser. **Run it in the background** with `&`
-because the agent needs to keep running while the user interacts with the board.
-
-**IMPORTANT: Reading feedback via file polling (not stdout):**
-
-The server writes feedback to files next to the board HTML. The agent polls for these:
-- `$_DESIGN_DIR/feedback.json` — written when user clicks Submit (final choice)
-- `$_DESIGN_DIR/feedback-pending.json` — written when user clicks Regenerate/Remix/More Like This
-
-**Polling loop** (run after launching `$D serve` in background):
+Open the board:
 
 ```bash
-# Poll for feedback files every 5 seconds (up to 10 minutes)
-for i in $(seq 1 120); do
-  if [ -f "$_DESIGN_DIR/feedback.json" ]; then
-    echo "SUBMIT_RECEIVED"
-    cat "$_DESIGN_DIR/feedback.json"
-    break
-  elif [ -f "$_DESIGN_DIR/feedback-pending.json" ]; then
-    echo "REGENERATE_RECEIVED"
-    cat "$_DESIGN_DIR/feedback-pending.json"
-    rm "$_DESIGN_DIR/feedback-pending.json"
-    break
-  fi
-  sleep 5
-done
+if [ -x "$B" ]; then
+  $B goto "file://$_DESIGN_DIR/design-board.html"
+else
+  open "$_DESIGN_DIR/design-board.html"
+fi
 ```
 
-The feedback JSON has this shape:
-```json
-{
-  "preferred": "A",
-  "ratings": { "A": 4, "B": 3, "C": 2 },
-  "comments": { "A": "Love the spacing" },
-  "overall": "Go with A, bigger CTA",
-  "regenerated": false
-}
-```
+### Feedback Collection
 
-**If `feedback-pending.json` found (`"regenerated": true`):**
-1. Read `regenerateAction` from the JSON (`"different"`, `"match"`, `"more_like_B"`,
-   `"remix"`, or custom text)
-2. If `regenerateAction` is `"remix"`, read `remixSpec` (e.g. `{"layout":"A","colors":"B"}`)
-3. Generate new variants with `$D iterate` or `$D variants` using updated brief
-4. Create new board: `$D compare --images "..." --output "$_DESIGN_DIR/design-board.html"`
-5. Parse the port from the `$D serve` stderr output (`SERVE_STARTED: port=XXXXX`),
-   then reload the board in the user's browser (same tab):
-   `curl -s -X POST http://127.0.0.1:PORT/api/reload -H 'Content-Type: application/json' -d '{"html":"$_DESIGN_DIR/design-board.html"}'`
-6. The board auto-refreshes. **Poll again** for the next feedback file.
-7. Repeat until `feedback.json` appears (user clicked Submit).
+Use AskUserQuestion to collect feedback:
 
-**If `feedback.json` found (`"regenerated": false`):**
-1. Read `preferred`, `ratings`, `comments`, `overall` from the JSON
-2. Proceed with the approved variant
+> "I've opened the comparison board with all {N} variants side-by-side.
+> Which variant do you prefer? Any specific feedback on what works or doesn't?"
 
-**If `$D serve` fails or no feedback within 10 minutes:** Fall back to AskUserQuestion:
-"I've opened the design board. Which variant do you prefer? Any feedback?"
+Options:
+- A) Pick a winner (tell me which and any adjustments)
+- B) Remix (combine elements from different variants)
+- C) None of these, try different directions
+- D) Iterate on a specific variant with feedback
 
-**After receiving feedback (any path):** Output a clear summary confirming
-what was understood:
+**If B (remix):** Ask which elements to combine (e.g. "layout from A, colors from B"),
+then generate a new HTML wireframe incorporating those elements. Re-open the board with
+the new variant added.
+
+**If C (new directions):** Return to Step 3a with updated concepts.
+
+**If D (iterate):** Generate a revised version of the specified variant incorporating
+the user's feedback. Add it to the board.
+
+**After the user picks a winner,** confirm understanding:
 
 "Here's what I understood from your feedback:
 PREFERRED: Variant [X]
-RATINGS: [list]
 YOUR NOTES: [comments]
 DIRECTION: [overall]
 
@@ -588,7 +522,7 @@ echo '{"approved_variant":"<V>","feedback":"<FB>","date":"'$(date -u +%Y-%m-%dT%
 
 ## Step 5: Feedback Confirmation
 
-After receiving feedback (via HTTP POST or AskUserQuestion fallback), output a clear
+After receiving feedback (via AskUserQuestion), output a clear
 summary confirming what was understood:
 
 "Here's what I understood from your feedback:
@@ -607,22 +541,22 @@ Use AskUserQuestion to confirm before saving.
 Write `approved.json` to `$_DESIGN_DIR/` (handled by the loop above).
 
 If invoked from another skill: return the structured feedback for that skill to consume.
-The calling skill reads `approved.json` and the approved variant PNG.
+The calling skill reads `approved.json` and the approved variant HTML.
 
 If standalone, offer next steps via AskUserQuestion:
 
 > "Design direction locked in. What's next?
 > A) Iterate more — refine the approved variant with specific feedback
 > B) Implement — start building from this design
-> C) Save to plan — add this as an approved mockup reference in the current plan
+> C) Save to plan — add this as an approved design reference in the current plan
 > D) Done — I'll use this later"
 
 ## Important Rules
 
 1. **Never save to `.context/`, `docs/designs/`, or `/tmp/`.** All design artifacts go
    to `~/.steez/projects/$SLUG/designs/`. This is enforced. See DESIGN_SETUP above.
-2. **Show variants inline before opening the board.** The user should see designs
-   immediately in their terminal. The browser board is for detailed feedback.
+2. **Show variants inline before opening the board.** The user should see the design
+   directions described immediately in their terminal. The browser board is for visual comparison.
 3. **Confirm feedback before saving.** Always summarize what you understood and verify.
 4. **Taste memory is automatic.** Prior approved designs inform new generations by default.
 5. **Two rounds max on context gathering.** Don't over-interrogate. Proceed with assumptions.

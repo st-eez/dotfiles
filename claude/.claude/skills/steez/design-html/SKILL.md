@@ -83,44 +83,6 @@ approximations. Computed layout via Pretext. Text reflows on resize, heights adj
 to content, cards size themselves, chat bubbles shrinkwrap, editorial spreads flow
 around obstacles.
 
-## DESIGN SETUP (run this check BEFORE any design mockup command)
-
-```bash
-_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
-D=""
-[ -n "$_ROOT" ] && [ -x "$_ROOT/.claude/skills/steez/design/dist/design" ] && D="$_ROOT/.claude/skills/steez/design/dist/design"
-[ -z "$D" ] && D=~/.claude/skills/steez/design/dist/design
-if [ -x "$D" ]; then
-  echo "DESIGN_READY: $D"
-else
-  echo "DESIGN_NOT_AVAILABLE"
-fi
-B=""
-[ -n "$_ROOT" ] && [ -x "$_ROOT/.claude/skills/steez/browse/dist/browse" ] && B="$_ROOT/.claude/skills/steez/browse/dist/browse"
-[ -z "$B" ] && B=~/.claude/skills/steez/browse/dist/browse
-if [ -x "$B" ]; then
-  echo "BROWSE_READY: $B"
-else
-  echo "BROWSE_NOT_AVAILABLE (will use 'open' to view comparison boards)"
-fi
-```
-
-If `DESIGN_NOT_AVAILABLE`: skip visual mockup generation and fall back to the
-existing HTML wireframe approach (`DESIGN_SKETCH`). Design mockups are a
-progressive enhancement, not a hard requirement.
-
-If `BROWSE_NOT_AVAILABLE`: use `open file://...` instead of `$B goto` to open
-comparison boards. The user just needs to see the HTML file in any browser.
-
-If `DESIGN_READY`: the design binary is available for visual mockup generation.
-Commands:
-- `$D generate --brief "..." --output /path.png` — generate a single mockup
-- `$D variants --brief "..." --count 3 --output-dir /path/` — generate N style variants
-- `$D compare --images "a.png,b.png,c.png" --output /path/board.html --serve` — comparison board + HTTP server
-- `$D serve --html /path/board.html` — serve comparison board and collect feedback via HTTP
-- `$D check --image /path.png --brief "..."` — vision quality gate
-- `$D iterate --session /path/session.json --feedback "..." --output /path.png` — iterate
-
 **CRITICAL PATH RULE:** All design artifacts (mockups, comparison boards, approved.json)
 MUST be saved to `~/.steez/projects/$SLUG/designs/`, NEVER to `.context/`,
 `docs/designs/`, `/tmp/`, or any project-local directory. Design artifacts are USER
@@ -206,19 +168,13 @@ If B: accept a PNG file path from the user and proceed with that as the referenc
 
 ## Step 1: Design Analysis
 
-1. If `$D` is available (`DESIGN_READY`), extract a structured implementation spec:
-```bash
-$D prompt --image <approved-variant.png> --output json
-```
-This returns colors, typography, layout structure, and component inventory via GPT-4o vision.
+1. Read the approved PNG inline using the Read tool.
+   Describe the visual layout, colors, typography, and component structure.
 
-2. If `$D` is not available, read the approved PNG inline using the Read tool.
-   Describe the visual layout, colors, typography, and component structure yourself.
-
-3. Read `DESIGN.md` tokens. These override any extracted values for system-level
+2. Read `DESIGN.md` tokens. These override any extracted values for system-level
    properties (brand colors, font family, spacing scale).
 
-4. Output an "Implementation spec" summary: colors (hex), fonts (family + weights),
+3. Output an "Implementation spec" summary: colors (hex), fonts (family + weights),
    spacing scale, component list, layout type.
 
 ---
@@ -267,20 +223,8 @@ If no framework detected: default to vanilla HTML, no question needed.
 
 ### Pretext Source Embedding
 
-For **vanilla HTML output**, check for the vendored Pretext bundle:
-```bash
-_PRETEXT_VENDOR=""
-_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
-[ -n "$_ROOT" ] && [ -f "$_ROOT/.claude/skills/steez/design-html/vendor/pretext.js" ] && _PRETEXT_VENDOR="$_ROOT/.claude/skills/steez/design-html/vendor/pretext.js"
-[ -z "$_PRETEXT_VENDOR" ] && [ -f ~/.claude/skills/steez/design-html/vendor/pretext.js ] && _PRETEXT_VENDOR=~/.claude/skills/steez/design-html/vendor/pretext.js
-[ -n "$_PRETEXT_VENDOR" ] && echo "VENDOR: $_PRETEXT_VENDOR" || echo "VENDOR_MISSING"
-```
-
-- If `VENDOR` found: read the file and inline it in a `<script>` tag. The HTML file
-  is fully self-contained with zero network dependencies.
-- If `VENDOR_MISSING`: use CDN import as fallback:
+For **vanilla HTML output**, import Pretext from the CDN:
   `<script type="module">import { prepare, layout, prepareWithSegments, walkLineRanges, layoutNextLine, layoutWithLines } from 'https://esm.sh/@chenglou/pretext'</script>`
-  Add a comment: `<!-- FALLBACK: vendor/pretext.js missing, using CDN -->`
 
 For **framework output**, add to the project's dependencies instead:
 ```bash

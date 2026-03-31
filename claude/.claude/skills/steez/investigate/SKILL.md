@@ -11,18 +11,6 @@ allowed-tools:
   - Glob
   - AskUserQuestion
   - WebSearch
-hooks:
-  PreToolUse:
-    - matcher: "Edit"
-      hooks:
-        - type: command
-          command: "bash ${CLAUDE_SKILL_DIR}/../freeze/bin/check-freeze.sh"
-          statusMessage: "Checking debug scope boundary..."
-    - matcher: "Write"
-      hooks:
-        - type: command
-          command: "bash ${CLAUDE_SKILL_DIR}/../freeze/bin/check-freeze.sh"
-          statusMessage: "Checking debug scope boundary..."
 ---
 
 ## Preamble (run first)
@@ -254,31 +242,6 @@ Gather context before forming any hypothesis.
 4. **Reproduce:** Can you trigger the bug deterministically? If not, gather more evidence before proceeding.
 
 Output: **"Root cause hypothesis: ..."** — a specific, testable claim about what is wrong and why.
-
----
-
-## Scope Lock
-
-After forming your root cause hypothesis, lock edits to the affected module to prevent scope creep.
-
-```bash
-[ -x "${CLAUDE_SKILL_DIR}/../freeze/bin/check-freeze.sh" ] && echo "FREEZE_AVAILABLE" || echo "FREEZE_UNAVAILABLE"
-```
-
-**If FREEZE_AVAILABLE:** Identify the narrowest directory containing the affected files. Write it to the freeze state file:
-
-```bash
-STATE_DIR="${CLAUDE_PLUGIN_DATA:-$HOME/.steez}"
-mkdir -p "$STATE_DIR"
-echo "<detected-directory>/" > "$STATE_DIR/freeze-dir.txt"
-echo "Debug scope locked to: <detected-directory>/"
-```
-
-Substitute `<detected-directory>` with the actual directory path (e.g., `src/auth/`). Tell the user: "Edits restricted to `<dir>/` for this debug session. This prevents changes to unrelated code. Run `/steez-unfreeze` to remove the restriction."
-
-If the bug spans the entire repo or the scope is genuinely unclear, skip the lock and note why.
-
-**If FREEZE_UNAVAILABLE:** Skip scope lock. Edits are unrestricted.
 
 ---
 

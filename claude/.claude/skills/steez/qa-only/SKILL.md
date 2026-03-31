@@ -363,7 +363,7 @@ Run full mode, then load `baseline.json` from a previous run. Diff: which issues
 
 1. Find browse binary (see Setup above)
 2. Create output directories
-3. Copy report template from `qa/templates/qa-report-template.md` to output dir
+3. Copy report template from `~/.claude/skills/steez-qa/templates/qa-report-template.md` to output dir
 4. Start timer for duration tracking
 
 ### Phase 2: Authenticate (if needed)
@@ -466,7 +466,7 @@ $B snapshot -D
 $B snapshot -i -a -o "$REPORT_DIR/screenshots/issue-002.png"
 ```
 
-**Write each issue to the report immediately** using the template format from `qa/templates/qa-report-template.md`.
+**Write each issue to the report immediately** using the template format from `~/.claude/skills/steez-qa/templates/qa-report-template.md`.
 
 ### Phase 6: Wrap Up
 
