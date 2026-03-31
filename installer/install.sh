@@ -997,7 +997,7 @@ stow_package() {
     # Packages that need --no-folding to prevent directory symlinks.
     # Required when: external tools write to subdirectories that would
     # otherwise be tree-folded into the repo (causing untracked files).
-    local -a no_folding_pkgs=(nvim zsh ghostty)
+    local -a no_folding_pkgs=(nvim zsh ghostty claude)
 
     local -a stow_args=(--dir="$DOTFILES_DIR" --target="$HOME" --restow)
     # shellcheck disable=SC2076
