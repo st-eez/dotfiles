@@ -1,3 +1,5 @@
 \.DS_Store
 # settings.json has runtime state — keep as backup copy only
 \.claude/settings\.json
+# gstack is disabled legacy — 93 SKILL.md files cause Claude Code duplicates
+\.claude/skills/gstack
