@@ -125,40 +125,33 @@ export async function nsAddRow(args: string[], bm: BrowserManager): Promise<NsCo
           let overallSettled = true;
 
           for (const { column, value } of fieldValues) {
-            // Detect entity-ref for this column via _display companion
-            // Sublist current-line display elements use just `${col}_display`
-            // (not `${sub}_${col}_display` — the sublist prefix is NOT part of the DOM ID)
-            const isEntityRef = await target.evaluate(
-              (col: string) => {
-                return document.getElementById(`${col}_display`) !== null;
-              },
-              column,
-            );
-
-            const fireSlavingWhenever = !isEntityRef;
-            const fireFieldChanged = !isEntityRef;
-
+            // Always fire cascading (false, false) for sublist columns.
+            // Entity-ref detection via _display companions is unreliable on the
+            // current edit line — the companion may not exist until a value is
+            // selected. Suppressing cascading prevents sourcing, leaving dependent
+            // fields empty and causing nlapiCommitLineItem to fail with
+            // "Field Not Found". The convergence polling cost (~100ms) is worth
+            // the correctness.
             await target.evaluate(
-              ({ sub, col, val, fsw, ffc }: { sub: string; col: string; val: string; fsw: boolean; ffc: boolean }) => {
-                (window as any).nlapiSetCurrentLineItemValue?.(sub, col, val, fsw, ffc);
+              ({ sub, col, val }: { sub: string; col: string; val: string }) => {
+                (window as any).nlapiSetCurrentLineItemValue?.(sub, col, val, false, false);
               },
-              { sub: sublistId, col: column, val: value, fsw: fireSlavingWhenever, ffc: fireFieldChanged },
+              { sub: sublistId, col: column, val: value },
             );
 
-            // If entity-ref, poll other columns for convergence
-            if (isEntityRef) {
-              const otherColumns = allColumns.filter(c => c !== column);
-              if (otherColumns.length > 0) {
-                const getter = createLineItemGetter(target, sublistId);
-                const convergence = await pollUntilConverged(getter, {
-                  fieldIds: otherColumns,
-                  stablePolls: 3,
-                  initialIntervalMs: 50,
-                  maxIntervalMs: 200,
-                  timeoutMs: 5000,
-                });
-                if (!convergence.converged) overallSettled = false;
-              }
+            // Poll other columns for convergence after each set — sourcing may
+            // update dependent columns asynchronously
+            const otherColumns = allColumns.filter(c => c !== column);
+            if (otherColumns.length > 0) {
+              const getter = createLineItemGetter(target, sublistId);
+              const convergence = await pollUntilConverged(getter, {
+                fieldIds: otherColumns,
+                stablePolls: 3,
+                initialIntervalMs: 50,
+                maxIntervalMs: 200,
+                timeoutMs: 5000,
+              });
+              if (!convergence.converged) overallSettled = false;
             }
           }
 

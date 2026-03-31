@@ -158,12 +158,14 @@ export async function nsSet(args: string[], bm: BrowserManager): Promise<NsComma
             (fid: string) => (window as any).nlapiGetFieldValue?.(fid) ?? null,
             fieldId,
           );
-          if (verifiedValue !== value && fieldMeta.type === 'select') {
-            // Fallback: try nlapiSetFieldText for select fields, or directly set the indexed hidden element
+          // Compare trimmed values — NS sometimes returns padded strings
+          const valueMatches = verifiedValue !== null && String(verifiedValue).trim() === String(value).trim();
+          if (!valueMatches && fieldMeta.type === 'select') {
+            // Fallback: directly sync indexed hidden/select elements on custom forms
             await page.evaluate(
               ({ fid, val }: { fid: string; val: string }) => {
                 const w = window as any;
-                // Try setting via field text (works for some custom form selects)
+                // Retry the API call once
                 try { w.nlapiSetFieldValue?.(fid, val); } catch {}
                 // Direct DOM fallback: find indexed hidden elements and sync them
                 const form = document.getElementById('main_form');
@@ -171,9 +173,9 @@ export async function nsSet(args: string[], bm: BrowserManager): Promise<NsComma
                 const hddn = form.querySelector(`[id^="hddn_${fid}_"]`) as HTMLInputElement | null;
                 if (hddn) {
                   hddn.value = val;
-                  // Also sync the visible select widget
-                  const inpt = form.querySelector(`[id^="inpt_${fid}_"]`) as HTMLSelectElement | null;
-                  if (inpt) {
+                  // Also sync the visible select widget (must be an actual <select>)
+                  const inpt = form.querySelector(`select[id^="inpt_${fid}_"]`) as HTMLSelectElement | null;
+                  if (inpt && inpt.options) {
                     for (let i = 0; i < inpt.options.length; i++) {
                       if (inpt.options[i].value === val) {
                         inpt.selectedIndex = i;
