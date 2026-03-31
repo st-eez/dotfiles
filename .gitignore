@@ -80,3 +80,6 @@ __pycache__/
 
 # Codex session state (from /steez-codex consult mode)
 .context/
+
+# Beads / Dolt files (added by bd init)
+.beads-credential-key
