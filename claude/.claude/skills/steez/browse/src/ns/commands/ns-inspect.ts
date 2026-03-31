@@ -123,6 +123,26 @@ function isFiltered(id: string): boolean {
   return false;
 }
 
+/**
+ * Sort fields by actionability bucket, preserving DOM order within each bucket.
+ * Bucket order: mandatory editable → optional editable → buttons → labeled readonly → unlabeled editable → unlabeled readonly
+ */
+function sortByBucket(fields: NsFieldMetadata[]): NsFieldMetadata[] {
+  function bucket(f: NsFieldMetadata): number {
+    const isButton = BUTTON_IDS.has(f.id);
+    const hasLabel = !!f.label;
+    const editable = !f.disabled;
+    if (isButton) return 3;
+    if (hasLabel && editable && f.mandatory) return 1;
+    if (hasLabel && editable) return 2;
+    if (hasLabel && !editable) return 4;
+    if (!hasLabel && editable) return 5;
+    return 6;
+  }
+  // Stable sort: equal buckets keep their original DOM order
+  return [...fields].sort((a, b) => bucket(a) - bucket(b));
+}
+
 // ─── Arg Parsing ────────────────────────────────────────────
 
 function parseInspectArgs(args: string[]): { fieldId: string | null; sublists: boolean; all: boolean } {
@@ -198,12 +218,15 @@ export async function nsInspect(args: string[], bm: BrowserManager): Promise<NsC
     : d.fields.filter(f => !isFiltered(f.id));
   const filtered = d.fields.length - visible.length;
 
+  // Sort by actionability bucket, preserve DOM order within each bucket
+  const sorted = sortByBucket(visible);
+
   const header = filtered > 0
-    ? `INSPECT OK | Mode: ${d.mode} | ${visible.length} fields (${filtered} internal hidden, use --all to show)`
-    : `INSPECT OK | Mode: ${d.mode} | ${visible.length} fields`;
+    ? `INSPECT OK | Mode: ${d.mode} | ${sorted.length} fields (${filtered} internal hidden, use --all to show)`
+    : `INSPECT OK | Mode: ${d.mode} | ${sorted.length} fields`;
   const lines = [header];
 
-  for (const f of visible) {
+  for (const f of sorted) {
     const flags: string[] = [];
     if (f.mandatory) flags.push('mandatory');
     if (f.disabled) flags.push('disabled');
