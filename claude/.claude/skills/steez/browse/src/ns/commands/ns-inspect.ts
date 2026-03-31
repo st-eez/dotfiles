@@ -310,15 +310,41 @@ async function discoverSublists(bm: BrowserManager): Promise<NsSublistData[]> {
       seen.add(sublistId);
 
       // Extract column headers from the table inside the splits container
+      // Real NS tables may not use <thead> — search for listheadertd cells anywhere in the table
       const columns: Array<{ id: string; label: string }> = [];
-      const headerCells = div.querySelectorAll('thead tr td.listheadertd, thead tr th.listheadertd');
+      const headerCells = div.querySelectorAll('td.listheadertd, th.listheadertd');
       for (const cell of headerCells) {
         const headerDiv = cell.querySelector('.listheadertextb, .listheadertext');
         const label = headerDiv?.textContent?.trim() ?? cell.textContent?.trim() ?? '';
-        if (label) {
-          // Derive column ID from label (lowercase, no spaces) as best-effort
-          const id = label.toLowerCase().replace(/[^a-z0-9]/g, '');
-          columns.push({ id, label });
+        if (!label) continue;
+
+        // Try to extract real field ID from the header cell's data attributes or child element IDs
+        const dataField = cell.getAttribute('data-ns-tooltip')
+          || cell.querySelector('[data-field]')?.getAttribute('data-field')
+          || null;
+        // Fallback: derive from label (lowercase, strip non-alphanumeric)
+        const id = dataField || label.toLowerCase().replace(/[^a-z0-9_]/g, '');
+        columns.push({ id, label });
+      }
+
+      // Fallback: if 0 header columns found, try extracting field IDs from
+      // the first data row's input/select elements (their names contain the field ID)
+      if (columns.length === 0) {
+        const table = div.querySelector('table');
+        if (table) {
+          // Look for data rows (tr with class 'uir-machine-row' or just non-header rows)
+          const dataRows = table.querySelectorAll('tr:not(:has(.listheadertd))');
+          const firstRow = dataRows[0];
+          if (firstRow) {
+            const inputs = firstRow.querySelectorAll('input[id], select[id], textarea[id]');
+            for (const inp of inputs) {
+              const inputId = inp.id;
+              // Skip internal/hidden fields
+              if (inputId.startsWith('inpt_') || inputId.startsWith('hddn_') || inputId.startsWith('custpage_')) continue;
+              if (!inputId || inputId.includes('_fs_')) continue;
+              columns.push({ id: inputId, label: inputId });
+            }
+          }
         }
       }
 
@@ -339,14 +365,17 @@ async function discoverSublists(bm: BrowserManager): Promise<NsSublistData[]> {
       seen.add(sublistId);
 
       const columns: Array<{ id: string; label: string }> = [];
-      const headerCells = table.querySelectorAll('thead tr td.listheadertd, thead tr th.listheadertd');
+      const headerCells = table.querySelectorAll('td.listheadertd, th.listheadertd');
       for (const cell of headerCells) {
         const headerDiv = cell.querySelector('.listheadertextb, .listheadertext');
         const label = headerDiv?.textContent?.trim() ?? cell.textContent?.trim() ?? '';
-        if (label) {
-          const id = label.toLowerCase().replace(/[^a-z0-9]/g, '');
-          columns.push({ id, label });
-        }
+        if (!label) continue;
+
+        const dataField = cell.getAttribute('data-ns-tooltip')
+          || cell.querySelector('[data-field]')?.getAttribute('data-field')
+          || null;
+        const id = dataField || label.toLowerCase().replace(/[^a-z0-9_]/g, '');
+        columns.push({ id, label });
       }
 
       results.push({ id: sublistId, columns });

@@ -152,6 +152,41 @@ export async function nsSet(args: string[], bm: BrowserManager): Promise<NsComma
             { fid: fieldId, val: value, fsw: fireSlavingWhenever, ffc: fireFieldChanged },
           );
 
+          // Verify value was set — custom forms with indexed widgets (hddn_{field}_{N})
+          // can silently fail. If the value didn't stick, try syncing the indexed DOM element directly.
+          const verifiedValue = await page.evaluate(
+            (fid: string) => (window as any).nlapiGetFieldValue?.(fid) ?? null,
+            fieldId,
+          );
+          if (verifiedValue !== value && fieldMeta.type === 'select') {
+            // Fallback: try nlapiSetFieldText for select fields, or directly set the indexed hidden element
+            await page.evaluate(
+              ({ fid, val }: { fid: string; val: string }) => {
+                const w = window as any;
+                // Try setting via field text (works for some custom form selects)
+                try { w.nlapiSetFieldValue?.(fid, val); } catch {}
+                // Direct DOM fallback: find indexed hidden elements and sync them
+                const form = document.getElementById('main_form');
+                if (!form) return;
+                const hddn = form.querySelector(`[id^="hddn_${fid}_"]`) as HTMLInputElement | null;
+                if (hddn) {
+                  hddn.value = val;
+                  // Also sync the visible select widget
+                  const inpt = form.querySelector(`[id^="inpt_${fid}_"]`) as HTMLSelectElement | null;
+                  if (inpt) {
+                    for (let i = 0; i < inpt.options.length; i++) {
+                      if (inpt.options[i].value === val) {
+                        inpt.selectedIndex = i;
+                        break;
+                      }
+                    }
+                  }
+                }
+              },
+              { fid: fieldId, val: value },
+            );
+          }
+
           // If cascading was fired, wait for convergence
           let settled = true;
           if (fireCascading && watchFieldIds.length > 0) {

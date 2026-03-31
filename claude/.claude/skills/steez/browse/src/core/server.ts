@@ -854,7 +854,16 @@ process.on('uncaughtException', (err) => {
   process.exit(1);
 });
 process.on('unhandledRejection', (err: any) => {
-  console.error('[browse] FATAL unhandled rejection:', err?.message || err);
+  const msg: string = err?.message || String(err);
+  // Navigation timeouts and Playwright frame lifecycle errors produce secondary
+  // unhandled rejections that are non-fatal — the primary error is already caught
+  // by ns-navigate / handleCommand. Don't crash the server for these.
+  const isNavRelated = /timeout|navigation|frame was detached|target closed|context was destroyed/i.test(msg);
+  if (isNavRelated) {
+    console.error('[browse] Non-fatal unhandled rejection (navigation):', msg);
+    return;
+  }
+  console.error('[browse] FATAL unhandled rejection:', msg);
   emergencyCleanup();
   process.exit(1);
 });

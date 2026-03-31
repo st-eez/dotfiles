@@ -33,6 +33,7 @@ interface NsAddRowData {
   lineNumber: number;
   values: Record<string, string | null>;
   settled: boolean;
+  commitFailed: boolean;
   elapsedMs: number;
   dialogs: CapturedDialog[];
 }
@@ -125,12 +126,13 @@ export async function nsAddRow(args: string[], bm: BrowserManager): Promise<NsCo
 
           for (const { column, value } of fieldValues) {
             // Detect entity-ref for this column via _display companion
+            // Sublist current-line display elements use just `${col}_display`
+            // (not `${sub}_${col}_display` — the sublist prefix is NOT part of the DOM ID)
             const isEntityRef = await target.evaluate(
-              ({ sub, col }: { sub: string; col: string }) => {
-                const displayEl = document.getElementById(`${sub}_${col}_display`);
-                return displayEl !== null;
+              (col: string) => {
+                return document.getElementById(`${col}_display`) !== null;
               },
-              { sub: sublistId, col: column },
+              column,
             );
 
             const fireSlavingWhenever = !isEntityRef;
@@ -166,11 +168,33 @@ export async function nsAddRow(args: string[], bm: BrowserManager): Promise<NsCo
             sublistId,
           );
 
-          // 4. Get final line number and values
+          // 4. Get final line number and verify commit succeeded
           const lineNumber = await target.evaluate(
             (sub: string) => (window as any).nlapiGetLineItemCount?.(sub) ?? 0,
             sublistId,
           );
+
+          // Verify commit: line count must have increased
+          if (lineNumber <= lineCountBefore) {
+            // Commit failed silently — values were set on the edit line but not persisted
+            // Read back current line values for diagnostic output
+            const editLineValues = await target.evaluate(
+              ({ sub, cols }: { sub: string; cols: string[] }) => {
+                const result: Record<string, string | null> = {};
+                for (const col of cols) {
+                  result[col] = (window as any).nlapiGetCurrentLineItemValue?.(sub, col) ?? null;
+                }
+                return result;
+              },
+              { sub: sublistId, cols: allColumns },
+            );
+            return {
+              lineNumber: lineCountBefore,
+              values: editLineValues,
+              settled: false,
+              commitFailed: true,
+            };
+          }
 
           // Read committed values
           const finalValues = await target.evaluate(
@@ -184,7 +208,7 @@ export async function nsAddRow(args: string[], bm: BrowserManager): Promise<NsCo
             { sub: sublistId, cols: allColumns, line: lineNumber },
           );
 
-          return { lineNumber, values: finalValues, settled: overallSettled };
+          return { lineNumber, values: finalValues, settled: overallSettled, commitFailed: false };
         },
         { accept: true },
       );
@@ -198,6 +222,7 @@ export async function nsAddRow(args: string[], bm: BrowserManager): Promise<NsCo
           lineNumber: addResult.lineNumber,
           values: addResult.values,
           settled: addResult.settled,
+          commitFailed: addResult.commitFailed,
           elapsedMs: elapsed,
           dialogs,
         },
@@ -210,6 +235,12 @@ export async function nsAddRow(args: string[], bm: BrowserManager): Promise<NsCo
   }
 
   const d = result.data!;
+  if (d.commitFailed) {
+    const lines = [`ADD-ROW FAILED | Sublist: ${d.sublist} | Commit did not add a new line (validation error or missing required column)`];
+    const vals = Object.entries(d.values).map(([k, v]) => `${k}=${truncateValue(v)}`).join(', ');
+    if (vals) lines.push(`Edit line values: ${vals}`);
+    return { display: lines.join('\n'), ok: false };
+  }
   const lines = [`ADD-ROW OK | Sublist: ${d.sublist} | Line: ${d.lineNumber} | Settled: ${d.settled ? 'yes' : 'no'}`];
   const vals = Object.entries(d.values).map(([k, v]) => `${k}=${truncateValue(v)}`).join(', ');
   if (vals) lines.push(`Values: ${vals}`);

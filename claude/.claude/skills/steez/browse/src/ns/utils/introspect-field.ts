@@ -51,8 +51,20 @@ export async function introspectField(
     try { displayValue = w.nlapiGetFieldText?.(fid) ?? null; } catch {}
 
     // Entity-ref detection: NetSuite creates a hidden _display companion element
-    const displayEl = document.getElementById(fid + '_display');
-    const isEntityRef = displayEl !== null;
+    // On standard forms: `{fid}_display`
+    // On custom forms with indexed widgets: `{fid}_{N}_display` or `inpt_{fid}_{N}`
+    let isEntityRef = document.getElementById(fid + '_display') !== null;
+    if (!isEntityRef) {
+      // Check for indexed patterns: look for any element whose ID matches {fid}_\d+_display
+      // or inpt_{fid}_\d+ (custom form select widgets)
+      const form = document.getElementById('main_form');
+      if (form) {
+        const indexed = form.querySelector(
+          `[id^="${fid}_"][id$="_display"], [id^="inpt_${fid}_"]`
+        );
+        isEntityRef = indexed !== null;
+      }
+    }
 
     // Dropdown options for select/multiselect fields
     let options: Array<{ value: string; text: string }> | undefined;

@@ -77,7 +77,18 @@ export async function nsNavigate(args: string[], bm: BrowserManager): Promise<Ns
         fullUrl = relativePath;
       }
 
-      await page.goto(fullUrl, { waitUntil: 'domcontentloaded', timeout: 15000 });
+      // Navigate with defensive error handling.
+      // page.goto() timeouts can produce secondary Playwright-internal rejections
+      // (frame lifecycle, response watchers) that escape try-catch and become
+      // unhandled rejections — crashing the server via process.exit(1).
+      // Store the promise so we can attach a secondary .catch() to swallow those.
+      const gotoPromise = page.goto(fullUrl, { waitUntil: 'domcontentloaded', timeout: 15000 });
+
+      // Attach a no-op catch to prevent any secondary rejection from being unhandled.
+      // The primary error is still caught by the await below.
+      gotoPromise.catch(() => {});
+
+      await gotoPromise;
 
       // Verify we landed on an NS page
       const target = bm.getActiveFrameOrPage();
