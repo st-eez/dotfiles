@@ -7,11 +7,11 @@
  *
  * Lifecycle:
  *   1. nlapiSelectNewLineItem(sublistId) — open a new blank row
- *   2. For each key=value pair, set the column value:
- *      - Detect entity-ref columns via _display companion
- *      - Entity-ref: nlapiSetCurrentLineItemValue(sub, col, val, false, false)
- *      - Other: nlapiSetCurrentLineItemValue(sub, col, val, true, true)
- *      - After entity-ref set, poll for convergence on other columns
+ *   2. For each key=value pair:
+ *      nlapiSetCurrentLineItemValue(sub, col, val, true, true)
+ *        firefieldchanged=true  → fire sourcing (populates dependent fields)
+ *        synchronous=true       → wait for sourcing before next column
+ *      Then poll for convergence on other columns
  *   3. nlapiCommitLineItem(sublistId) — commit the row
  *   4. Return line number, final values, convergence result
  */
@@ -125,16 +125,22 @@ export async function nsAddRow(args: string[], bm: BrowserManager): Promise<NsCo
           let overallSettled = true;
 
           for (const { column, value } of fieldValues) {
-            // Always fire cascading (false, false) for sublist columns.
-            // Entity-ref detection via _display companions is unreliable on the
-            // current edit line — the companion may not exist until a value is
-            // selected. Suppressing cascading prevents sourcing, leaving dependent
-            // fields empty and causing nlapiCommitLineItem to fail with
-            // "Field Not Found". The convergence polling cost (~100ms) is worth
-            // the correctness.
+            // nlapiSetCurrentLineItemValue(type, fldnam, value, firefieldchanged, synchronous)
+            //   firefieldchanged=true  → fires field changed event (triggers sourcing)
+            //   firefieldchanged=false → suppresses field changed event
+            //   synchronous=true       → sourcing completes before function returns
+            //
+            // Verified via Oracle 1.0→2.x API map: nlapiSetCurrentLineItemValue maps to
+            // CurrentRecord.setCurrentSublistValue where ignoreFieldChange=false (fire)
+            // and forceSyncSourcing=true (wait). Oracle notes sublist lines may fail to
+            // commit when sync sourcing is off.
+            //
+            // Use (true, true) for all columns: fire field change + synchronous sourcing.
+            // Item sourcing populates rate/taxcode/description; quantity/rate fire
+            // recalculation. Safe for all column types.
             await target.evaluate(
               ({ sub, col, val }: { sub: string; col: string; val: string }) => {
-                (window as any).nlapiSetCurrentLineItemValue?.(sub, col, val, false, false);
+                (window as any).nlapiSetCurrentLineItemValue?.(sub, col, val, true, true);
               },
               { sub: sublistId, col: column, val: value },
             );

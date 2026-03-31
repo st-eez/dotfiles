@@ -7,9 +7,11 @@
  *   ns set entity 42 --source     → force fire cascading regardless of field type
  *   ns set entity 42 --no-source  → force suppress cascading
  *
- * Cascading strategy:
- *   Fire cascading:    nlapiSetFieldValue(id, val, false, false)
- *   Suppress cascading: nlapiSetFieldValue(id, val, true, true)
+ * Cascading strategy (per Oracle 1.0→2.x API map):
+ *   Fire cascading:    nlapiSetFieldValue(id, val, true, true)
+ *     firefieldchanged=true → fires sourcing; synchronous=true → waits
+ *   Suppress cascading: nlapiSetFieldValue(id, val, false, false)
+ *     firefieldchanged=false → no sourcing; synchronous=false → async
  *
  * When cascading is fired, polls all non-disabled fields for convergence
  * (dependent fields may be asynchronously updated by NetSuite sourcing).
@@ -117,11 +119,13 @@ export async function nsSet(args: string[], bm: BrowserManager): Promise<NsComma
 
       const cascadingLabel: 'fired' | 'suppressed' = fireCascading ? 'fired' : 'suppressed';
 
-      // fireSlavingWhenever and fireFieldChanged flags:
-      //   Fire cascading:    (false, false) — don't suppress
-      //   Suppress cascading: (true, true)  — suppress
-      const fireSlavingWhenever = !fireCascading;
-      const fireFieldChanged = !fireCascading;
+      // nlapiSetFieldValue(fldnam, value, firefieldchanged, synchronous)
+      //   firefieldchanged=true  → fires field changed event (triggers sourcing)
+      //   firefieldchanged=false → suppresses field changed event
+      //   synchronous=true       → sourcing completes before function returns
+      // Verified via Oracle 1.0→2.x API map (same semantics as sublist API).
+      const firefieldchanged = fireCascading;
+      const synchronous = fireCascading;
 
       // ── Snapshot field values before set (for diff) ──────────
       let watchFieldIds: string[] = [];
@@ -146,10 +150,10 @@ export async function nsSet(args: string[], bm: BrowserManager): Promise<NsComma
 
           // Set the value
           await page.evaluate(
-            ({ fid, val, fsw, ffc }: { fid: string; val: string; fsw: boolean; ffc: boolean }) => {
-              (window as any).nlapiSetFieldValue(fid, val, fsw, ffc);
+            ({ fid, val, ffc, sync }: { fid: string; val: string; ffc: boolean; sync: boolean }) => {
+              (window as any).nlapiSetFieldValue(fid, val, ffc, sync);
             },
-            { fid: fieldId, val: value, fsw: fireSlavingWhenever, ffc: fireFieldChanged },
+            { fid: fieldId, val: value, ffc: firefieldchanged, sync: synchronous },
           );
 
           // Verify value was set — custom forms with indexed widgets (hddn_{field}_{N})
