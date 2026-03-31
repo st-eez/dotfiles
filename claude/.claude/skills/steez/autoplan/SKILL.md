@@ -503,8 +503,32 @@ Read each file using the Read tool:
 
 Follow ONLY the review-specific methodology, sections, and required outputs.
 
+### Step 4: Look up review beads from office-hours
+
+Office-hours creates a bead chain (CEO review → Eng review → Implement) in the steez
+global database. Look up those beads by skill tag so autoplan can close them as it
+completes each phase.
+
+```bash
+export BEADS_DIR="$HOME/.steez/.beads"
+_CEO_BEAD=$(BEADS_DIR="$HOME/.steez/.beads" bd list --status=open --label skill:ceo-review --json --limit=5 2>/dev/null | jq -r '.[0].id // empty') || true
+_ENG_BEAD=$(BEADS_DIR="$HOME/.steez/.beads" bd list --status=open --label skill:eng-review --json --limit=5 2>/dev/null | jq -r '.[0].id // empty') || true
+_IMPL_BEAD=$(BEADS_DIR="$HOME/.steez/.beads" bd list --status=open --label skill:implement --json --limit=5 2>/dev/null | jq -r '.[0].id // empty') || true
+echo "Review beads: CEO=${_CEO_BEAD:-none} ENG=${_ENG_BEAD:-none} IMPL=${_IMPL_BEAD:-none}"
+```
+
+If multiple beads match (from multiple office-hours runs), prefer the one whose title
+matches the current plan's design doc title. If no beads found, proceed normally.
+Beads are a bonus, not a gate.
+
+If a CEO bead was found, claim it:
+```bash
+[ -n "$_CEO_BEAD" ] && "$HOME/.claude/skills/steez/bin/steez-bd" start "$_CEO_BEAD" autoplan 2>/dev/null || true
+```
+
 Output: "Here's what I'm working with: [plan summary]. UI scope: [yes/no].
-Loaded review skills from disk. Starting full review pipeline with auto-decisions."
+Loaded review skills from disk. Review beads: [found/none].
+Starting full review pipeline with auto-decisions."
 
 ---
 
@@ -609,10 +633,23 @@ Sections 1-10 — for EACH section, run the evaluation criteria from the loaded 
 - Dream state delta (where this plan leaves us vs 12-month ideal)
 - Completion Summary (the full summary table from the CEO skill)
 
-**PHASE 1 COMPLETE.** Emit phase-transition summary:
+**PHASE 1 COMPLETE.** Close the CEO review bead (if found in Phase 0 Step 4):
+
+```bash
+[ -n "$_CEO_BEAD" ] && "$HOME/.claude/skills/steez/bin/steez-bd" handoff "$_CEO_BEAD" "CEO review complete. Status: STATUS. Mode: SELECTIVE_EXPANSION. Unresolved: N." --close 2>/dev/null || true
+```
+
+Replace STATUS with "clean" or "issues_open", N with actual unresolved count.
+
+If an ENG bead was found, claim it (now unblocked by CEO closure):
+```bash
+[ -n "$_ENG_BEAD" ] && "$HOME/.claude/skills/steez/bin/steez-bd" start "$_ENG_BEAD" autoplan 2>/dev/null || true
+```
+
+Emit phase-transition summary:
 > **Phase 1 complete.** Codex: [N concerns]. Claude subagent: [N issues].
 > Consensus: [X/6 confirmed, Y disagreements → surfaced at gate].
-> Passing to Phase 2.
+> CEO bead: [closed/none]. Passing to Phase 2.
 
 Do NOT begin Phase 2 until all Phase 1 outputs are written to the plan file
 and the premise gate has been passed.
@@ -802,6 +839,14 @@ Missing voice = N/A (not CONFIRMED). Single critical finding from one voice = fl
 - Completion Summary (the full summary from the Eng skill)
 - TODOS.md updates (collected from all phases)
 
+**PHASE 3 COMPLETE.** Close the ENG review bead (if found in Phase 0 Step 4):
+
+```bash
+[ -n "$_ENG_BEAD" ] && "$HOME/.claude/skills/steez/bin/steez-bd" handoff "$_ENG_BEAD" "Eng review complete. Status: STATUS. Issues: N. Test gaps: N." --close 2>/dev/null || true
+```
+
+Replace STATUS, N values with actuals from the eng review.
+
 ---
 
 ## Decision Audit Trail
@@ -976,6 +1021,16 @@ If Phase 2 ran (UI scope), also log:
 
 SOURCE = "codex+subagent", "codex-only", "subagent-only", or "unavailable".
 Replace N values with actual consensus counts from the tables.
+
+### Update IMPL bead
+
+If an IMPL bead was found in Phase 0 Step 4, note that reviews are complete.
+Do NOT close it — implementation hasn't started yet. Just leave a handoff note
+so `bd resume` in the next session shows what's ready.
+
+```bash
+[ -n "$_IMPL_BEAD" ] && "$HOME/.claude/skills/steez/bin/steez-bd" handoff "$_IMPL_BEAD" "Reviews complete via /steez-autoplan. CEO: STATUS. Eng: STATUS. Taste decisions: N. Ready for implementation." 2>/dev/null || true
+```
 
 Suggest next step: `/steez-ship` when ready to create the PR.
 

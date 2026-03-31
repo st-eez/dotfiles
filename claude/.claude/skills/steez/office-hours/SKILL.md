@@ -1116,8 +1116,10 @@ and enables cross-session continuity via `steez-bd resume`.
 **All commands must be in a single bash block** (variables don't persist between blocks):
 
 ```bash
-# Create bead pipeline chain
+# Create bead pipeline chain (in steez global database, not project-local)
+export BEADS_DIR="$HOME/.steez/.beads"
 _DESIGN_TITLE="$(head -1 "$DESIGN" 2>/dev/null | sed 's/^# //' || echo 'Untitled design')"
+_PROJECT_SLUG="$(basename "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null || echo 'unknown')"
 PARENT=$(bd create --title="Design: $_DESIGN_TITLE" --type=feature --priority=2 --silent 2>/dev/null) || true
 if [ -n "$PARENT" ]; then
   CEO=$(bd create --title="CEO review: $_DESIGN_TITLE" --type=task --priority=2 --parent="$PARENT" --silent 2>/dev/null) || true
@@ -1125,10 +1127,15 @@ if [ -n "$PARENT" ]; then
   IMPL=$(bd create --title="Implement: $_DESIGN_TITLE" --type=task --priority=2 --parent="$PARENT" --silent 2>/dev/null) || true
   [ -n "$CEO" ] && [ -n "$ENG" ] && bd dep add "$ENG" "$CEO" >/dev/null 2>&1 || true
   [ -n "$ENG" ] && [ -n "$IMPL" ] && bd dep add "$IMPL" "$ENG" >/dev/null 2>&1 || true
+  # Skill tags (autoplan matches on these)
   [ -n "$CEO" ] && bd tag "$CEO" skill:ceo-review >/dev/null 2>&1 || true
   [ -n "$ENG" ] && bd tag "$ENG" skill:eng-review >/dev/null 2>&1 || true
   [ -n "$IMPL" ] && bd tag "$IMPL" skill:implement >/dev/null 2>&1 || true
-  echo "Bead chain: $PARENT -> $CEO -> $ENG -> $IMPL"
+  # Project labels (filter with: BEADS_DIR=~/.steez/.beads bd list --label project:<slug>)
+  for _BID in "$PARENT" "$CEO" "$ENG" "$IMPL"; do
+    [ -n "$_BID" ] && bd tag "$_BID" "project:$_PROJECT_SLUG" >/dev/null 2>&1 || true
+  done
+  echo "Bead chain: $PARENT -> $CEO -> $ENG -> $IMPL (project: $_PROJECT_SLUG)"
   "$HOME/.claude/skills/steez/bin/steez-bd" handoff "$PARENT" "Design doc approved. Path: $DESIGN" 2>/dev/null || true
 else
   echo "steez-bd: could not create bead chain (bd unavailable or not in beads project)"
