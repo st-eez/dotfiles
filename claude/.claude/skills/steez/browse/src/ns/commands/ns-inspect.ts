@@ -45,11 +45,90 @@ export interface NsInspectData {
   sublists?: NsSublistData[];
 }
 
+// ─── Field Filtering ───────────────────────────────────────
+
+/** Prefix patterns — always internal NetSuite plumbing */
+const FILTERED_PREFIXES = [
+  'hddn_', 'indx_', 'inpt_', 'custpage_',
+  // payment/CC processor internals (gateway handshake, not settable record fields)
+  'payment', 'cc',
+  // shipping rate engine coefficients (you set shipmethod/shippingcost, not these)
+  'byweight', 'handling',
+];
+
+/** Exact IDs — UI state, session context, navigation, internal scaffolding */
+const FILTERED_IDS = new Set([
+  // search widget
+  'quickfind-field',
+  // button container (individual buttons are tagged, not filtered)
+  'multibuttonsubmit',
+  // UI state
+  'selectedtab', 'nsbrowserenv', 'formdisplayview',
+  'activitiesloaded', 'activitiesdotted', 'clickedback', 'submitted', 'bulk',
+  // session context
+  'nluser', 'nlrole', 'nldept', 'nlloc', 'nlsub',
+  // navigation plumbing
+  'whence', 'customwhence', 'entryformquerystring',
+  'extraurlparams', 'wfinstances', 'dbstrantype',
+  // address subrecord scaffolding
+  'previous_billaddresslist', 'previous_shipaddresslist',
+  'billingaddress2_set', 'billingaddress_key', 'billingaddress_type', 'billingaddress_defaultvalue',
+  'shippingaddress2_set', 'shippingaddress_key', 'shippingaddress_type', 'shippingaddress_defaultvalue',
+  // payment/CC (non-prefix catches)
+  'cardswipe', 'maskedcard', 'customercode', 'ispurchasecard',
+  'ispaymethundepfunds', 'paymethacct', 'paymethtype',
+  'allowemptycards', 'profilesupportslineleveldata', 'methodrequireslineleveldata',
+  'ignoreavs', 'ignoreavsvis', 'ignorecsc', 'ignorecscvis',
+  'carddataprovided', 'signaturerequired', 'isrecurringpayment',
+  'authorizedamount', 'collectedamount', 'reimbursedamount',
+  'inputpnrefnum', 'overridehold', 'overrideholdchecked',
+  'debitpinblock', 'debitksn',
+  'request', 'response', 'redirecturl', 'returnurl', 'datafromredirect',
+  'shopperprintblock', 'merchantprintblock',
+  // shipping calc engine
+  'doshippingrecalc', 'fedexservicename', 'hasfedexfreightservice',
+  'shipping_rate', 'shipping_cost_function', 'flatrateamt',
+  'peritemdefaultprice', 'percentoftotalamt', 'shippingerrormsg',
+  'shipping_btaxable', 'handling_btaxable',
+  'shandlingcostfunction', 'shandlingaccount',
+  'bfreeifoveractive', 'rfreeifoveramt',
+  'bminshipcostactive', 'rminshipamt', 'bmaxshipcostactive', 'rmaxshipcost',
+  'shipitemhasfreeshippingitems', 'binclallitemsforfreeshipping',
+  'itemshippingcostfxrate', 'shippingcostoverridden', 'overrideshippingcost',
+  // discount/tax internals
+  'disctax1', 'disctax2', 'disctax1amt', 'disctax2amt',
+  'discountistaxable', 'discountastotal',
+  'tax_affecting_address_fields_before_recalc',
+  'taxamountoverride', 'taxamount2override',
+  'shippingtax1amt', 'shippingtax2amt', 'handlingtax1amt', 'handlingtax2amt',
+  // boolean state flags (read-only form scaffolding)
+  'templatestored', 'isonlinetransaction', 'oldrevenuecommitment', 'iseitf81on',
+  'checkcommitted', 'haslines', 'canbeunapproved', 'canhavestackable',
+  'suppressusereventsandemails', 'updatedropshiporderqty', 'isdefaultshippingrequest',
+  'locationusesbins', 'inventorydetailuitype',
+  'shadow_shipaddress', 'address_country_state_map', 'bnopostmain',
+]);
+
+/** Button IDs — tagged [button] instead of filtered */
+const BUTTON_IDS = new Set([
+  'btn_multibutton_submitter', 'submitter', 'submitfulfill', 'submitnew',
+  'saveprint', 'saveemail', 'memorize', 'gotoregister',
+]);
+
+function isFiltered(id: string): boolean {
+  if (FILTERED_IDS.has(id)) return true;
+  for (const prefix of FILTERED_PREFIXES) {
+    if (id.startsWith(prefix)) return true;
+  }
+  return false;
+}
+
 // ─── Arg Parsing ────────────────────────────────────────────
 
-function parseInspectArgs(args: string[]): { fieldId: string | null; sublists: boolean } {
+function parseInspectArgs(args: string[]): { fieldId: string | null; sublists: boolean; all: boolean } {
   let fieldId: string | null = null;
   let sublists = false;
+  let all = false;
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -57,10 +136,12 @@ function parseInspectArgs(args: string[]): { fieldId: string | null; sublists: b
       fieldId = args[++i] ?? null;
     } else if (arg === '--sublists') {
       sublists = true;
+    } else if (arg === '--all') {
+      all = true;
     }
   }
 
-  return { fieldId, sublists };
+  return { fieldId, sublists, all };
 }
 
 // ─── ns inspect ─────────────────────────────────────────────
@@ -75,7 +156,7 @@ export async function nsInspect(args: string[], bm: BrowserManager): Promise<NsC
       return { ok: false as const, error: guardErr };
     }
 
-    const { fieldId, sublists: includeSublists } = parseInspectArgs(args);
+    const { fieldId, sublists: includeSublists, all: showAll } = parseInspectArgs(args);
 
     // Detect form mode
     const mode = await detectFormMode(target);
@@ -109,14 +190,26 @@ export async function nsInspect(args: string[], bm: BrowserManager): Promise<NsC
   }
 
   const d = result.data!;
-  const lines = [`INSPECT OK | Mode: ${d.mode} | ${d.fields.length} fields`];
+  const { all: showAll } = parseInspectArgs(args);
 
-  for (const f of d.fields) {
+  // Filter plumbing fields unless --all or --field (single-field lookup is never filtered)
+  const visible = (showAll || parseInspectArgs(args).fieldId)
+    ? d.fields
+    : d.fields.filter(f => !isFiltered(f.id));
+  const filtered = d.fields.length - visible.length;
+
+  const header = filtered > 0
+    ? `INSPECT OK | Mode: ${d.mode} | ${visible.length} fields (${filtered} internal hidden, use --all to show)`
+    : `INSPECT OK | Mode: ${d.mode} | ${visible.length} fields`;
+  const lines = [header];
+
+  for (const f of visible) {
     const flags: string[] = [];
     if (f.mandatory) flags.push('mandatory');
     if (f.disabled) flags.push('disabled');
     if (f.isEntityRef) flags.push('entityRef');
-    lines.push(`${f.id} | ${truncateValue(f.value)} | ${f.type} | ${flags.join(',') || '-'}`);
+    const prefix = BUTTON_IDS.has(f.id) ? '[button] ' : '';
+    lines.push(`${prefix}${f.id} | ${f.label || '-'} | ${truncateValue(f.value)} | ${f.type} | ${flags.join(',') || '-'}`);
   }
 
   if (d.sublists) {
