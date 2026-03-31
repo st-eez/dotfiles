@@ -345,7 +345,23 @@ git log --since=30.days --name-only --format="" | sort | uniq -c | sort -rn | he
 ```
 Then read CLAUDE.md, TODOS.md, and any existing architecture docs.
 
-**Design doc check:**
+**Design doc check (bead-first, then filesystem fallback):**
+
+First, check for a review bead from office-hours — it carries the exact design doc path:
+```bash
+export BEADS_DIR="$HOME/.steez/.beads"
+_CEO_BEAD=$(bd list --status=open --label skill:ceo-review --json --limit=5 2>/dev/null | jq -r '.[0].id // empty') || true
+if [ -n "$_CEO_BEAD" ]; then
+  _BEAD_DESIGN_DOC=$(bd show "$_CEO_BEAD" --json 2>/dev/null | jq -r '.[0].notes // ""' | grep '^Design doc:' | sed 's/^Design doc: //')
+  _BEAD_BRANCH=$(bd show "$_CEO_BEAD" --json 2>/dev/null | jq -r '.[0].notes // ""' | grep '^Branch:' | sed 's/^Branch: //')
+  echo "Review bead: $_CEO_BEAD"
+  echo "Design doc from bead: ${_BEAD_DESIGN_DOC:-none}"
+  echo "Branch from bead: ${_BEAD_BRANCH:-none}"
+fi
+```
+
+If a bead was found with a design doc path, use that path directly. If not, fall back
+to filesystem discovery:
 ```bash
 setopt +o nomatch 2>/dev/null || true  # zsh compat
 SLUG=$($STEEZ_BIN/steez-slug 2>/dev/null || basename "$(git rev-parse --show-toplevel 2>/dev/null || pwd)")
@@ -354,7 +370,14 @@ DESIGN=$(ls -t ~/.steez/projects/$SLUG/*-$BRANCH-design-*.md 2>/dev/null | head 
 [ -z "$DESIGN" ] && DESIGN=$(ls -t ~/.steez/projects/$SLUG/*-design-*.md 2>/dev/null | head -1)
 [ -n "$DESIGN" ] && echo "Design doc found: $DESIGN" || echo "No design doc found"
 ```
+
+**Priority:** bead design doc path > branch-scoped file > any design file.
 If a design doc exists (from `/steez-office-hours`), read it. Use it as the source of truth for the problem statement, constraints, and chosen approach. If it has a `Supersedes:` field, note that this is a revised design.
+
+If a CEO bead was found, claim it:
+```bash
+[ -n "$_CEO_BEAD" ] && "$HOME/.claude/skills/steez/bin/steez-bd" start "$_CEO_BEAD" ceo-review 2>/dev/null || true
+```
 
 **Handoff note check** (reuses $SLUG and $BRANCH from the design doc check above):
 ```bash

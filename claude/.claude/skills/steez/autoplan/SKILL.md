@@ -506,20 +506,32 @@ Follow ONLY the review-specific methodology, sections, and required outputs.
 ### Step 4: Look up review beads from office-hours
 
 Office-hours creates a bead chain (CEO review → Eng review → Implement) in the steez
-global database. Look up those beads by skill tag so autoplan can close them as it
-completes each phase.
+global database. Each child bead carries context notes with the design doc path, branch,
+and project. Look up those beads so autoplan can read the design doc and close beads
+as it completes each phase.
 
 ```bash
 export BEADS_DIR="$HOME/.steez/.beads"
-_CEO_BEAD=$(BEADS_DIR="$HOME/.steez/.beads" bd list --status=open --label skill:ceo-review --json --limit=5 2>/dev/null | jq -r '.[0].id // empty') || true
-_ENG_BEAD=$(BEADS_DIR="$HOME/.steez/.beads" bd list --status=open --label skill:eng-review --json --limit=5 2>/dev/null | jq -r '.[0].id // empty') || true
-_IMPL_BEAD=$(BEADS_DIR="$HOME/.steez/.beads" bd list --status=open --label skill:implement --json --limit=5 2>/dev/null | jq -r '.[0].id // empty') || true
+_CEO_BEAD=$(bd list --status=open --label skill:ceo-review --json --limit=5 2>/dev/null | jq -r '.[0].id // empty') || true
+_ENG_BEAD=$(bd list --status=open --label skill:eng-review --json --limit=5 2>/dev/null | jq -r '.[0].id // empty') || true
+_IMPL_BEAD=$(bd list --status=open --label skill:implement --json --limit=5 2>/dev/null | jq -r '.[0].id // empty') || true
 echo "Review beads: CEO=${_CEO_BEAD:-none} ENG=${_ENG_BEAD:-none} IMPL=${_IMPL_BEAD:-none}"
+# Extract design doc path from bead notes (set by office-hours)
+if [ -n "$_CEO_BEAD" ]; then
+  _BEAD_DESIGN_DOC=$(bd show "$_CEO_BEAD" --json 2>/dev/null | jq -r '.[0].notes // ""' | grep '^Design doc:' | sed 's/^Design doc: //')
+  _BEAD_BRANCH=$(bd show "$_CEO_BEAD" --json 2>/dev/null | jq -r '.[0].notes // ""' | grep '^Branch:' | sed 's/^Branch: //')
+  echo "Design doc from bead: ${_BEAD_DESIGN_DOC:-none}"
+  echo "Branch from bead: ${_BEAD_BRANCH:-none}"
+fi
 ```
 
 If multiple beads match (from multiple office-hours runs), prefer the one whose title
 matches the current plan's design doc title. If no beads found, proceed normally.
 Beads are a bonus, not a gate.
+
+**If a design doc path was extracted from the bead**, read it using the Read tool. This
+is the artifact from office-hours that contains the problem statement, premise challenge,
+explored alternatives, and approved direction. It is the primary input for all review phases.
 
 If a CEO bead was found, claim it:
 ```bash
@@ -528,6 +540,7 @@ If a CEO bead was found, claim it:
 
 Output: "Here's what I'm working with: [plan summary]. UI scope: [yes/no].
 Loaded review skills from disk. Review beads: [found/none].
+Design doc: [path from bead, or discovered via ls -t].
 Starting full review pipeline with auto-decisions."
 
 ---

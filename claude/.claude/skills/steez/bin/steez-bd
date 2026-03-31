@@ -129,7 +129,17 @@ _show_bead_brief() {
     echo "CHILDREN: none"
   fi
 
-  # Last note (from comments)
+  # Context (from notes field — set at creation by office-hours)
+  local notes
+  notes=$(echo "$detail" | jq -r '.[0].notes // empty' 2>/dev/null || true)
+  if [ -n "$notes" ]; then
+    echo "CONTEXT:"
+    echo "$notes" | while IFS= read -r line; do
+      echo "  $line"
+    done
+  fi
+
+  # Last note (from comments/handoff)
   local comments
   comments=$(bd comments "$id" --json 2>/dev/null || echo "[]")
   local last_note
