@@ -7,11 +7,10 @@
  *   ns set entity 42 --source     → force fire cascading regardless of field type
  *   ns set entity 42 --no-source  → force suppress cascading
  *
- * Cascading strategy (per Oracle 1.0→2.x API map):
- *   Fire cascading:    nlapiSetFieldValue(id, val, true, true)
- *     firefieldchanged=true → fires sourcing; synchronous=true → waits
- *   Suppress cascading: nlapiSetFieldValue(id, val, false, false)
- *     firefieldchanged=false → no sourcing; synchronous=false → async
+ * Cascading strategy (body-level fields):
+ *   Most fields:          nlapiSetFieldValue(id, val, true, true)  → fire sourcing
+ *   Navigation fields:    nlapiSetFieldValue(id, val, false, false) → suppress
+ *     entity/customer/vendor trigger page reload if firefieldchanged=true
  *
  * When cascading is fired, polls all non-disabled fields for convergence
  * (dependent fields may be asynchronously updated by NetSuite sourcing).
@@ -123,9 +122,16 @@ export async function nsSet(args: string[], bm: BrowserManager): Promise<NsComma
       //   firefieldchanged=true  → fires field changed event (triggers sourcing)
       //   firefieldchanged=false → suppresses field changed event
       //   synchronous=true       → sourcing completes before function returns
-      // Verified via Oracle 1.0→2.x API map (same semantics as sublist API).
-      const firefieldchanged = fireCascading;
-      const synchronous = fireCascading;
+      //
+      // Primary entity fields (entity, customer, vendor) trigger a full page
+      // navigation when firefieldchanged=true, destroying the Playwright execution
+      // context. These MUST use firefieldchanged=false regardless of --source flag.
+      // Other entity-ref fields (salesrep, subsidiary) fire sourcing safely.
+      const NAVIGATING_FIELDS = new Set([
+        'entity', 'customer', 'vendor', 'employee', 'partner', 'contact',
+      ]);
+      const firefieldchanged = NAVIGATING_FIELDS.has(fieldId) ? false : fireCascading;
+      const synchronous = firefieldchanged;
 
       // ── Snapshot field values before set (for diff) ──────────
       let watchFieldIds: string[] = [];
