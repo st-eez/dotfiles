@@ -19,8 +19,12 @@ dir=$(echo "$input" | jq -r '.workspace.current_dir // "."')
 dir_name=$(basename "$dir")
 model=$(echo "$input" | jq -r '.model.display_name // .model.id // "unknown"')
 duration_ms=$(echo "$input" | jq -r '.cost.total_duration_ms // 0')
-total_input=$(echo "$input" | jq -r '.context_window.total_input_tokens // 0')
-total_output=$(echo "$input" | jq -r '.context_window.total_output_tokens // 0')
+used_pct=$(echo "$input" | jq -r '.context_window.used_percentage // 0')
+ctx_tokens=$(echo "$input" | jq -r '
+  .context_window.current_usage
+  | if . == null then 0
+    else (.input_tokens + .cache_creation_input_tokens + .cache_read_input_tokens)
+    end')
 
 # Git info
 branch=""
@@ -47,9 +51,9 @@ if cd "$dir" 2>/dev/null && git rev-parse --git-dir &>/dev/null; then
   git diff --quiet 2>/dev/null || modified="●"
 fi
 
-# Context window percentage (using new pre-calculated field)
+# Context window percentage (reuse used_pct from above)
 ctx=""
-used=$(echo "$input" | jq -r '.context_window.used_percentage // 0' | cut -d. -f1)
+used=$(echo "$used_pct" | cut -d. -f1)
 
 if [ "$used" -gt 0 ] 2>/dev/null; then
   ctx="${used}%"
@@ -77,8 +81,7 @@ format_tokens() {
     echo "$tokens"
   fi
 }
-input_fmt=$(format_tokens "$total_input")
-output_fmt=$(format_tokens "$total_output")
+ctx_fmt=$(format_tokens "$ctx_tokens")
 
 # BUILD LINE 1: 󰀵 …/dir  branch ⇡2 ⇣1 ? ●
 line1=$(printf "${WHITE}󰀵 ${BOLD_CYAN}…/%s${RESET}" "$dir_name")
@@ -103,8 +106,8 @@ if [ -n "$ctx" ]; then
   line2="$line2 $(printf "│ %s used" "$ctx")"
 fi
 
-if [ "$total_input" != "0" ] || [ "$total_output" != "0" ]; then
-  line2="$line2 $(printf "│ ↓%s in / ↑%s out" "$input_fmt" "$output_fmt")"
+if [ "$ctx_tokens" != "0" ] && [ "$ctx_tokens" != "null" ]; then
+  line2="$line2 $(printf "│ %s tokens" "$ctx_fmt")"
 fi
 
 line2="${line2}${RESET}"
