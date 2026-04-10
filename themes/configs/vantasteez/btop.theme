@@ -29,25 +29,25 @@ theme[cpu_start]="#a3c8a0"
 theme[cpu_mid]="#d8c08a"
 theme[cpu_end]="#c995a0"
 
-# Mem/Disk free: cyan -> green
-theme[free_start]="#8fbfc8"
+# Mem/Disk used: red -> orange (warm = consumption)
+theme[used_start]="#d4ad86"
+theme[used_mid]=""
+theme[used_end]="#c995a0"
+
+# Mem/Disk available: green -> cyan (cool = headroom)
+theme[available_start]="#a3c8a0"
+theme[available_mid]=""
+theme[available_end]="#8fbfc8"
+
+# Mem/Disk free: blue -> cyan
+theme[free_start]="#8fa8d8"
 theme[free_mid]=""
-theme[free_end]="#a3c8a0"
+theme[free_end]="#8fbfc8"
 
 # Mem/Disk cached: magenta -> blue
 theme[cached_start]="#b9a3d7"
 theme[cached_mid]=""
 theme[cached_end]="#8fa8d8"
-
-# Mem/Disk available: yellow -> orange
-theme[available_start]="#d8c08a"
-theme[available_mid]=""
-theme[available_end]="#d4ad86"
-
-# Mem/Disk used: green -> orange -> red
-theme[used_start]="#a3c8a0"
-theme[used_mid]="#d4ad86"
-theme[used_end]="#c995a0"
 
 # Download: cyan -> blue
 theme[download_start]="#8fbfc8"
