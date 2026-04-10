@@ -1,0 +1,12 @@
+#!/bin/bash
+# Dark cockpit memory pressure indicator for tmux status bar.
+# Shows nothing when normal. Amber on warning, pink on critical.
+# Uses the kernel's own pressure level — same source as Activity Monitor.
+
+level=$(sysctl -n kern.memorystatus_vm_pressure_level 2>/dev/null)
+
+case "$level" in
+  2) echo "#[fg=#d4ad86]● MEM#[default]" ;;   # warning — theme peach/amber
+  4) echo "#[fg=#c995a0]● MEM#[default]" ;;   # critical — theme pink
+  *) echo "" ;;                                 # normal — dark cockpit
+esac
