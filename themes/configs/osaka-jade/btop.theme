@@ -8,16 +8,16 @@ theme[title]="#c1c497"
 theme[hi_fg]="#509475"
 theme[selected_bg]="#23372b"
 theme[selected_fg]="#c1c497"
-theme[inactive_fg]="#23372b"
+theme[inactive_fg]="#53685b"
 theme[graph_text]="#53685b"
 theme[proc_misc]="#549e6a"
 
 # Box outlines
-theme[cpu_box]="#23372b"
-theme[mem_box]="#23372b"
-theme[net_box]="#23372b"
-theme[proc_box]="#23372b"
-theme[div_line]="#23372b"
+theme[cpu_box]="#53685b"
+theme[mem_box]="#53685b"
+theme[net_box]="#53685b"
+theme[proc_box]="#53685b"
+theme[div_line]="#53685b"
 
 # Temperature: green -> yellow -> red
 theme[temp_start]="#549e6a"
