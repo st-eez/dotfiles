@@ -54,6 +54,8 @@ return {
         group = group,
         pattern = "vantablack",
         callback = function()
+          -- Fix near-invisible Visual selection (upstream #191919 on #0d0d0d)
+          vim.api.nvim_set_hl(0, "Visual", { bg = "#1e2530" })
           vim.api.nvim_set_hl(0, "TodoBgWARN", { fg = "#eaeaea", bg = "NONE", bold = true })
           vim.api.nvim_set_hl(0, "TodoBgTODO", { fg = "#eaeaea", bg = "NONE", bold = true })
           vim.api.nvim_set_hl(0, "TodoBgFIX", { fg = "#eaeaea", bg = "NONE", bold = true })
