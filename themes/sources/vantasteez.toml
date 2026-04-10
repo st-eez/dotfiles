@@ -78,6 +78,8 @@ vim.api.nvim_create_autocmd("ColorScheme", {
   group = group,
   pattern = "vantablack",
   callback = function()
+    -- Fix near-invisible Visual selection (upstream #191919 on #0d0d0d)
+    vim.api.nvim_set_hl(0, "Visual", { bg = "#1e2530" })
     vim.api.nvim_set_hl(0, "TodoBgWARN", { fg = "#eaeaea", bg = "NONE", bold = true })
     vim.api.nvim_set_hl(0, "TodoBgTODO", { fg = "#eaeaea", bg = "NONE", bold = true })
     vim.api.nvim_set_hl(0, "TodoBgFIX", { fg = "#eaeaea", bg = "NONE", bold = true })
@@ -113,6 +115,7 @@ thm_lavender = "#8a8a8a"
 thm_mauve = "#d0d0d0"
 catppuccin_status_application_icon_bg = "#8a8a8a"
 catppuccin_status_uptime_icon_bg = "#8a8a8a"
+pane_active_border_style_fg = "#6a6a6a"
 
 [overrides.ghostty]
 split_divider_color = "#8a8a8a"
