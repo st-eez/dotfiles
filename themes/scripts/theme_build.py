@@ -62,6 +62,7 @@ MANAGED_THEME_CONFIG_FILENAMES = (
     "ghostty.conf",
     "neovim.lua",
     "obsidian-snippet.css",
+    "btop.theme",
 )
 MANAGED_OPTIONAL_THEME_CONFIG_EXTENSIONS = (".json", ".ghostty")
 OPENCODE_THEME_SCHEMA_URL = "https://opencode.ai/theme.json"
@@ -84,6 +85,7 @@ ALLOWED_OVERRIDE_TARGETS = {
     "opencode",
     "opencode_theme",
     "ghostty_theme",
+    "btop",
 }
 
 
@@ -1242,6 +1244,108 @@ def render_opencode_theme(theme_source: ThemeSource) -> tuple[str, str] | None:
     return output_filename, json.dumps(payload, indent=2) + "\n"
 
 
+def render_btop_theme(theme_source: ThemeSource) -> str:
+    palette = theme_source.palette
+    overrides = _extract_overrides_for_target(theme_source, "btop")
+    _assert_allowed_override_keys(
+        theme_source,
+        "btop",
+        overrides,
+        {
+            "main_bg",
+            "graph_text",
+            "hi_fg",
+            "selected_bg",
+            "inactive_fg",
+            "cpu_box",
+            "mem_box",
+            "net_box",
+            "proc_box",
+            "div_line",
+        },
+    )
+
+    main_bg = _resolve_string_override(theme_source, "btop", overrides, "main_bg", "")
+    graph_text = _resolve_hex_override(theme_source, "btop", overrides, "graph_text", palette.grey)
+    hi_fg = _resolve_hex_override(theme_source, "btop", overrides, "hi_fg", palette.blue)
+    selected_bg = _resolve_hex_override(theme_source, "btop", overrides, "selected_bg", palette.bg2)
+    inactive_fg = _resolve_hex_override(theme_source, "btop", overrides, "inactive_fg", palette.bg2)
+    box_color = _resolve_hex_override(theme_source, "btop", overrides, "cpu_box", palette.bg2)
+    mem_box = _resolve_hex_override(theme_source, "btop", overrides, "mem_box", box_color)
+    net_box = _resolve_hex_override(theme_source, "btop", overrides, "net_box", box_color)
+    proc_box = _resolve_hex_override(theme_source, "btop", overrides, "proc_box", box_color)
+    div_line = _resolve_hex_override(theme_source, "btop", overrides, "div_line", box_color)
+
+    lines = [
+        f"# {theme_source.theme.name} theme for btop",
+        "# Managed by theme-set - do not edit manually",
+        "",
+        "# Main",
+        f'theme[main_bg]="{main_bg}"',
+        f'theme[main_fg]="{palette.fg}"',
+        f'theme[title]="{palette.fg}"',
+        f'theme[hi_fg]="{hi_fg}"',
+        f'theme[selected_bg]="{selected_bg}"',
+        f'theme[selected_fg]="{palette.fg}"',
+        f'theme[inactive_fg]="{inactive_fg}"',
+        f'theme[graph_text]="{graph_text}"',
+        f'theme[proc_misc]="{palette.green}"',
+        "",
+        "# Box outlines",
+        f'theme[cpu_box]="{box_color}"',
+        f'theme[mem_box]="{mem_box}"',
+        f'theme[net_box]="{net_box}"',
+        f'theme[proc_box]="{proc_box}"',
+        f'theme[div_line]="{div_line}"',
+        "",
+        "# Temperature: green -> yellow -> red",
+        f'theme[temp_start]="{palette.green}"',
+        f'theme[temp_mid]="{palette.yellow}"',
+        f'theme[temp_end]="{palette.red}"',
+        "",
+        "# CPU: green -> yellow -> red",
+        f'theme[cpu_start]="{palette.green}"',
+        f'theme[cpu_mid]="{palette.yellow}"',
+        f'theme[cpu_end]="{palette.red}"',
+        "",
+        "# Mem/Disk free: cyan -> green",
+        f'theme[free_start]="{palette.cyan}"',
+        f'theme[free_mid]=""',
+        f'theme[free_end]="{palette.green}"',
+        "",
+        "# Mem/Disk cached: magenta -> blue",
+        f'theme[cached_start]="{palette.magenta}"',
+        f'theme[cached_mid]=""',
+        f'theme[cached_end]="{palette.blue}"',
+        "",
+        "# Mem/Disk available: yellow -> orange",
+        f'theme[available_start]="{palette.yellow}"',
+        f'theme[available_mid]=""',
+        f'theme[available_end]="{palette.orange}"',
+        "",
+        "# Mem/Disk used: green -> orange -> red",
+        f'theme[used_start]="{palette.green}"',
+        f'theme[used_mid]="{palette.orange}"',
+        f'theme[used_end]="{palette.red}"',
+        "",
+        "# Download: cyan -> blue",
+        f'theme[download_start]="{palette.cyan}"',
+        f'theme[download_mid]=""',
+        f'theme[download_end]="{palette.blue}"',
+        "",
+        "# Upload: orange -> red",
+        f'theme[upload_start]="{palette.orange}"',
+        f'theme[upload_mid]=""',
+        f'theme[upload_end]="{palette.red}"',
+        "",
+        "# Process: green -> orange -> red",
+        f'theme[process_start]="{palette.green}"',
+        f'theme[process_mid]="{palette.orange}"',
+        f'theme[process_end]="{palette.red}"',
+    ]
+    return "\n".join(lines) + "\n"
+
+
 def render_ghostty_theme(theme_source: ThemeSource) -> tuple[str, str] | None:
     palette = theme_source.palette
     overrides = _extract_overrides_for_target(theme_source, "ghostty_theme")
@@ -1374,6 +1478,7 @@ def render_theme_app_configs(theme_source: ThemeSource) -> dict[str, str]:
         "ghostty.conf": render_ghostty_config(theme_source),
         "neovim.lua": render_neovim_config(theme_source),
         "obsidian-snippet.css": render_obsidian_snippet(theme_source),
+        "btop.theme": render_btop_theme(theme_source),
     }
     opencode_theme = render_opencode_theme(theme_source)
     if opencode_theme is not None:

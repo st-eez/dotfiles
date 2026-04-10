@@ -503,6 +503,23 @@ elif [[ -f "$THEMES_DIR/configs/$THEME/tmux.conf" ]]; then
 fi
 
 # =============================================================================
+# 11. btop - symlink theme file + update btop.conf
+# =============================================================================
+if ! command -v btop &>/dev/null; then
+    skip "btop"
+elif [[ -f "$THEMES_DIR/configs/$THEME/btop.theme" ]]; then
+    mkdir -p ~/.config/btop/themes
+    ln -sfn "$THEMES_DIR/configs/$THEME/btop.theme" "$HOME/.config/btop/themes/$THEME.theme"
+    BTOP_CONF="$HOME/.config/btop/btop.conf"
+    if [[ -f "$BTOP_CONF" ]]; then
+        if grep -q '^color_theme' "$BTOP_CONF"; then
+            sed -i '' "s|^color_theme = .*|color_theme = \"$HOME/.config/btop/themes/$THEME.theme\"|" "$BTOP_CONF"
+        fi
+    fi
+    log "btop"
+fi
+
+# =============================================================================
 # Save current theme state
 # =============================================================================
 mkdir -p "$(dirname "$STATE_FILE")"

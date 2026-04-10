@@ -1,0 +1,65 @@
+# Gruvbox Dark Hard theme for btop
+# Managed by theme-set - do not edit manually
+
+# Main
+theme[main_bg]=""
+theme[main_fg]="#ebdbb2"
+theme[title]="#ebdbb2"
+theme[hi_fg]="#83a598"
+theme[selected_bg]="#282828"
+theme[selected_fg]="#ebdbb2"
+theme[inactive_fg]="#282828"
+theme[graph_text]="#928374"
+theme[proc_misc]="#b8bb26"
+
+# Box outlines
+theme[cpu_box]="#282828"
+theme[mem_box]="#282828"
+theme[net_box]="#282828"
+theme[proc_box]="#282828"
+theme[div_line]="#282828"
+
+# Temperature: green -> yellow -> red
+theme[temp_start]="#b8bb26"
+theme[temp_mid]="#fabd2f"
+theme[temp_end]="#fb4934"
+
+# CPU: green -> yellow -> red
+theme[cpu_start]="#b8bb26"
+theme[cpu_mid]="#fabd2f"
+theme[cpu_end]="#fb4934"
+
+# Mem/Disk free: cyan -> green
+theme[free_start]="#8ec07c"
+theme[free_mid]=""
+theme[free_end]="#b8bb26"
+
+# Mem/Disk cached: magenta -> blue
+theme[cached_start]="#d3869b"
+theme[cached_mid]=""
+theme[cached_end]="#83a598"
+
+# Mem/Disk available: yellow -> orange
+theme[available_start]="#fabd2f"
+theme[available_mid]=""
+theme[available_end]="#fe8019"
+
+# Mem/Disk used: green -> orange -> red
+theme[used_start]="#b8bb26"
+theme[used_mid]="#fe8019"
+theme[used_end]="#fb4934"
+
+# Download: cyan -> blue
+theme[download_start]="#8ec07c"
+theme[download_mid]=""
+theme[download_end]="#83a598"
+
+# Upload: orange -> red
+theme[upload_start]="#fe8019"
+theme[upload_mid]=""
+theme[upload_end]="#fb4934"
+
+# Process: green -> orange -> red
+theme[process_start]="#b8bb26"
+theme[process_mid]="#fe8019"
+theme[process_end]="#fb4934"

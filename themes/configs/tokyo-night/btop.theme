@@ -1,0 +1,65 @@
+# Tokyo Night theme for btop
+# Managed by theme-set - do not edit manually
+
+# Main
+theme[main_bg]=""
+theme[main_fg]="#c0caf5"
+theme[title]="#c0caf5"
+theme[hi_fg]="#7aa2f7"
+theme[selected_bg]="#414868"
+theme[selected_fg]="#c0caf5"
+theme[inactive_fg]="#414868"
+theme[graph_text]="#565f89"
+theme[proc_misc]="#9ece6a"
+
+# Box outlines
+theme[cpu_box]="#414868"
+theme[mem_box]="#414868"
+theme[net_box]="#414868"
+theme[proc_box]="#414868"
+theme[div_line]="#414868"
+
+# Temperature: green -> yellow -> red
+theme[temp_start]="#9ece6a"
+theme[temp_mid]="#e0af68"
+theme[temp_end]="#f7768e"
+
+# CPU: green -> yellow -> red
+theme[cpu_start]="#9ece6a"
+theme[cpu_mid]="#e0af68"
+theme[cpu_end]="#f7768e"
+
+# Mem/Disk free: cyan -> green
+theme[free_start]="#7dcfff"
+theme[free_mid]=""
+theme[free_end]="#9ece6a"
+
+# Mem/Disk cached: magenta -> blue
+theme[cached_start]="#bb9af7"
+theme[cached_mid]=""
+theme[cached_end]="#7aa2f7"
+
+# Mem/Disk available: yellow -> orange
+theme[available_start]="#e0af68"
+theme[available_mid]=""
+theme[available_end]="#ff9e64"
+
+# Mem/Disk used: green -> orange -> red
+theme[used_start]="#9ece6a"
+theme[used_mid]="#ff9e64"
+theme[used_end]="#f7768e"
+
+# Download: cyan -> blue
+theme[download_start]="#7dcfff"
+theme[download_mid]=""
+theme[download_end]="#7aa2f7"
+
+# Upload: orange -> red
+theme[upload_start]="#ff9e64"
+theme[upload_mid]=""
+theme[upload_end]="#f7768e"
+
+# Process: green -> orange -> red
+theme[process_start]="#9ece6a"
+theme[process_mid]="#ff9e64"
+theme[process_end]="#f7768e"

@@ -1,0 +1,65 @@
+# Osaka Jade theme for btop
+# Managed by theme-set - do not edit manually
+
+# Main
+theme[main_bg]=""
+theme[main_fg]="#c1c497"
+theme[title]="#c1c497"
+theme[hi_fg]="#509475"
+theme[selected_bg]="#23372b"
+theme[selected_fg]="#c1c497"
+theme[inactive_fg]="#23372b"
+theme[graph_text]="#53685b"
+theme[proc_misc]="#549e6a"
+
+# Box outlines
+theme[cpu_box]="#23372b"
+theme[mem_box]="#23372b"
+theme[net_box]="#23372b"
+theme[proc_box]="#23372b"
+theme[div_line]="#23372b"
+
+# Temperature: green -> yellow -> red
+theme[temp_start]="#549e6a"
+theme[temp_mid]="#e5c736"
+theme[temp_end]="#ff5345"
+
+# CPU: green -> yellow -> red
+theme[cpu_start]="#549e6a"
+theme[cpu_mid]="#e5c736"
+theme[cpu_end]="#ff5345"
+
+# Mem/Disk free: cyan -> green
+theme[free_start]="#2dd5b7"
+theme[free_mid]=""
+theme[free_end]="#549e6a"
+
+# Mem/Disk cached: magenta -> blue
+theme[cached_start]="#d2689c"
+theme[cached_mid]=""
+theme[cached_end]="#509475"
+
+# Mem/Disk available: yellow -> orange
+theme[available_start]="#e5c736"
+theme[available_mid]=""
+theme[available_end]="#e5c736"
+
+# Mem/Disk used: green -> orange -> red
+theme[used_start]="#549e6a"
+theme[used_mid]="#e5c736"
+theme[used_end]="#ff5345"
+
+# Download: cyan -> blue
+theme[download_start]="#2dd5b7"
+theme[download_mid]=""
+theme[download_end]="#509475"
+
+# Upload: orange -> red
+theme[upload_start]="#e5c736"
+theme[upload_mid]=""
+theme[upload_end]="#ff5345"
+
+# Process: green -> orange -> red
+theme[process_start]="#549e6a"
+theme[process_mid]="#e5c736"
+theme[process_end]="#ff5345"

@@ -1,0 +1,65 @@
+# Vantablack theme for btop
+# Managed by theme-set - do not edit manually
+
+# Main
+theme[main_bg]=""
+theme[main_fg]="#ffffff"
+theme[title]="#ffffff"
+theme[hi_fg]="#8d8d8d"
+theme[selected_bg]="#2a2a2a"
+theme[selected_fg]="#ffffff"
+theme[inactive_fg]="#2a2a2a"
+theme[graph_text]="#8d8d8d"
+theme[proc_misc]="#b6b6b6"
+
+# Box outlines
+theme[cpu_box]="#2a2a2a"
+theme[mem_box]="#2a2a2a"
+theme[net_box]="#2a2a2a"
+theme[proc_box]="#2a2a2a"
+theme[div_line]="#2a2a2a"
+
+# Temperature: green -> yellow -> red
+theme[temp_start]="#b6b6b6"
+theme[temp_mid]="#cecece"
+theme[temp_end]="#a4a4a4"
+
+# CPU: green -> yellow -> red
+theme[cpu_start]="#b6b6b6"
+theme[cpu_mid]="#cecece"
+theme[cpu_end]="#a4a4a4"
+
+# Mem/Disk free: cyan -> green
+theme[free_start]="#b0b0b0"
+theme[free_mid]=""
+theme[free_end]="#b6b6b6"
+
+# Mem/Disk cached: magenta -> blue
+theme[cached_start]="#9b9b9b"
+theme[cached_mid]=""
+theme[cached_end]="#8d8d8d"
+
+# Mem/Disk available: yellow -> orange
+theme[available_start]="#cecece"
+theme[available_mid]=""
+theme[available_end]="#cecece"
+
+# Mem/Disk used: green -> orange -> red
+theme[used_start]="#b6b6b6"
+theme[used_mid]="#cecece"
+theme[used_end]="#a4a4a4"
+
+# Download: cyan -> blue
+theme[download_start]="#b0b0b0"
+theme[download_mid]=""
+theme[download_end]="#8d8d8d"
+
+# Upload: orange -> red
+theme[upload_start]="#cecece"
+theme[upload_mid]=""
+theme[upload_end]="#a4a4a4"
+
+# Process: green -> orange -> red
+theme[process_start]="#b6b6b6"
+theme[process_mid]="#cecece"
+theme[process_end]="#a4a4a4"

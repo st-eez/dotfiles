@@ -1,0 +1,65 @@
+# Everforest Dark theme for btop
+# Managed by theme-set - do not edit manually
+
+# Main
+theme[main_bg]=""
+theme[main_fg]="#d3c6aa"
+theme[title]="#d3c6aa"
+theme[hi_fg]="#7fbbb3"
+theme[selected_bg]="#4f585e"
+theme[selected_fg]="#d3c6aa"
+theme[inactive_fg]="#4f585e"
+theme[graph_text]="#859289"
+theme[proc_misc]="#a7c080"
+
+# Box outlines
+theme[cpu_box]="#4f585e"
+theme[mem_box]="#4f585e"
+theme[net_box]="#4f585e"
+theme[proc_box]="#4f585e"
+theme[div_line]="#4f585e"
+
+# Temperature: green -> yellow -> red
+theme[temp_start]="#a7c080"
+theme[temp_mid]="#dbbc7f"
+theme[temp_end]="#e67e80"
+
+# CPU: green -> yellow -> red
+theme[cpu_start]="#a7c080"
+theme[cpu_mid]="#dbbc7f"
+theme[cpu_end]="#e67e80"
+
+# Mem/Disk free: cyan -> green
+theme[free_start]="#83c092"
+theme[free_mid]=""
+theme[free_end]="#a7c080"
+
+# Mem/Disk cached: magenta -> blue
+theme[cached_start]="#d699b6"
+theme[cached_mid]=""
+theme[cached_end]="#7fbbb3"
+
+# Mem/Disk available: yellow -> orange
+theme[available_start]="#dbbc7f"
+theme[available_mid]=""
+theme[available_end]="#e69875"
+
+# Mem/Disk used: green -> orange -> red
+theme[used_start]="#a7c080"
+theme[used_mid]="#e69875"
+theme[used_end]="#e67e80"
+
+# Download: cyan -> blue
+theme[download_start]="#83c092"
+theme[download_mid]=""
+theme[download_end]="#7fbbb3"
+
+# Upload: orange -> red
+theme[upload_start]="#e69875"
+theme[upload_mid]=""
+theme[upload_end]="#e67e80"
+
+# Process: green -> orange -> red
+theme[process_start]="#a7c080"
+theme[process_mid]="#e69875"
+theme[process_end]="#e67e80"
