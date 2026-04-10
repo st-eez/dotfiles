@@ -13,10 +13,10 @@ theme[graph_text]="#859289"
 theme[proc_misc]="#a7c080"
 
 # Box outlines
-theme[cpu_box]="#859289"
-theme[mem_box]="#859289"
-theme[net_box]="#859289"
-theme[proc_box]="#859289"
+theme[cpu_box]="#a7c080"
+theme[mem_box]="#d699b6"
+theme[net_box]="#83c092"
+theme[proc_box]="#7fbbb3"
 theme[div_line]="#859289"
 
 # Temperature: green -> yellow -> red

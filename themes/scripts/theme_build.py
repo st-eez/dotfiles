@@ -1270,11 +1270,11 @@ def render_btop_theme(theme_source: ThemeSource) -> str:
     hi_fg = _resolve_hex_override(theme_source, "btop", overrides, "hi_fg", palette.blue)
     selected_bg = _resolve_hex_override(theme_source, "btop", overrides, "selected_bg", palette.bg2)
     inactive_fg = _resolve_hex_override(theme_source, "btop", overrides, "inactive_fg", palette.grey)
-    box_color = _resolve_hex_override(theme_source, "btop", overrides, "cpu_box", palette.grey)
-    mem_box = _resolve_hex_override(theme_source, "btop", overrides, "mem_box", box_color)
-    net_box = _resolve_hex_override(theme_source, "btop", overrides, "net_box", box_color)
-    proc_box = _resolve_hex_override(theme_source, "btop", overrides, "proc_box", box_color)
-    div_line = _resolve_hex_override(theme_source, "btop", overrides, "div_line", box_color)
+    cpu_box = _resolve_hex_override(theme_source, "btop", overrides, "cpu_box", palette.green)
+    mem_box = _resolve_hex_override(theme_source, "btop", overrides, "mem_box", palette.magenta)
+    net_box = _resolve_hex_override(theme_source, "btop", overrides, "net_box", palette.cyan)
+    proc_box = _resolve_hex_override(theme_source, "btop", overrides, "proc_box", palette.blue)
+    div_line = _resolve_hex_override(theme_source, "btop", overrides, "div_line", palette.grey)
 
     lines = [
         f"# {theme_source.theme.name} theme for btop",
@@ -1292,7 +1292,7 @@ def render_btop_theme(theme_source: ThemeSource) -> str:
         f'theme[proc_misc]="{palette.green}"',
         "",
         "# Box outlines",
-        f'theme[cpu_box]="{box_color}"',
+        f'theme[cpu_box]="{cpu_box}"',
         f'theme[mem_box]="{mem_box}"',
         f'theme[net_box]="{net_box}"',
         f'theme[proc_box]="{proc_box}"',
