@@ -11,6 +11,19 @@ local monitor_profiles = (settings.monitors and settings.monitors.profiles) or {
 local default_monitor_profile = (settings.monitors and settings.monitors.default_profile) or "home"
 local laptop_display = (settings.monitors and settings.monitors.laptop_display) or 1
 
+-- Detect whether the active aerospace profile is laptop-only by reading the
+-- active config file directly. Laptop profile is identifiable by its marker
+-- comment "Laptop-only setup". Pure file I/O so no shell.
+local function is_laptop_profile_active()
+  local home = os.getenv("HOME")
+  if not home then return false end
+  local f = io.open(home .. "/.config/aerospace/aerospace.toml", "r")
+  if not f then return false end
+  local content = f:read("*a")
+  f:close()
+  return content ~= nil and content:find("Laptop%-only setup") ~= nil
+end
+
 local spaces = {}
 local current_workspace = nil
 local window_cache = {} -- Cache icon strings to skip redundant item:set() calls
@@ -110,6 +123,10 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
     is_laptop_only = true
   end
 
+  -- Render 5 workspaces whenever the laptop profile is active OR only the
+  -- built-in display is connected; full 1-0 set otherwise.
+  local show_five = is_laptop_profile_active() or is_laptop_only
+
   -- 2. Map Workspaces to Monitors (Async chain)
   -- We need to know which monitor each workspace is on to assign display_id correctly.
   -- Since we can't do synchronous calls, we'll fetch all assignments first.
@@ -117,7 +134,9 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
   local workspace_monitors = {} -- [sid] = monitor_id (1, 2, 3)
   
   local function setup_spaces()
-    local workspaces = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0" }
+    local workspaces = show_five
+      and { "1", "2", "3", "4", "5" }
+      or { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0" }
 
     for _, sid in ipairs(workspaces) do
       local monitor_id = workspace_monitors[sid] or 1

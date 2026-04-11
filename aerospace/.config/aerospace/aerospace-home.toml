@@ -142,7 +142,7 @@ ctrl-alt-c = 'reload-config'
 ctrl-alt-r = 'flatten-workspace-tree'
 ctrl-alt-h = 'exec-and-forget /bin/bash -c "cp ~/.config/aerospace/aerospace-home.toml ~/.config/aerospace/aerospace.toml && aerospace reload-config && sketchybar --reload"'
 ctrl-alt-w = 'exec-and-forget /bin/bash -c "cp ~/.config/aerospace/aerospace-office.toml ~/.config/aerospace/aerospace.toml && aerospace reload-config && sketchybar --reload"'
-ctrl-alt-l = 'exec-and-forget /bin/bash -c "cp ~/.config/aerospace/aerospace-laptop.toml ~/.config/aerospace/aerospace.toml && aerospace reload-config && sketchybar --reload"'
+ctrl-alt-l = 'exec-and-forget /bin/bash -c "~/.config/aerospace/migrate-to-laptop.sh && cp ~/.config/aerospace/aerospace-laptop.toml ~/.config/aerospace/aerospace.toml && aerospace reload-config && sketchybar --reload"'
 ctrl-alt-a = 'exec-and-forget /bin/bash ~/.config/AutoRaise/toggle_autoraise.sh'
 
 [[on-window-detected]]
