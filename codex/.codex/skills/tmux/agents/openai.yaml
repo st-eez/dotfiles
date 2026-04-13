@@ -1,4 +1,0 @@
-interface:
-  display_name: "tmux"
-  short_description: "Inspect tmux panes and send input safely"
-  default_prompt: "Use $tmux to inspect tmux panes, capture output, or send input with safe targeting."
