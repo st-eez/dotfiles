@@ -41,6 +41,7 @@ export DEV_PKGS=(
 export AI_PKGS=(
     beads
     claude
+    agent-monitor
     codex
     gemini
     opencode
@@ -88,6 +89,7 @@ get_brew_pkg() {
         bitwarden) echo "--cask bitwarden" ;;
         remindctl) echo "steipete/tap/remindctl" ;;
         borders)   echo "felixkratz/formulae/borders" ;;
+        agent-monitor) echo "" ;;  # Config-only helper package, no brew package
         ghostty)   echo "--cask ghostty" ;;
         karabiner) echo "--cask karabiner-elements" ;;
         localsend) echo "--cask localsend" ;;
@@ -119,6 +121,7 @@ get_pacman_pkg() {
         telnet)    echo "inetutils" ;;
         ghostty)   echo "ghostty" ;;              # Now in official repo (was AUR)
         claude)    echo "aur:claude-code-bin" ;;
+        agent-monitor) echo "" ;;  # Config-only helper package, no system package
         localsend) echo "aur:localsend-bin" ;;
         codex)     echo "" ;;                     # Use npm: @openai/codex
         gemini)    echo "" ;;                     # Use npm: @google/gemini-cli
@@ -144,6 +147,7 @@ get_apt_pkg() {
         lua)       echo "lua5.4" ;;
         ghostty)   echo "" ;;   # No apt package - use AppImage
         claude)    echo "" ;;   # Use native installer
+        agent-monitor) echo "" ;;   # Config-only helper package, no system package
         localsend) echo "" ;;   # Use Flatpak
         codex)     echo "" ;;   # Use npm
         gemini)    echo "" ;;   # Use npm
@@ -162,6 +166,7 @@ get_binary_name() {
         nvim)            echo "nvim" ;;
         wireguard-tools) echo "wg" ;;
         claude)          echo "claude" ;;
+        agent-monitor)   echo "agent-monitor-daemon" ;;
         codex)           echo "codex" ;;
         gemini)          echo "gemini" ;;
         playwright-cli)  echo "playwright-cli" ;;
@@ -208,6 +213,7 @@ get_pkg_description() {
         btop)         echo "System monitor" ;;
         beads)        echo "Dependency-aware local issue tracker" ;;
         claude)       echo "Claude AI CLI" ;;
+        agent-monitor) echo "Agent state monitor daemon" ;;
         codex)        echo "OpenAI Codex CLI" ;;
         eza)          echo "Modern ls replacement" ;;
         fd)           echo "Fast file finder" ;;
