@@ -6,6 +6,7 @@ local icons = {
 	timer = "󱑃",
 	battery = "􀛨",
 	battery_charging = "􀢋",
+	separator = "􀆊",
 }
 
 return icons

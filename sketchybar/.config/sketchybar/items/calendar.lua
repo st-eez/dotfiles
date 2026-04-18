@@ -25,19 +25,10 @@ local calendar = sbar.add("item", "calendar", {
 })
 
 local function update_time()
-  local now = os.date("*t")
-  local hour = now.hour % 12
-  if hour == 0 then hour = 12 end
-  local ampm = now.hour >= 12 and "PM" or "AM"
-  local label = string.format("%s %s %d %d:%02d%s",
-    os.date("%a"),
-    os.date("%b"),
-    now.day,
-    hour,
-    now.min,
-    ampm
-  )
-  calendar:set({ label = label })
+  -- Lua 5.5 strftime rejects GNU `%-d`/`%-I`, so strip zero-padding after the fact.
+  -- Pattern ` 0(%d)` matches the leading zero of day and hour (space-prefixed) without
+  -- touching minutes (colon-prefixed), producing e.g. "Fri Apr 8 3:05PM".
+  calendar:set({ label = (os.date("%a %b %d %I:%M%p"):gsub(" 0(%d)", " %1")) })
 end
 
 calendar:subscribe({ "routine", "system_woke" }, update_time)

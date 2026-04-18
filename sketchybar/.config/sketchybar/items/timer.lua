@@ -196,8 +196,8 @@ timer:subscribe("mouse.clicked", function(env)
   end
 end)
 
--- Update Loop
-timer:subscribe("routine", function()
+-- Update Loop (routine tick + wake catch-up share one body)
+local function tick()
   if state.status == "running" then
     local remaining = math.max(0, state.target_epoch - os.time())
     if remaining <= 0 then
@@ -207,19 +207,9 @@ timer:subscribe("routine", function()
       update_label(remaining)
     end
   end
-end)
+end
 
--- Wake Catch-up
-timer:subscribe("system_woke", function()
-  if state.status == "running" then
-    local remaining = math.max(0, state.target_epoch - os.time())
-    if remaining <= 0 then
-      timer_complete()
-    else
-      state.remaining_secs = remaining
-      update_label(remaining)
-    end
-  end
-end)
+timer:subscribe("routine", tick)
+timer:subscribe("system_woke", tick)
 
 return timer

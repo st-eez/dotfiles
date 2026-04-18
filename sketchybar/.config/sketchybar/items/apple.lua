@@ -1,6 +1,5 @@
 local icons = require("icons")
 local colors = require("colors")
-local settings = require("settings")
 local sbar = require("sketchybar")
 
 local apple = sbar.add("item", "apple", {

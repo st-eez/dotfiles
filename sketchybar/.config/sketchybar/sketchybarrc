@@ -1,6 +1,19 @@
 #!/usr/bin/env lua
 
-package.cpath = package.cpath .. ";/Users/" .. os.getenv("USER") .. "/.local/share/sketchybar_lua/?.so"
+local home = os.getenv("HOME") or ""
+local script = debug.getinfo(1, "S").source:sub(2)
+local config_dir = script:match("(.*)/") or "."
+local live_dir = home .. "/.config/sketchybar"
+
+-- Script dir wins (so a worktree loads its own modules) with live stow target as
+-- fallback (needed for colors.lua, which the theme system symlinks into $HOME only).
+package.path  = config_dir .. "/?.lua;"
+             .. config_dir .. "/?/init.lua;"
+             .. live_dir   .. "/?.lua;"
+             .. live_dir   .. "/?/init.lua;"
+             .. package.path
+package.cpath = home .. "/.local/share/sketchybar_lua/?.so;"
+             .. package.cpath
 
 require("init")
 

@@ -2,26 +2,36 @@ local colors = require("colors")
 local settings = require("settings")
 local icons = require("icons")
 local sbar = require("sketchybar")
-
--- Add helpers to package path to load icon_map
-package.path = package.path .. ";./helpers/?.lua"
 local app_icons = require("helpers.icon_map")
 
 local monitor_profiles = (settings.monitors and settings.monitors.profiles) or {}
 local default_monitor_profile = (settings.monitors and settings.monitors.default_profile) or "home"
 local laptop_display = (settings.monitors and settings.monitors.laptop_display) or 1
 
--- Detect whether the active aerospace profile is laptop-only by reading the
--- active config file directly. Laptop profile is identifiable by its marker
--- comment "Laptop-only setup". Pure file I/O so no shell.
+-- Detect whether the active aerospace profile is the laptop profile by byte-comparing
+-- aerospace.toml against aerospace-laptop.toml. Robust to comment edits and reformatting
+-- (as long as profile switching means "copy a profile file onto aerospace.toml").
+local function files_identical(a, b)
+  local fa = io.open(a, "rb"); if not fa then return false end
+  local fb = io.open(b, "rb"); if not fb then fa:close(); return false end
+  local identical = true
+  while true do
+    local ca = fa:read(8192)
+    local cb = fb:read(8192)
+    if ca ~= cb then identical = false; break end
+    if ca == nil then break end
+  end
+  fa:close(); fb:close()
+  return identical
+end
+
 local function is_laptop_profile_active()
   local home = os.getenv("HOME")
   if not home then return false end
-  local f = io.open(home .. "/.config/aerospace/aerospace.toml", "r")
-  if not f then return false end
-  local content = f:read("*a")
-  f:close()
-  return content ~= nil and content:find("Laptop%-only setup") ~= nil
+  return files_identical(
+    home .. "/.config/aerospace/aerospace.toml",
+    home .. "/.config/aerospace/aerospace-laptop.toml"
+  )
 end
 
 local spaces = {}
@@ -63,9 +73,10 @@ local function update_highlight(focused_sid)
   -- Helper to apply style to a single item
   local function apply_style(sid, is_selected)
     if not spaces[sid] then return end
-    local icon_font = is_selected
-      and { style = settings.font.style_map.bold, size = 16.0 }
-      or { style = settings.font.style_map.regular, size = 16.0 }
+    local icon_font = {
+      style = is_selected and settings.font.style_map.bold or settings.font.style_map.regular,
+      size = 16.0,
+    }
 
     spaces[sid]:set({
       icon = {
@@ -105,6 +116,7 @@ end
 -- Main Setup
 -- 1. Get Monitor List to determine setup type
 sbar.exec("aerospace list-monitors", function(monitor_output)
+  if not monitor_output or monitor_output == "" then return end
   local is_laptop_only = false
   local monitor_list = {}
   for line in monitor_output:gmatch("[^\r\n]+") do
@@ -191,7 +203,7 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
     -- Separator
     sbar.add("item", "space_separator", {
       icon = {
-        string = "􀆊",
+        string = icons.separator,
         font = { size = 14.0, style = "Black" },
         color = colors.white,
         padding_left = 10,
@@ -204,11 +216,11 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
     })
 
     -- Front App (placed immediately after separator for deterministic ordering)
-  local front_app = sbar.add("item", "front_app", {
-    icon = { drawing = false },
-    label = {
-      font = {
-        family = settings.font.family,
+    local front_app = sbar.add("item", "front_app", {
+      icon = { drawing = false },
+      label = {
+        font = {
+          family = settings.font.family,
           style = settings.font.style_map.bold,
           size = 13.0,
         },
@@ -234,7 +246,7 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
     end)
 
     front_app:subscribe("mouse.clicked", function(env)
-      sbar.exec("open -a 'Mission Control'")
+      sbar.exec("open -a '/System/Applications/Mission Control.app'")
     end)
 
     -- Initial label population
@@ -257,7 +269,8 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
 
       if not focused_workspace or focused_workspace == "" then
         sbar.exec("aerospace list-workspaces --focused", function(f)
-          local clean_f = f:gsub("%s+", "")
+          local clean_f = f and f:gsub("%s+", "") or ""
+          if clean_f == "" then return end
           update_highlight(clean_f)
 
           if prev_workspace and spaces[prev_workspace] then
@@ -289,19 +302,28 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
       end)
     end)
 
+    -- After wake, the cached icon strings may be stale if apps were quit while asleep.
+    -- Invalidate the cache and re-fetch for all spaces.
+    spacer_observer:subscribe("system_woke", function(env)
+      for sid, _ in pairs(spaces) do
+        window_cache[sid] = nil
+        update_windows(sid)
+      end
+    end)
+
     -- Initial Trigger
     if next(spaces) then
       sbar.trigger("aerospace_workspace_change")
     end
   end
 
-  -- Chain calls to populate workspace_monitors
+  -- Chain calls to populate workspace_monitors (iterate actual monitors, not hard-coded 3)
   local function fetch_monitor_workspaces(mon_idx)
-    if mon_idx > 3 then
+    if mon_idx > #monitor_list then
       setup_spaces() -- Done fetching, proceed to setup
       return
     end
-    
+
     sbar.exec("aerospace list-workspaces --monitor " .. mon_idx, function(ws_list)
       if ws_list then
         for ws in ws_list:gmatch("%S+") do
