@@ -4,6 +4,13 @@
 # Attention = idle or blocked:*. Working panes are excluded.
 set -euo pipefail
 
+# sketchybar's launchd env omits ~/.local/bin on PATH and has no locale set.
+# Without UTF-8 locale, tmux -F $'\t' emits `_` instead of tab — agent-state's
+# internal parsing then treats every pane as unknown and returns [].
+export PATH="$HOME/.local/bin:$PATH"
+export LANG="${LANG:-en_US.UTF-8}"
+export LC_ALL="${LC_ALL:-en_US.UTF-8}"
+
 command -v agent-state >/dev/null 2>&1 || exit 0
 command -v jq >/dev/null 2>&1 || exit 0
 
