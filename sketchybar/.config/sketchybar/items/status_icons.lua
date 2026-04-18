@@ -59,23 +59,10 @@ end
 battery_pct:subscribe({ "routine", "system_woke", "power_source_change" }, update_battery)
 update_battery()
 
--- Volume: icon reflects mute/level; label shows %. Click icon to toggle mute.
+-- Volume: icon-only. Click to toggle mute. Refreshes on wake and on click;
+-- intentionally no routine poll — media-key changes won't update the glyph
+-- mid-session, but the bar stays quiet and there's no CPU tax.
 local volume_icon = add_status_icon("status.volume", icons.volume.high, { icon_size = settings.font.size.glyph })
-local volume_pct = sbar.add("item", "status.volume_pct", {
-  position = "right",
-  icon = { drawing = false },
-  label = {
-    drawing = true,
-    string = "--%",
-    color = colors.white,
-    padding_left = 10,
-    padding_right = 2,
-  },
-  padding_left = 0,
-  padding_right = 0,
-  updates = true,
-  update_freq = 5,
-})
 
 local function update_volume()
   sbar.exec(
@@ -97,7 +84,6 @@ local function update_volume()
         glyph = icons.volume.low
       end
       volume_icon:set({ icon = { string = glyph, color = muted and colors.grey or colors.white } })
-      volume_pct:set({ label = { string = v .. "%" } })
     end
   )
 end
@@ -108,35 +94,5 @@ volume_icon:subscribe("mouse.clicked", function()
     update_volume
   )
 end)
-volume_pct:subscribe({ "routine", "system_woke" }, update_volume)
+volume_icon:subscribe("system_woke", update_volume)
 update_volume()
-
--- Wifi: icon only. SSID is redacted by modern macOS without location perms, so we skip it.
-local wifi_icon = add_status_icon("status.wifi", icons.wifi.on, { icon_size = settings.font.size.glyph, updates = true, update_freq = 15 })
-
-local function update_wifi()
-  sbar.exec("ifconfig en0 2>/dev/null", function(out)
-    local up = out and out:find("status: active") ~= nil and out:find("inet ") ~= nil
-    wifi_icon:set({ icon = { string = up and icons.wifi.on or icons.wifi.off, color = up and colors.white or colors.grey } })
-  end)
-end
-
-wifi_icon:subscribe({ "routine", "system_woke" }, update_wifi)
-update_wifi()
-
--- Mic: shown only while an audio input engine is live. Orange = in use.
-local mic_icon = add_status_icon("status.mic", icons.mic, { icon_size = settings.font.size.glyph })
-mic_icon:set({ drawing = false })
-
-local function update_mic()
-  sbar.exec([[ioreg -c AppleHDAEngineInput -r -d 1 2>/dev/null | grep -c 'IOAudioEngineState" = 1']], function(out)
-    local active = (tonumber(out) or 0) > 0
-    mic_icon:set({
-      drawing = active,
-      icon = { color = active and (colors.orange or colors.yellow) or colors.grey },
-    })
-  end)
-end
-
-mic_icon:subscribe({ "routine", "system_woke" }, update_mic)
-update_mic()
