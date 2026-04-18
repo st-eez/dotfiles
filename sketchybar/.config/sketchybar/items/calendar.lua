@@ -7,7 +7,7 @@ local calendar = sbar.add("item", "calendar", {
     font = {
       family = settings.font.family,
       style = settings.font.style_map.bold,
-      size = 13.0,
+      size = settings.font.size.label,
     },
     padding_left = 5,
     padding_right = 10,

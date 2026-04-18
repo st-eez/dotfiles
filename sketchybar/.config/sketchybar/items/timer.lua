@@ -58,6 +58,10 @@ local function timer_complete()
     icon = { color = colors.green },
   })
   sbar.exec([[osascript -e 'display notification "Time'\''s up!" with title "Focus Timer"']])
+  -- Auto-clear the "Done!" state so the bar doesn't hold stale text.
+  sbar.exec("sleep 10", function()
+    if state.status == "done" then reset_to_idle() end
+  end)
 end
 
 local function start_timer(duration_secs)
@@ -82,7 +86,7 @@ timer = sbar.add("item", "timer", {
   icon = {
     string = icons.timer,
     color = colors.white,
-    font = { size = 16.0 },
+    font = { size = settings.font.size.glyph },
   },
   label = {
     drawing = false,
@@ -206,6 +210,9 @@ local function tick()
       state.remaining_secs = remaining
       update_label(remaining)
     end
+  elseif state.status == "done" then
+    -- Reached on system_woke: a "Done!" held across sleep is stale.
+    reset_to_idle()
   end
 end
 
