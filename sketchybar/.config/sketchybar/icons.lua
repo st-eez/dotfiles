@@ -4,6 +4,7 @@ local icons = {
 	preferences = "􀺽",
 	activity = "􀒓",
 	timer = "󱑃",
+	agent_bell = utf8.char(0xf05a6),
 	battery = "􀛨",
 	battery_charging = "􀢋",
 	separator = "􀆊",

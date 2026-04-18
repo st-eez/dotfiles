@@ -68,6 +68,7 @@ require("items.apple")
 require("items.spaces")
 require("items.calendar")
 require("items.timer")
+require("items.agent_status")
 require("items.status_icons")
 
 -- Hotload configuration
