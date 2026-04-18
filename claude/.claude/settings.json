@@ -3,91 +3,180 @@
     "commit": "",
     "pr": ""
   },
-  "permissions": {
-    "allow": [
-      "Bash(aerospace:*)",
-      "Bash(pgrep:*)",
-      "Bash(brew services list)",
-      "Bash(brew services restart sketchybar)",
-      "Bash(open -a AeroSpace)",
-      "Read(/Applications/**)",
-      "WebSearch",
-      "WebFetch",
-      "TodoWrite",
-      "Bash(wc:*)",
-      "Bash(du:*)",
-      "Bash(git ls-tree:*)",
-      "Bash(git log:*)",
-      "Bash(git rev-list:*)",
-      "Bash(grep:*)",
-      "Bash(ls:*)",
-      "Bash(bd:*)",
-      "mcp__plugin_context7_context7__resolve-library-id",
-      "mcp__plugin_context7_context7__query-docs"
+  "autoDreamEnabled": true,
+  "autoMemoryEnabled": true,
+  "autoUpdatesChannel": "latest",
+  "effortLevel": "high",
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": true,
+    "security-guidance@claude-plugins-official": true
+  },
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "128000",
+    "CLAUDE_CODE_NEW_INIT": "1",
+    "CLAUDE_CODE_SESSIONEND_HOOKS_TIMEOUT_MS": "5000"
+  },
+  "hooks": {
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "command": "$HOME/.claude/hooks/tmux-notify.sh",
+            "type": "command"
+          }
+        ],
+        "matcher": "idle_prompt"
+      }
     ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "command": "$HOME/.claude/hooks/steez-permission-state.sh",
+            "timeout": 5,
+            "type": "command"
+          }
+        ],
+        "matcher": "*"
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "$HOME/.claude/hooks/steez-skill-analytics.sh",
+            "timeout": 5,
+            "type": "command"
+          }
+        ],
+        "matcher": "Skill"
+      },
+      {
+        "hooks": [
+          {
+            "command": "$HOME/.claude/hooks/steez-permission-state.sh",
+            "timeout": 5,
+            "type": "command"
+          }
+        ],
+        "matcher": "*"
+      },
+      {
+        "hooks": [
+          {
+            "command": "/Users/stevedimakos/Projects/Personal/ren/hooks/plan-mode-gate.sh",
+            "timeout": 5,
+            "type": "command"
+          }
+        ],
+        "matcher": "EnterPlanMode"
+      },
+      {
+        "hooks": [
+          {
+            "command": "/Users/stevedimakos/Projects/Personal/ren/hooks/decompose-gate.sh",
+            "timeout": 5,
+            "type": "command"
+          }
+        ],
+        "matcher": "ExitPlanMode"
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "hooks": [
+          {
+            "command": "$HOME/.claude/hooks/steez-permission-state.sh",
+            "timeout": 5,
+            "type": "command"
+          }
+        ],
+        "matcher": "*"
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "$HOME/.claude/hooks/steez-permission-state.sh",
+            "timeout": 5,
+            "type": "command"
+          }
+        ],
+        "matcher": "AskUserQuestion"
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "command": "$HOME/.claude/hooks/steez-permission-state.sh",
+            "timeout": 5,
+            "type": "command"
+          }
+        ],
+        "matcher": "*"
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "command": "$HOME/.claude/hooks/steez-session-start.sh",
+            "type": "command"
+          },
+          {
+            "command": "/Users/stevedimakos/Projects/Personal/ren/hooks/wake.sh",
+            "type": "command"
+          }
+        ],
+        "matcher": ""
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "command": "$HOME/.claude/hooks/steez-permission-state.sh",
+            "timeout": 5,
+            "type": "command"
+          }
+        ],
+        "matcher": "*"
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "command": "$HOME/.claude/hooks/steez-permission-state.sh",
+            "timeout": 5,
+            "type": "command"
+          }
+        ],
+        "matcher": "*"
+      }
+    ]
+  },
+  "outputStyle": "default",
+  "permissions": {
+    "allow": [],
+    "ask": [],
+    "defaultMode": "auto",
     "deny": [
       "Bash(rm -rf:*)",
       "Bash(chmod 777:*)",
       "Bash(git push --force:*)",
       "Bash(git reset --hard:*)"
-    ],
-    "ask": [],
-    "defaultMode": "default"
-  },
-  "hooks": {
-    "PreCompact": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bd prime"
-          }
-        ]
-      }
-    ],
-    "SessionStart": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bd prime"
-          }
-        ]
-      }
-    ],
-    "Notification": [
-      {
-        "matcher": "idle_prompt",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "/Users/stevedimakos/.claude/hooks/tmux-notify.sh"
-          }
-        ]
-      }
     ]
   },
+  "skipAutoPermissionPrompt": true,
+  "skipDangerousModePermissionPrompt": true,
   "statusLine": {
-    "type": "command",
-    "command": "~/.claude/statusline.sh"
+    "command": "$HOME/.claude/statusline.sh",
+    "type": "command"
   },
-  "enabledPlugins": {
-    "code-review@claude-plugins-official": true,
-    "code-simplifier@claude-plugins-official": true,
-    "context7@claude-plugins-official": true,
-    "frontend-design@claude-plugins-official": true,
-    "loop-setup-v2@steez-claude-marketplace": true,
-    "lua-lsp@claude-plugins-official": true,
-    "plugin-dev@claude-plugins-official": true,
-    "pyright-lsp@claude-plugins-official": true,
-    "security-guidance@claude-plugins-official": true,
-    "serena@claude-plugins-official": false,
-    "swift-lsp@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true,
-    "gopls-lsp@claude-plugins-official": true
-  },
-  "outputStyle": "Explanatory",
-  "skipDangerousModePermissionPrompt": true
+  "syntaxHighlightingDisabled": false,
+  "voiceEnabled": true
 }
