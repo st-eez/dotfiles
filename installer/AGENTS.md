@@ -13,7 +13,7 @@ Modular, multi-distro bash installer system utilizing Charm `gum` for a terminal
 | `theme.sh`     | Design tokens                | Tokyo Night color variables ($THEME_PRIMARY, etc.)        |
 | `logging.sh`   | Styled output                | `log_section`, `log_success`, `log_failure`               |
 | `ui.sh`        | gum-based TUI components     | `ui_splash`, `ui_main_menu`, `ui_select_packages`         |
-| `install.sh`   | Core installation logic      | `install_package`, `stow_package`, `bootstrap_aur_helper` |
+| `install.sh`   | Core installation logic      | `install_package`, `stow_package`, `bootstrap_aur_helper`, `bootstrap_steez` |
 | `utils.sh`     | Conflict & backup system     | `backup_conflicts`, `ensure_backup`                       |
 | `zsh_setup.sh` | Shell environment            | `setup_zsh_env` (OMZ + Plugins)                           |
 | `git_setup.sh` | Git provisioning             | `setup_git_config` (Template + Cred Helpers)              |

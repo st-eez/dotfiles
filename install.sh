@@ -81,6 +81,10 @@ run_installation() {
     echo "Package,Binary,Config" > "$csv_file"
 
     echo ""
+    log_section "Bootstrapping External Repos"
+    bootstrap_steez || ((fail_count++))
+
+    echo ""
     log_section "Installing Packages"
 
     # Installation loop with progress
