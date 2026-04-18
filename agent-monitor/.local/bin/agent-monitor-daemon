@@ -1,0 +1,423 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import fcntl
+import json
+import os
+import shutil
+import subprocess
+import sys
+import signal
+import time
+from pathlib import Path
+from typing import Any, Dict, Iterable, List, Optional
+
+
+def resolve_agent_state_bin(spec: str | None) -> str:
+    if spec:
+        candidate = Path(spec).expanduser()
+        if candidate.is_file():
+            return str(candidate)
+        found = shutil.which(spec)
+        if found:
+            return found
+        raise SystemExit(f"agent-state binary not found: {spec}")
+
+    found = shutil.which("agent-state")
+    if found:
+        return found
+
+    sibling = Path(__file__).resolve().with_name("agent-state")
+    if sibling.is_file():
+        return str(sibling)
+
+    raise SystemExit("agent-state binary not found")
+
+
+def resolve_tmux_bin(spec: str | None) -> str:
+    if spec:
+        candidate = Path(spec).expanduser()
+        if candidate.is_file():
+            return str(candidate)
+        found = shutil.which(spec)
+        if found:
+            return found
+        raise SystemExit(f"tmux binary not found: {spec}")
+
+    found = shutil.which("tmux")
+    if found:
+        return found
+    raise SystemExit("tmux binary not found")
+
+
+def resolve_osascript_bin(spec: str | None) -> str:
+    if spec:
+        candidate = Path(spec).expanduser()
+        if candidate.is_file():
+            return str(candidate)
+        found = shutil.which(spec)
+        if found:
+            return found
+        raise SystemExit(f"osascript binary not found: {spec}")
+
+    found = shutil.which("osascript")
+    if found:
+        return found
+    raise SystemExit("osascript binary not found")
+
+
+def runtime_paths() -> tuple[Path, Path]:
+    runtime_dir = Path.home() / ".local" / "state" / "agent-monitor"
+    runtime_dir.mkdir(parents=True, exist_ok=True)
+    return runtime_dir / "lock", runtime_dir / "pid"
+
+
+def acquire_singleton_lock() -> Any:
+    lock_path, pid_path = runtime_paths()
+    lock_fh = lock_path.open("a+")
+    try:
+        fcntl.flock(lock_fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        raise SystemExit(0)
+    lock_fh.seek(0)
+    lock_fh.truncate()
+    lock_fh.write(f"{os.getpid()}\n")
+    lock_fh.flush()
+    pid_path.write_text(f"{os.getpid()}\n")
+    return lock_fh
+
+
+def read_pidfile() -> int | None:
+    _, pid_path = runtime_paths()
+    try:
+        return int(pid_path.read_text().strip())
+    except (FileNotFoundError, ValueError):
+        return None
+
+
+def process_matches(pid: int) -> bool:
+    try:
+        command = subprocess.run(
+            ["ps", "-p", str(pid), "-o", "command="],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+    except subprocess.CalledProcessError:
+        return False
+    return "agent-monitor-daemon" in command
+
+
+def status() -> int:
+    pid = read_pidfile()
+    if pid and process_matches(pid):
+        print(f"running {pid}")
+        return 0
+    print("stopped")
+    return 1
+
+
+def start_detached(argv: list[str]) -> int:
+    if status() == 0:
+        return 0
+
+    subprocess.Popen(
+        [sys.executable, str(Path(__file__).resolve()), "run", *argv],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+        close_fds=True,
+    )
+    return 0
+
+
+def run_command(cmd: List[str]) -> str:
+    result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+    return result.stdout
+
+
+TMUX_ATTENTION_OPTION = "@agent_monitor_attention"
+
+
+def load_agent_state(agent_state_bin: str) -> List[Dict[str, Any]]:
+    raw = run_command([agent_state_bin, "--all", "--json"])
+    data = json.loads(raw or "[]")
+    if not isinstance(data, list):
+        raise ValueError("agent-state did not return a JSON array")
+    panes: List[Dict[str, Any]] = []
+    for item in data:
+        if isinstance(item, dict):
+            panes.append(item)
+    return panes
+
+
+def parse_int(value: str) -> Optional[int]:
+    if value == "":
+        return None
+    try:
+        return int(value)
+    except ValueError:
+        return None
+
+
+def load_tmux_metadata(tmux_bin: str) -> Dict[str, Dict[str, Any]]:
+    fmt = (
+        "#{pane_id}\t#{session_name}\t#{session_id}\t#{window_id}\t#{window_index}\t"
+        "#{window_name}\t#{pane_index}\t#{pane_left}\t#{pane_top}\t#{pane_width}\t"
+        "#{pane_height}\t#{pane_title}\t#{pane_current_path}\t#{pane_pid}"
+    )
+    raw = run_command([tmux_bin, "list-panes", "-a", "-F", fmt])
+    metadata: Dict[str, Dict[str, Any]] = {}
+    for line in raw.splitlines():
+        if not line.strip():
+            continue
+        parts = line.split("\t")
+        if len(parts) != 14:
+            continue
+        pane_id = parts[0]
+        metadata[pane_id] = {
+            "pane_id": pane_id,
+            "session_name": parts[1],
+            "session_id": parts[2],
+            "window_id": parts[3],
+            "window_index": parse_int(parts[4]),
+            "window_name": parts[5],
+            "pane_index": parse_int(parts[6]),
+            "pane_left": parse_int(parts[7]),
+            "pane_top": parse_int(parts[8]),
+            "pane_width": parse_int(parts[9]),
+            "pane_height": parse_int(parts[10]),
+            "pane_title": parts[11],
+            "pane_current_path": parts[12],
+            "pane_pid": parse_int(parts[13]),
+        }
+    return metadata
+
+
+def list_tmux_windows(tmux_bin: str) -> List[str]:
+    raw = run_command([tmux_bin, "list-windows", "-a", "-F", "#{window_id}"])
+    return [line.strip() for line in raw.splitlines() if line.strip()]
+
+
+def list_visible_tmux_windows(tmux_bin: str) -> set[str]:
+    raw = run_command([tmux_bin, "list-clients", "-F", "#{window_id}"])
+    return {line.strip() for line in raw.splitlines() if line.strip()}
+
+
+def clear_tmux_window_attention(tmux_bin: str, window_id: str) -> None:
+    run_command([tmux_bin, "set-window-option", "-u", "-t", window_id, TMUX_ATTENTION_OPTION])
+
+
+def mark_tmux_window_attention(tmux_bin: str, window_id: str) -> None:
+    run_command([tmux_bin, "set-window-option", "-t", window_id, TMUX_ATTENTION_OPTION, "1"])
+
+
+def sync_tmux_attention(tmux_bin: str, attention_windows: set[str]) -> None:
+    for window_id in list_tmux_windows(tmux_bin):
+        if window_id in attention_windows:
+            mark_tmux_window_attention(tmux_bin, window_id)
+        else:
+            clear_tmux_window_attention(tmux_bin, window_id)
+
+
+def clear_all_tmux_attention(tmux_bin: str) -> None:
+    for window_id in list_tmux_windows(tmux_bin):
+        clear_tmux_window_attention(tmux_bin, window_id)
+
+
+def is_attention_state(state: str) -> bool:
+    return state == "idle" or state.startswith("blocked:")
+
+
+def applescript_string(value: str) -> str:
+    return value.replace("\\", "\\\\").replace('"', '\\"').replace("\r", "").replace("\n", "\\n")
+
+
+def send_notification(
+    osascript_bin: str,
+    current: Dict[str, Any],
+    tmux_meta: Optional[Dict[str, Any]],
+    previous_state: str,
+    current_state: str,
+) -> None:
+    source = ""
+    if isinstance(tmux_meta, dict):
+        source = str(tmux_meta.get("window_name") or "")
+    if not source:
+        source = str(current.get("title") or current.get("name") or current.get("pane") or "agent")
+    title = "Agent needs attention"
+    message = f"{source}: {previous_state} → {current_state}"
+    script = f'display notification "{applescript_string(message)}" with title "{applescript_string(title)}"'
+    run_command([osascript_bin, "-e", script])
+
+
+def emit_transition(
+    current: Dict[str, Any],
+    tmux_meta: Optional[Dict[str, Any]],
+    previous_state: str,
+    current_state: str,
+) -> None:
+    payload = {
+        "type": "attention_transition",
+        "when": time.time_ns(),
+        "from": previous_state,
+        "to": current_state,
+        "agent_state": current,
+        "tmux": tmux_meta,
+    }
+    print(json.dumps(payload, separators=(",", ":")), flush=True)
+
+
+def collect_snapshot(agent_state_bin: str, tmux_bin: str) -> List[Dict[str, Any]]:
+    panes = load_agent_state(agent_state_bin)
+    tmux_meta = load_tmux_metadata(tmux_bin)
+    snapshot: List[Dict[str, Any]] = []
+    for pane in panes:
+        pane_id = pane.get("pane")
+        if not pane_id:
+            continue
+        merged = dict(pane)
+        merged["tmux"] = tmux_meta.get(pane_id)
+        snapshot.append(merged)
+    return snapshot
+
+
+def collect_attention_windows(snapshot: List[Dict[str, Any]]) -> set[str]:
+    attention_windows: set[str] = set()
+    for pane in snapshot:
+        tmux_meta = pane.get("tmux")
+        if not isinstance(tmux_meta, dict):
+            continue
+        window_id = str(tmux_meta.get("window_id") or "")
+        if not window_id:
+            continue
+        state = str(pane.get("state", ""))
+        if is_attention_state(state):
+            attention_windows.add(window_id)
+    return attention_windows
+
+
+def daemon_loop(agent_state_bin: str, tmux_bin: str, osascript_bin: str, interval: float, max_cycles: int) -> int:
+    previous_states: Dict[str, str] = {}
+    cycle = 0
+
+    while max_cycles == 0 or cycle < max_cycles:
+        cycle += 1
+        try:
+            snapshot = collect_snapshot(agent_state_bin, tmux_bin)
+            sync_tmux_attention(tmux_bin, collect_attention_windows(snapshot))
+            visible_windows = list_visible_tmux_windows(tmux_bin)
+        except Exception as exc:  # pragma: no cover - exercised in live runtime
+            print(f"agent-monitor-daemon: {exc}", file=sys.stderr, flush=True)
+            if max_cycles and cycle >= max_cycles:
+                break
+            if interval > 0:
+                time.sleep(interval)
+            continue
+
+        live_panes = set()
+        for pane in snapshot:
+            pane_id = str(pane.get("pane", ""))
+            if not pane_id:
+                continue
+            live_panes.add(pane_id)
+            state = str(pane.get("state", ""))
+            prior = previous_states.get(pane_id)
+            if prior == "working" and is_attention_state(state):
+                emit_transition(pane, pane.get("tmux"), prior, state)
+                tmux_meta = pane.get("tmux")
+                window_id = ""
+                if isinstance(tmux_meta, dict):
+                    window_id = str(tmux_meta.get("window_id") or "")
+                if window_id and window_id not in visible_windows:
+                    send_notification(osascript_bin, pane, tmux_meta, prior, state)
+            previous_states[pane_id] = state
+
+        for pane_id in list(previous_states):
+            if pane_id not in live_panes:
+                del previous_states[pane_id]
+
+        if max_cycles and cycle >= max_cycles:
+            break
+        if interval > 0:
+            time.sleep(interval)
+
+    return 0
+
+
+def parse_args(argv: Iterable[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(prog="agent-monitor-daemon")
+    subparsers = parser.add_subparsers(dest="command")
+
+    def add_common_options(command_parser: argparse.ArgumentParser) -> None:
+        command_parser.add_argument("--agent-state-bin", default=None)
+        command_parser.add_argument("--tmux-bin", default=None)
+        command_parser.add_argument("--osascript-bin", default=None)
+        command_parser.add_argument("--interval", type=float, default=2.0)
+        command_parser.add_argument("--max-cycles", type=int, default=0)
+
+    run_parser = subparsers.add_parser("run")
+    add_common_options(run_parser)
+
+    start_parser = subparsers.add_parser("start")
+    start_parser.add_argument("--detach", action="store_true", default=False)
+    add_common_options(start_parser)
+
+    subparsers.add_parser("status")
+    return parser.parse_args(list(argv))
+
+
+def main(argv: Iterable[str]) -> int:
+    args = parse_args(argv)
+    command = args.command or "run"
+
+    if command == "status":
+        return status()
+
+    def run_daemon() -> int:
+        _lock_fh = acquire_singleton_lock()
+        agent_state_bin = resolve_agent_state_bin(args.agent_state_bin)
+        tmux_bin = resolve_tmux_bin(args.tmux_bin)
+        osascript_bin = resolve_osascript_bin(args.osascript_bin)
+        previous_sigint = signal.getsignal(signal.SIGINT)
+        previous_sigterm = signal.getsignal(signal.SIGTERM)
+
+        def shutdown(_signum: int, _frame: Any) -> None:
+            raise SystemExit(0)
+
+        signal.signal(signal.SIGINT, shutdown)
+        signal.signal(signal.SIGTERM, shutdown)
+        try:
+            clear_all_tmux_attention(tmux_bin)
+            return daemon_loop(agent_state_bin, tmux_bin, osascript_bin, args.interval, args.max_cycles)
+        finally:
+            try:
+                clear_all_tmux_attention(tmux_bin)
+            except Exception:
+                pass
+            signal.signal(signal.SIGINT, previous_sigint)
+            signal.signal(signal.SIGTERM, previous_sigterm)
+
+    if command == "start":
+        if args.detach:
+            detached_args = []
+            if args.agent_state_bin:
+                detached_args += ["--agent-state-bin", args.agent_state_bin]
+            if args.tmux_bin:
+                detached_args += ["--tmux-bin", args.tmux_bin]
+            if args.osascript_bin:
+                detached_args += ["--osascript-bin", args.osascript_bin]
+            if args.interval != 2.0:
+                detached_args += ["--interval", str(args.interval)]
+            if args.max_cycles != 0:
+                detached_args += ["--max-cycles", str(args.max_cycles)]
+            return start_detached(detached_args)
+        return run_daemon()
+
+    return run_daemon()
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))
