@@ -67,6 +67,19 @@ def resolve_osascript_bin(spec: str | None) -> str:
     raise SystemExit("osascript binary not found")
 
 
+def resolve_sketchybar_bin(spec: str | None) -> str | None:
+    if spec:
+        candidate = Path(spec).expanduser()
+        if candidate.is_file():
+            return str(candidate)
+        found = shutil.which(spec)
+        if found:
+            return found
+        raise SystemExit(f"sketchybar binary not found: {spec}")
+
+    return shutil.which("sketchybar")
+
+
 def runtime_paths() -> tuple[Path, Path]:
     runtime_dir = Path.home() / ".local" / "state" / "agent-monitor"
     runtime_dir.mkdir(parents=True, exist_ok=True)
@@ -299,15 +312,24 @@ def collect_attention_windows(snapshot: List[Dict[str, Any]]) -> set[str]:
     return attention_windows
 
 
-def daemon_loop(agent_state_bin: str, tmux_bin: str, osascript_bin: str, interval: float, max_cycles: int) -> int:
+def daemon_loop(
+    agent_state_bin: str,
+    tmux_bin: str,
+    osascript_bin: str,
+    sketchybar_bin: str | None,
+    interval: float,
+    max_cycles: int,
+) -> int:
     previous_states: Dict[str, str] = {}
+    previous_attention_windows: set[str] = set()
     cycle = 0
 
     while max_cycles == 0 or cycle < max_cycles:
         cycle += 1
         try:
             snapshot = collect_snapshot(agent_state_bin, tmux_bin)
-            sync_tmux_attention(tmux_bin, collect_attention_windows(snapshot))
+            attention_windows = collect_attention_windows(snapshot)
+            sync_tmux_attention(tmux_bin, attention_windows)
             visible_windows = list_visible_tmux_windows(tmux_bin)
         except Exception as exc:  # pragma: no cover - exercised in live runtime
             print(f"agent-monitor-daemon: {exc}", file=sys.stderr, flush=True)
@@ -316,6 +338,13 @@ def daemon_loop(agent_state_bin: str, tmux_bin: str, osascript_bin: str, interva
             if interval > 0:
                 time.sleep(interval)
             continue
+
+        if sketchybar_bin and attention_windows != previous_attention_windows:
+            try:
+                run_command([sketchybar_bin, "--trigger", "agent_attention_changed"])
+            except subprocess.CalledProcessError:
+                pass
+        previous_attention_windows = attention_windows
 
         live_panes = set()
         for pane in snapshot:
@@ -355,6 +384,7 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
         command_parser.add_argument("--agent-state-bin", default=None)
         command_parser.add_argument("--tmux-bin", default=None)
         command_parser.add_argument("--osascript-bin", default=None)
+        command_parser.add_argument("--sketchybar-bin", default=None)
         command_parser.add_argument("--interval", type=float, default=2.0)
         command_parser.add_argument("--max-cycles", type=int, default=0)
 
@@ -381,6 +411,7 @@ def main(argv: Iterable[str]) -> int:
         agent_state_bin = resolve_agent_state_bin(args.agent_state_bin)
         tmux_bin = resolve_tmux_bin(args.tmux_bin)
         osascript_bin = resolve_osascript_bin(args.osascript_bin)
+        sketchybar_bin = resolve_sketchybar_bin(args.sketchybar_bin)
         previous_sigint = signal.getsignal(signal.SIGINT)
         previous_sigterm = signal.getsignal(signal.SIGTERM)
 
@@ -391,7 +422,14 @@ def main(argv: Iterable[str]) -> int:
         signal.signal(signal.SIGTERM, shutdown)
         try:
             clear_all_tmux_attention(tmux_bin)
-            return daemon_loop(agent_state_bin, tmux_bin, osascript_bin, args.interval, args.max_cycles)
+            return daemon_loop(
+                agent_state_bin,
+                tmux_bin,
+                osascript_bin,
+                sketchybar_bin,
+                args.interval,
+                args.max_cycles,
+            )
         finally:
             try:
                 clear_all_tmux_attention(tmux_bin)
@@ -409,6 +447,8 @@ def main(argv: Iterable[str]) -> int:
                 detached_args += ["--tmux-bin", args.tmux_bin]
             if args.osascript_bin:
                 detached_args += ["--osascript-bin", args.osascript_bin]
+            if args.sketchybar_bin:
+                detached_args += ["--sketchybar-bin", args.sketchybar_bin]
             if args.interval != 2.0:
                 detached_args += ["--interval", str(args.interval)]
             if args.max_cycles != 0:
