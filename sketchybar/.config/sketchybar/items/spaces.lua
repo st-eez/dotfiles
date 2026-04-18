@@ -8,30 +8,20 @@ local monitor_profiles = (settings.monitors and settings.monitors.profiles) or {
 local default_monitor_profile = (settings.monitors and settings.monitors.default_profile) or "home"
 local laptop_display = (settings.monitors and settings.monitors.laptop_display) or 1
 
--- Detect whether the active aerospace profile is the laptop profile by byte-comparing
--- aerospace.toml against aerospace-laptop.toml. Robust to comment edits and reformatting
--- (as long as profile switching means "copy a profile file onto aerospace.toml").
-local function files_identical(a, b)
-  local fa = io.open(a, "rb"); if not fa then return false end
-  local fb = io.open(b, "rb"); if not fb then fa:close(); return false end
-  local identical = true
-  while true do
-    local ca = fa:read(8192)
-    local cb = fb:read(8192)
-    if ca ~= cb then identical = false; break end
-    if ca == nil then break end
-  end
-  fa:close(); fb:close()
-  return identical
+-- Read the active aerospace profile from the sentinel written by set-profile.sh.
+-- Missing/unreadable sentinel → nil (treated as non-laptop by callers).
+local function active_profile()
+  local home = os.getenv("HOME")
+  if not home then return nil end
+  local f = io.open(home .. "/.config/aerospace/.active-profile", "r")
+  if not f then return nil end
+  local s = f:read("*a") or ""
+  f:close()
+  return (s:gsub("%s+", ""))
 end
 
 local function is_laptop_profile_active()
-  local home = os.getenv("HOME")
-  if not home then return false end
-  return files_identical(
-    home .. "/.config/aerospace/aerospace.toml",
-    home .. "/.config/aerospace/aerospace-laptop.toml"
-  )
+  return active_profile() == "laptop"
 end
 
 local spaces = {}
@@ -41,24 +31,31 @@ local window_cache = {} -- Cache icon strings to skip redundant item:set() calls
 -- Styling Constants
 local active_color = colors.white
 local inactive_color = colors.grey
-local highlight_tint = colors.highlight or 0x337aa2f7 -- 20% Blue tint
+local highlight_tint = colors.highlight
 local transparent = colors.transparent
 
--- Function to update window icons for a specific space
--- Uses cache to skip item:set() when icons haven't changed
-local function update_windows(space_id)
-  sbar.exec("aerospace list-windows --workspace " .. space_id .. " --format '%{app-name}'", function(apps)
-    local icon_line = ""
-    if apps then
-      for app in apps:gmatch("[^\r\n]+") do
-        local icon = app_icons[app] or app_icons["Default"] or icons.activity
-        icon_line = icon_line .. " " .. icon
+-- Update window icons for every known space with a single aerospace call.
+-- Batching beats per-space forks (was up to N shells per event).
+local function update_all_windows()
+  sbar.exec("aerospace list-windows --all --format '%{workspace} %{app-name}'", function(out)
+    local icons_by_space = {}
+    for sid, _ in pairs(spaces) do icons_by_space[sid] = "" end
+
+    if out then
+      for line in out:gmatch("[^\r\n]+") do
+        local sid, app = line:match("^(%S+)%s+(.*)$")
+        if sid and app and icons_by_space[sid] ~= nil then
+          local icon = app_icons[app] or app_icons["Default"] or icons.activity
+          icons_by_space[sid] = icons_by_space[sid] .. " " .. icon
+        end
       end
     end
-    -- Only update if changed (avoids redundant WindowServer constraint operations)
-    if spaces[space_id] and window_cache[space_id] ~= icon_line then
-      window_cache[space_id] = icon_line
-      spaces[space_id]:set({ label = icon_line })
+
+    for sid, icon_line in pairs(icons_by_space) do
+      if window_cache[sid] ~= icon_line then
+        window_cache[sid] = icon_line
+        spaces[sid]:set({ label = icon_line })
+      end
     end
   end)
 end
@@ -75,7 +72,7 @@ local function update_highlight(focused_sid)
     if not spaces[sid] then return end
     local icon_font = {
       style = is_selected and settings.font.style_map.bold or settings.font.style_map.regular,
-      size = 16.0,
+      size = settings.font.size.glyph,
     }
 
     spaces[sid]:set({
@@ -167,13 +164,13 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
           highlight_color = active_color,
           padding_left = 6,
           padding_right = 0,
-          font = { family = settings.font.family, style = settings.font.style_map.regular, size = 14.0 },
+          font = { family = settings.font.family, style = settings.font.style_map.regular, size = settings.font.size.icon },
         },
         label = {
           string = "",
           color = inactive_color,
           highlight_color = colors.white,
-          font = { family = "sketchybar-app-font", style = "Regular", size = 14.0 },
+          font = { family = "sketchybar-app-font", style = "Regular", size = settings.font.size.icon },
           y_offset = -1,
           padding_right = 10,
         },
@@ -204,7 +201,7 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
     sbar.add("item", "space_separator", {
       icon = {
         string = icons.separator,
-        font = { size = 14.0, style = "Black" },
+        font = { size = settings.font.size.icon, style = "Black" },
         color = colors.white,
         padding_left = 10,
         padding_right = 8,
@@ -222,7 +219,7 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
         font = {
           family = settings.font.family,
           style = settings.font.style_map.bold,
-          size = 13.0,
+          size = settings.font.size.label,
         },
       },
       display = "active",
@@ -232,17 +229,7 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
 
     front_app:subscribe("front_app_switched", function(env)
       front_app:set({ label = env.INFO })
-      local target_space = current_workspace
-      if target_space and spaces[target_space] then
-        update_windows(target_space)
-      else
-        sbar.exec("aerospace list-workspaces --focused", function(f)
-          local sid = f and f:match("%S+")
-          if sid and spaces[sid] then
-            update_windows(sid)
-          end
-        end)
-      end
+      update_all_windows()
     end)
 
     front_app:subscribe("mouse.clicked", function(env)
@@ -258,57 +245,35 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
     -- Controller / Observer
     local spacer_observer = sbar.add("item", "spaces_observer", { drawing = false, updates = true })
     
-    -- One-time initial window population for all spaces
-    for s, _ in pairs(spaces) do
-      update_windows(s)
-    end
+    -- Initial window population (one fork, all spaces).
+    update_all_windows()
 
     spacer_observer:subscribe("aerospace_workspace_change", function(env)
       local focused_workspace = env.FOCUSED_WORKSPACE
-      local prev_workspace = current_workspace -- capture before highlight updates it
 
       if not focused_workspace or focused_workspace == "" then
         sbar.exec("aerospace list-workspaces --focused", function(f)
           local clean_f = f and f:gsub("%s+", "") or ""
           if clean_f == "" then return end
           update_highlight(clean_f)
-
-          if prev_workspace and spaces[prev_workspace] then
-            update_windows(prev_workspace)
-          end
-          if spaces[clean_f] then
-            update_windows(clean_f)
-          end
+          update_all_windows()
         end)
       else
         update_highlight(focused_workspace)
-
-        if prev_workspace and prev_workspace ~= focused_workspace and spaces[prev_workspace] then
-          update_windows(prev_workspace)
-        end
-        if spaces[focused_workspace] then
-          update_windows(focused_workspace)
-        end
+        update_all_windows()
       end
     end)
 
-    -- Refresh the focused workspace when windows are created/destroyed
+    -- Refresh when windows are created/destroyed.
     spacer_observer:subscribe("space_windows_change", function(env)
-      sbar.exec("aerospace list-workspaces --focused", function(f)
-        local sid = f and f:match("%S+")
-        if sid and spaces[sid] then
-          update_windows(sid)
-        end
-      end)
+      update_all_windows()
     end)
 
-    -- After wake, the cached icon strings may be stale if apps were quit while asleep.
-    -- Invalidate the cache and re-fetch for all spaces.
+    -- After wake, cached strings may be stale if apps were quit while asleep.
+    -- Invalidate and re-fetch in one call.
     spacer_observer:subscribe("system_woke", function(env)
-      for sid, _ in pairs(spaces) do
-        window_cache[sid] = nil
-        update_windows(sid)
-      end
+      for sid, _ in pairs(spaces) do window_cache[sid] = nil end
+      update_all_windows()
     end)
 
     -- Initial Trigger

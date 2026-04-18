@@ -13,6 +13,7 @@ local settings = {
 		size = {
 			icon = 14.0,
 			label = 13.0,
+			glyph = 16.0,
 		},
 	},
 	paddings = 1,
