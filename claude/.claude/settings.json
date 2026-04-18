@@ -18,17 +18,6 @@
     "CLAUDE_CODE_SESSIONEND_HOOKS_TIMEOUT_MS": "5000"
   },
   "hooks": {
-    "Notification": [
-      {
-        "hooks": [
-          {
-            "command": "$HOME/.claude/hooks/tmux-notify.sh",
-            "type": "command"
-          }
-        ],
-        "matcher": "idle_prompt"
-      }
-    ],
     "PermissionRequest": [
       {
         "hooks": [
