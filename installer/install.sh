@@ -181,6 +181,33 @@ install_localsend_linux() {
     return 0
 }
 
+# Clone the steez repo so agent-monitor's agent-state symlink resolves.
+# The agent-monitor package ships a relative symlink pointing at
+# $HOME/.steez/repo/shared/steez/bin/agent-state. Without this clone the
+# symlink is dangling on a fresh machine.
+bootstrap_steez() {
+    local steez_dir="$HOME/.steez/repo"
+
+    if [[ -d "$steez_dir/.git" ]]; then
+        gum style --foreground "$THEME_SUBTEXT" "  steez repo already cloned"
+        return 0
+    fi
+
+    gum style --foreground "$THEME_PRIMARY" "  ◆ Cloning steez repo..."
+    if ! mkdir -p "${steez_dir%/*}" 2>/dev/null; then
+        gum style --foreground "$THEME_ERROR" "  Failed to create ${steez_dir%/*}"
+        return 1
+    fi
+
+    if ! git clone --quiet https://github.com/st-eez/steez.git "$steez_dir" 2>/dev/null; then
+        gum style --foreground "$THEME_ERROR" "  Failed to clone steez repo"
+        return 1
+    fi
+
+    gum style --foreground "$THEME_SUCCESS" "  steez repo cloned to $steez_dir"
+    return 0
+}
+
 # Post-install setup for Ghostty on Debian/Ubuntu/Mint
 # Creates .desktop entry and ensures PATH is set
 # Setup TPM and tmux plugins after stowing tmux config
