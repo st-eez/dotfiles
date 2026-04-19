@@ -15,11 +15,7 @@ local MAX_ROWS = 12
 -- Per-char width estimate for JetBrainsMono Regular at label font size.
 -- Row width is computed per-refresh from the longest string so hover
 -- highlight spans the full row without over-reserving space.
--- Row width fits text + internal label padding. Kept tight so the popup
--- border hugs the content instead of leaving trailing whitespace.
-local POPUP_CHAR_PX = 10
 local POPUP_LABEL_PAD = 10
-local POPUP_SAFETY = 4
 
 local state = {
   hover = false,
@@ -129,7 +125,6 @@ local function render(rows)
     strings[i] = s
     if #s > max_len then max_len = #s end
   end
-  local row_width = max_len * POPUP_CHAR_PX + (POPUP_LABEL_PAD * 2) + POPUP_SAFETY
 
   for i, row in ipairs(popup_rows) do
     local r = rows[i]
@@ -139,7 +134,6 @@ local function render(rows)
         label = {
           string = strings[i],
           color = row_color(r.state),
-          width = row_width,
         },
       })
     else
