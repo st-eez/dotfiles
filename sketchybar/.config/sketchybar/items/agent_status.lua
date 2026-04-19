@@ -68,11 +68,12 @@ end
 
 local w_item, i_item, b_item
 
+local cluster_members = {}
+
 local function set_cluster_drawing(on)
-  agent_status:set({ drawing = on })
-  w_item:set({ drawing = on })
-  i_item:set({ drawing = on })
-  b_item:set({ drawing = on })
+  for _, it in ipairs(cluster_members) do
+    it:set({ drawing = on })
+  end
 end
 
 local function render(rows)
@@ -158,8 +159,27 @@ local function make_count_item(name, color)
   })
 end
 
+local function make_separator(name)
+  return sbar.add("item", name, {
+    position = "right",
+    drawing = false,
+    icon = { drawing = false },
+    label = {
+      string = "·",
+      color = colors.grey,
+      padding_left = 0,
+      padding_right = 0,
+    },
+    padding_left = 0,
+    padding_right = 0,
+  })
+end
+
+-- Order: first add = rightmost. Visual reads icon|W·I·B left-to-right.
 b_item = make_count_item("agent_status.b", colors.red)
+local sep2 = make_separator("agent_status.sep2")
 i_item = make_count_item("agent_status.i", colors.white)
+local sep1 = make_separator("agent_status.sep1")
 w_item = make_count_item("agent_status.w", colors.green)
 
 -- Icon item (added last = leftmost of cluster). Carries the popup and the
@@ -188,6 +208,8 @@ agent_status = sbar.add("item", "agent_status", {
     },
   },
 })
+
+cluster_members = { agent_status, w_item, sep1, i_item, sep2, b_item }
 
 -- Pre-allocate popup rows; drawing flips per-refresh.
 for i = 1, MAX_ROWS do
