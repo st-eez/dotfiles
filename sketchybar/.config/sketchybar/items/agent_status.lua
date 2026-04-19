@@ -55,7 +55,7 @@ local function state_priority(s)
 end
 
 local function row_color(s)
-  if is_blocked(s) then return colors.yellow end
+  if is_blocked(s) then return colors.red end
   if is_idle(s) then return colors.white end
   return colors.green
 end
@@ -93,7 +93,7 @@ local function render(rows)
 
   local color
   if blocked > 0 then
-    color = colors.yellow
+    color = colors.red
   elseif idle > 0 then
     color = colors.white
   else
