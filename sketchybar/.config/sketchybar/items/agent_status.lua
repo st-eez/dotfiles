@@ -15,9 +15,9 @@ local MAX_ROWS = 12
 -- Per-char width estimate for JetBrainsMono Regular at label font size.
 -- Row width is computed per-refresh from the longest string so hover
 -- highlight spans the full row without over-reserving space.
-local POPUP_CHAR_PX = 8
-local POPUP_SIDE_PAD = 24
-local POPUP_MIN_WIDTH = 160
+local POPUP_CHAR_PX = 11
+local POPUP_SIDE_PAD = 32
+local POPUP_MIN_WIDTH = 180
 
 local state = {
   hover = false,
@@ -185,8 +185,9 @@ local function make_separator(name)
     label = {
       string = "│",
       color = colors.grey,
-      padding_left = 5,
+      padding_left = 2,
       padding_right = 5,
+      y_offset = 2,
     },
     padding_left = 0,
     padding_right = 0,
