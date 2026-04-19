@@ -14,7 +14,7 @@ local MAX_ROWS = 12
 
 local state = {
   hover = false,
-  count = 0,
+  rows = {},
 }
 
 local agent_status -- forward decl
@@ -44,8 +44,20 @@ local function parse_row(line)
   return { pane = pane, agent = agent, state = st, name = name, loc = loc }
 end
 
-local function is_blocked(row_state)
-  return row_state:sub(1, 8) == "blocked:"
+local function is_blocked(s) return s:sub(1, 8) == "blocked:" end
+local function is_idle(s) return s == "idle" end
+local function is_working(s) return s == "working" end
+
+local function state_priority(s)
+  if is_blocked(s) then return 0 end
+  if is_idle(s) then return 1 end
+  return 2
+end
+
+local function row_color(s)
+  if is_blocked(s) then return colors.yellow end
+  if is_idle(s) then return colors.white end
+  return colors.green
 end
 
 -- tmux pane IDs are always `%<digits>`. Reject anything else to keep the shell
@@ -55,46 +67,65 @@ local function safe_pane_id(p)
 end
 
 local function render(rows)
-  local count = #rows
-  state.count = count
-
-  if count == 0 then
+  local total = #rows
+  if total == 0 then
     agent_status:set({
       drawing = false,
       popup = { drawing = false },
-      label = { drawing = false },
     })
-    for _, row in ipairs(popup_rows) do
-      row:set({ drawing = false })
+    for _, r in ipairs(popup_rows) do
+      r:set({ drawing = false })
     end
+    state.rows = {}
     return
   end
 
-  local any_blocked = false
+  local working, idle, blocked = 0, 0, 0
   for _, r in ipairs(rows) do
-    if is_blocked(r.state) then any_blocked = true; break end
+    if is_blocked(r.state) then
+      blocked = blocked + 1
+    elseif is_idle(r.state) then
+      idle = idle + 1
+    elseif is_working(r.state) then
+      working = working + 1
+    end
   end
-  local badge_color = any_blocked and colors.yellow or colors.green
+
+  local color
+  if blocked > 0 then
+    color = colors.yellow
+  elseif idle > 0 then
+    color = colors.white
+  else
+    color = colors.green
+  end
 
   agent_status:set({
     drawing = true,
-    icon = { color = badge_color },
+    icon = { color = color },
     label = {
       drawing = true,
-      string = tostring(count),
-      color = badge_color,
+      string = string.format("%d\194\183%d\194\183%d", working, idle, blocked),
+      color = color,
     },
   })
+
+  for i, r in ipairs(rows) do r._i = i end
+  table.sort(rows, function(a, b)
+    local pa, pb = state_priority(a.state), state_priority(b.state)
+    if pa ~= pb then return pa < pb end
+    return a._i < b._i
+  end)
+  state.rows = rows
 
   for i, row in ipairs(popup_rows) do
     local r = rows[i]
     if r then
-      local row_color = is_blocked(r.state) and colors.yellow or colors.green
       row:set({
         drawing = true,
         label = {
           string = string.format("%s %s %s", r.name, r.loc, r.state),
-          color = row_color,
+          color = row_color(r.state),
         },
       })
     else
@@ -116,11 +147,13 @@ local function refresh()
   end)
 end
 
--- Main item
+-- Main item. update_freq polls every 5s to catch spawn/close transitions the
+-- daemon's attention-set trigger misses (working-only pane set changes).
 agent_status = sbar.add("item", "agent_status", {
   position = "right",
   drawing = false,
   updates = true,
+  update_freq = 5,
   icon = {
     string = icons.agent_bell,
     color = colors.green,
@@ -129,8 +162,8 @@ agent_status = sbar.add("item", "agent_status", {
     padding_right = 2,
   },
   label = {
-    drawing = false,
-    string = "",
+    drawing = true,
+    string = "0\194\1830\194\1830",
     padding_left = 2,
     padding_right = 8,
   },
@@ -186,24 +219,13 @@ for i = 1, MAX_ROWS do
   end)
 
   row:subscribe("mouse.clicked", function()
-    -- The pane_id we need is not in the event; re-query and switch.
-    sbar.exec(resolve_cmd(), function(out)
-      if not out or out == "" then return end
-      local j = 0
-      for line in out:gmatch("[^\r\n]+") do
-        j = j + 1
-        if j == i then
-          local r = parse_row(line)
-          if r and safe_pane_id(r.pane) then
-            sbar.exec("tmux switch-client -t " .. r.pane, function()
-              agent_status:set({ popup = { drawing = false } })
-              sbar.exec("sketchybar --trigger agent_attention_changed")
-            end)
-          end
-          return
-        end
-      end
-    end)
+    local r = state.rows[i]
+    if r and safe_pane_id(r.pane) then
+      sbar.exec("tmux switch-client -t " .. r.pane, function()
+        agent_status:set({ popup = { drawing = false } })
+        sbar.exec("sketchybar --trigger agent_attention_changed")
+      end)
+    end
   end)
 
   popup_rows[i] = row
@@ -220,13 +242,15 @@ agent_status:subscribe("mouse.exited.global", function()
 end)
 
 agent_status:subscribe("mouse.clicked", function(env)
-  if env.BUTTON == "left" and state.count > 0 then
+  if env.BUTTON == "left" and #state.rows > 0 then
     agent_status:set({ popup = { drawing = "toggle" } })
   end
 end)
 
--- Daemon event + wake.
+-- Daemon event + periodic poll + wake.
 agent_status:subscribe("agent_attention_changed", refresh)
+agent_status:subscribe("routine", refresh)
+agent_status:subscribe("forced", refresh)
 agent_status:subscribe("system_woke", refresh)
 
 -- Bootstrap initial state (daemon only fires on change, so bar load needs a read).

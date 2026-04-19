@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Emit one TSV row per agent pane needing attention.
+# Emit one TSV row per agent pane, including working.
 # Columns: pane_id<TAB>agent<TAB>state<TAB>name<TAB>window.pane
-# Attention = idle or blocked:*. Working panes are excluded.
 set -euo pipefail
 
 # sketchybar's launchd env omits ~/.local/bin on PATH and has no locale set.
@@ -22,7 +21,7 @@ if command -v tmux >/dev/null 2>&1; then
 fi
 
 agent-state --all --json 2>/dev/null \
-  | jq -r '.[] | select(.state == "idle" or (.state | startswith("blocked:"))) | [.pane, .agent, .state, .name] | @tsv' \
+  | jq -r '.[] | [.pane, .agent, .state, .name] | @tsv' \
   | while IFS=$'\t' read -r pane agent state name; do
       loc="${LOC[$pane]:-?.?}"
       printf '%s\t%s\t%s\t%s\t%s\n' "$pane" "$agent" "$state" "$name" "$loc"
