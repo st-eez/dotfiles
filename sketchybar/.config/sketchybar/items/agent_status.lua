@@ -167,8 +167,8 @@ local function make_separator(name)
     label = {
       string = "·",
       color = colors.grey,
-      padding_left = 0,
-      padding_right = 0,
+      padding_left = 2,
+      padding_right = 2,
     },
     padding_left = 0,
     padding_right = 0,
