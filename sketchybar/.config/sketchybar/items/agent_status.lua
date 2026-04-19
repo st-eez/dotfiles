@@ -12,6 +12,13 @@ local live_helper = HOME .. "/.config/sketchybar/helpers/agent_attention.sh"
 -- Cap popup rows. Larger than realistic concurrent-agent count; extras are dropped.
 local MAX_ROWS = 12
 
+-- Per-char width estimate for JetBrainsMono Regular at label font size.
+-- Row width is computed per-refresh from the longest string so hover
+-- highlight spans the full row without over-reserving space.
+local POPUP_CHAR_PX = 8
+local POPUP_SIDE_PAD = 24
+local POPUP_MIN_WIDTH = 160
+
 local state = {
   hover = false,
   rows = {},
@@ -112,14 +119,25 @@ local function render(rows)
   end)
   state.rows = rows
 
+  local strings = {}
+  local max_len = 0
+  for i = 1, math.min(#rows, MAX_ROWS) do
+    local r = rows[i]
+    local s = string.format("%s %s %s", r.name, r.loc, r.state)
+    strings[i] = s
+    if #s > max_len then max_len = #s end
+  end
+  local row_width = math.max(POPUP_MIN_WIDTH, max_len * POPUP_CHAR_PX + POPUP_SIDE_PAD)
+
   for i, row in ipairs(popup_rows) do
     local r = rows[i]
     if r then
       row:set({
         drawing = true,
         label = {
-          string = string.format("%s %s %s", r.name, r.loc, r.state),
+          string = strings[i],
           color = row_color(r.state),
+          width = row_width,
         },
       })
     else
@@ -201,7 +219,7 @@ agent_status = sbar.add("item", "agent_status", {
   padding_left = 0,
   padding_right = 0,
   popup = {
-    align = "right",
+    align = "center",
     background = {
       border_width = 2,
       border_color = colors.grey,
@@ -227,6 +245,7 @@ for i = 1, MAX_ROWS do
       padding_left = 12,
       padding_right = 12,
       align = "left",
+      width = POPUP_ROW_WIDTH,
     },
     background = {
       color = colors.transparent,
