@@ -183,22 +183,22 @@ local function make_separator(name)
     drawing = false,
     icon = { drawing = false },
     label = {
-      string = "·",
+      string = "│",
       color = colors.grey,
-      padding_left = 2,
-      padding_right = 2,
+      padding_left = 5,
+      padding_right = 5,
     },
     padding_left = 0,
     padding_right = 0,
   })
 end
 
--- Order: first add = rightmost. Visual reads icon|W·I·B left-to-right.
+-- Order: first add = rightmost. Visual reads icon|I│W│B left-to-right.
 b_item = make_count_item("agent_status.b", colors.red)
 local sep2 = make_separator("agent_status.sep2")
-i_item = make_count_item("agent_status.i", colors.white)
-local sep1 = make_separator("agent_status.sep1")
 w_item = make_count_item("agent_status.w", colors.green)
+local sep1 = make_separator("agent_status.sep1")
+i_item = make_count_item("agent_status.i", colors.white)
 
 -- Icon item (added last = leftmost of cluster). Carries the popup and the
 -- 5s poll that catches spawn/close transitions the daemon's attention-set
