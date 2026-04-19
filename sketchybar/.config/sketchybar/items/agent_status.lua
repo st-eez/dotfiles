@@ -66,13 +66,20 @@ local function safe_pane_id(p)
   return type(p) == "string" and p:match("^%%%d+$") ~= nil
 end
 
+local w_item, i_item, b_item
+
+local function set_cluster_drawing(on)
+  agent_status:set({ drawing = on })
+  w_item:set({ drawing = on })
+  i_item:set({ drawing = on })
+  b_item:set({ drawing = on })
+end
+
 local function render(rows)
   local total = #rows
   if total == 0 then
-    agent_status:set({
-      drawing = false,
-      popup = { drawing = false },
-    })
+    set_cluster_drawing(false)
+    agent_status:set({ popup = { drawing = false } })
     for _, r in ipairs(popup_rows) do
       r:set({ drawing = false })
     end
@@ -91,24 +98,10 @@ local function render(rows)
     end
   end
 
-  local color
-  if blocked > 0 then
-    color = colors.red
-  elseif idle > 0 then
-    color = colors.white
-  else
-    color = colors.green
-  end
-
-  agent_status:set({
-    drawing = true,
-    icon = { color = color },
-    label = {
-      drawing = true,
-      string = string.format("%d\194\183%d\194\183%d", working, idle, blocked),
-      color = color,
-    },
-  })
+  set_cluster_drawing(true)
+  w_item:set({ label = { string = tostring(working) } })
+  i_item:set({ label = { string = tostring(idle) } })
+  b_item:set({ label = { string = tostring(blocked) } })
 
   for i, r in ipairs(rows) do r._i = i end
   table.sort(rows, function(a, b)
@@ -147,8 +140,31 @@ local function refresh()
   end)
 end
 
--- Main item. update_freq polls every 5s to catch spawn/close transitions the
--- daemon's attention-set trigger misses (working-only pane set changes).
+-- Count items. Added right-to-left (B first = rightmost). Each digit gets
+-- its own color so the whole cluster reads `W·I·B` at a glance.
+local function make_count_item(name, color)
+  return sbar.add("item", name, {
+    position = "right",
+    drawing = false,
+    icon = { drawing = false },
+    label = {
+      string = "0",
+      color = color,
+      padding_left = 3,
+      padding_right = 3,
+    },
+    padding_left = 0,
+    padding_right = 0,
+  })
+end
+
+b_item = make_count_item("agent_status.b", colors.red)
+i_item = make_count_item("agent_status.i", colors.white)
+w_item = make_count_item("agent_status.w", colors.green)
+
+-- Icon item (added last = leftmost of cluster). Carries the popup and the
+-- 5s poll that catches spawn/close transitions the daemon's attention-set
+-- trigger misses (working-only pane set changes).
 agent_status = sbar.add("item", "agent_status", {
   position = "right",
   drawing = false,
@@ -156,17 +172,12 @@ agent_status = sbar.add("item", "agent_status", {
   update_freq = 5,
   icon = {
     string = icons.agent_bell,
-    color = colors.green,
+    color = colors.white,
     font = { size = settings.font.size.glyph },
     padding_left = 8,
     padding_right = 2,
   },
-  label = {
-    drawing = true,
-    string = "0\194\1830\194\1830",
-    padding_left = 2,
-    padding_right = 8,
-  },
+  label = { drawing = false },
   padding_left = 0,
   padding_right = 0,
   popup = {
@@ -246,6 +257,20 @@ agent_status:subscribe("mouse.clicked", function(env)
     agent_status:set({ popup = { drawing = "toggle" } })
   end
 end)
+
+-- Count items share hover tracking and forward clicks to the popup toggle.
+for _, it in ipairs({ w_item, i_item, b_item }) do
+  it:subscribe("mouse.entered", function() state.hover = true end)
+  it:subscribe("mouse.exited.global", function()
+    state.hover = false
+    schedule_popup_close()
+  end)
+  it:subscribe("mouse.clicked", function(env)
+    if env.BUTTON == "left" and #state.rows > 0 then
+      agent_status:set({ popup = { drawing = "toggle" } })
+    end
+  end)
+end
 
 -- Daemon event + periodic poll + wake.
 agent_status:subscribe("agent_attention_changed", refresh)
