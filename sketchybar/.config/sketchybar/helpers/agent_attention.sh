@@ -3,10 +3,11 @@
 # Columns: pane_id<TAB>agent<TAB>state<TAB>name<TAB>window.pane
 set -euo pipefail
 
-# sketchybar's launchd env omits ~/.local/bin on PATH and has no locale set.
+# sketchybar's launchd env omits ~/.local/bin and ~/.steez/bin on PATH, and has
+# no locale set.
 # Without UTF-8 locale, tmux -F $'\t' emits `_` instead of tab — agent-state's
 # internal parsing then treats every pane as unknown and returns [].
-export PATH="$HOME/.local/bin:$PATH"
+export PATH="$HOME/.steez/bin:$HOME/.local/bin:$PATH"
 export LANG="${LANG:-en_US.UTF-8}"
 export LC_ALL="${LC_ALL:-en_US.UTF-8}"
 
