@@ -218,14 +218,14 @@ w_item = make_count_item("agent_status.w", colors.green)
 local sep1 = make_separator("agent_status.sep1")
 i_item = make_count_item("agent_status.i", colors.white)
 
--- Icon item (added last = leftmost of cluster). Carries the popup and the
--- 5s poll that catches spawn/close transitions the daemon's attention-set
--- trigger misses (working-only pane set changes).
+-- Icon item (added last = leftmost of cluster). Live refreshes are driven
+-- by agent_attention_changed (fired by agent-eventsd on every attention
+-- transition and by steez runtime hooks on working/idle transitions), so
+-- the item no longer polls on a routine cadence.
 agent_status = sbar.add("item", "agent_status", {
   position = "right",
   drawing = false,
   updates = true,
-  update_freq = 5,
   icon = {
     string = icons.agent_bell,
     color = colors.white,
@@ -330,9 +330,8 @@ for _, it in ipairs({ w_item, i_item, b_item }) do
   end)
 end
 
--- Daemon event + periodic poll + wake.
+-- Daemon event + manual trigger + wake. No routine poll — see header note.
 agent_status:subscribe("agent_attention_changed", refresh)
-agent_status:subscribe("routine", refresh)
 agent_status:subscribe("forced", refresh)
 agent_status:subscribe("system_woke", refresh)
 
