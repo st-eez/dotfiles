@@ -44,9 +44,24 @@ local function resolve_cmd()
 end
 
 local function parse_row(line)
-  local pane, agent, st, name, loc = line:match("^([^\t]*)\t([^\t]*)\t([^\t]*)\t([^\t]*)\t([^\t]*)$")
+  local pane, agent, st, name, loc, session_id =
+    line:match("^([^\t]*)\t([^\t]*)\t([^\t]*)\t([^\t]*)\t([^\t]*)\t([^\t]*)$")
   if not pane then return nil end
-  return { pane = pane, agent = agent, state = st, name = name, loc = loc }
+  return {
+    pane = pane,
+    agent = agent,
+    state = st,
+    name = name,
+    loc = loc,
+    session_id = session_id,
+  }
+end
+
+-- Short prefix of the agent session UUID. Keeps popup rows narrow while still
+-- matching what Ren/Codex logs print for the first segment.
+local function short_sid(s)
+  if not s or s == "" then return "-" end
+  return s:sub(1, 8)
 end
 
 local function is_blocked(s) return s:sub(1, 8) == "blocked:" end
@@ -121,7 +136,13 @@ local function render(rows)
   local max_len = 0
   for i = 1, math.min(#rows, MAX_ROWS) do
     local r = rows[i]
-    local s = string.format("%s %s %s", r.name, r.loc, r.state)
+    -- Debuggable layout: pane %id, tmux session:window.pane, agent/name,
+    -- short session_id, state. Enough identity to map a row back to a tmux
+    -- pane and an agent session log.
+    local s = string.format(
+      "%s  %s  %s/%s  %s  %s",
+      r.pane, r.loc, r.agent, r.name, short_sid(r.session_id), r.state
+    )
     strings[i] = s
     if #s > max_len then max_len = #s end
   end
