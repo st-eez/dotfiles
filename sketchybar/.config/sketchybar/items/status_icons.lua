@@ -59,40 +59,44 @@ end
 battery_pct:subscribe({ "routine", "system_woke", "power_source_change" }, update_battery)
 update_battery()
 
--- Volume: icon-only. Click to toggle mute. Refreshes on wake and on click;
--- intentionally no routine poll — media-key changes won't update the glyph
--- mid-session, but the bar stays quiet and there's no CPU tax.
+-- Volume: icon-only. Native volume_change drives live updates; glyph and color
+-- derive from effective volume (sketchybar collapses mute to 0, see src/volume.c).
+-- Trade-off: volume=0 unmuted renders as muted/grey — rare and harmless.
 local volume_icon = add_status_icon("status.volume", icons.volume.high, { icon_size = settings.font.size.glyph })
 
-local function update_volume()
+local function render_volume(n)
+  local glyph, color
+  if n == 0 then
+    glyph, color = icons.volume.muted, colors.grey
+  elseif n >= 66 then
+    glyph, color = icons.volume.high, colors.white
+  elseif n >= 33 then
+    glyph, color = icons.volume.mid, colors.white
+  else
+    glyph, color = icons.volume.low, colors.white
+  end
+  volume_icon:set({ icon = { string = glyph, color = color } })
+end
+
+local function read_volume()
   sbar.exec(
-    [[osascript -e 'set v to output volume of (get volume settings)' -e 'set m to output muted of (get volume settings)' -e 'return (v as text) & "|" & (m as text)']],
+    [[osascript -e 'set v to output volume of (get volume settings)' -e 'set m to output muted of (get volume settings)' -e 'if m then set v to 0' -e 'return v as text']],
     function(out)
-      if not out then return end
-      local v, m = out:match("(%d+)|(%a+)")
-      if not v then return end
-      local n = tonumber(v) or 0
-      local muted = (m == "true")
-      local glyph
-      if muted or n == 0 then
-        glyph = icons.volume.muted
-      elseif n >= 66 then
-        glyph = icons.volume.high
-      elseif n >= 33 then
-        glyph = icons.volume.mid
-      else
-        glyph = icons.volume.low
-      end
-      volume_icon:set({ icon = { string = glyph, color = muted and colors.grey or colors.white } })
+      local n = out and tonumber(out:match("(%d+)"))
+      if n then render_volume(n) end
     end
   )
 end
 
-volume_icon:subscribe("mouse.clicked", function()
-  sbar.exec(
-    [[osascript -e 'set m to output muted of (get volume settings)' -e 'set volume output muted (not m)']],
-    update_volume
-  )
+volume_icon:subscribe("volume_change", function(env)
+  local n = tonumber(env.INFO)
+  if n then render_volume(n) end
 end)
-volume_icon:subscribe("system_woke", update_volume)
-update_volume()
+
+-- Toggle fires volume_change, which repaints.
+volume_icon:subscribe("mouse.clicked", function()
+  sbar.exec([[osascript -e 'set m to output muted of (get volume settings)' -e 'set volume output muted (not m)']])
+end)
+
+volume_icon:subscribe("system_woke", read_volume)
+read_volume()

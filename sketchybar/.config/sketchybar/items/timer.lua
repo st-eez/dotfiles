@@ -10,6 +10,8 @@ local state = {
   remaining_secs = 0,
   target_epoch = 0,
   hover = false,
+  close_pending = false, -- dedupes schedule_popup_close forks
+  done_clear_epoch = 0,  -- when to auto-reset after "Done!"
 }
 
 -- Helper Functions (declared early for use in callbacks)
@@ -26,8 +28,13 @@ local function update_label(secs)
 end
 
 -- Close popup shortly after pointer leaves all timer/popup regions.
+-- close_pending dedupes: mouse.exited.global fires on all 4 subscribed items
+-- when the cursor leaves the bar, so without the gate we'd fork 4 shells per flick.
 local function schedule_popup_close()
+  if state.close_pending then return end
+  state.close_pending = true
   sbar.exec("sleep 0.05", function()
+    state.close_pending = false
     if not state.hover then
       timer:set({ popup = { drawing = false } })
     end
@@ -39,6 +46,7 @@ local function reset_to_idle()
   state.duration_secs = 0
   state.remaining_secs = 0
   state.target_epoch = 0
+  state.done_clear_epoch = 0
   timer:set({
     updates = false,
     update_freq = 0,
@@ -50,18 +58,16 @@ end
 
 local function timer_complete()
   state.status = "done"
+  state.done_clear_epoch = os.time() + 10
   timer:set({
-    updates = false,
-    update_freq = 0,
+    -- Keep routine firing for the 10s auto-clear window.
+    updates = true,
+    update_freq = 1,
     popup = { drawing = false },
     label = { drawing = true, string = "Done!", color = colors.green },
     icon = { color = colors.green },
   })
   sbar.exec([[osascript -e 'display notification "Time'\''s up!" with title "Focus Timer"']])
-  -- Auto-clear the "Done!" state so the bar doesn't hold stale text.
-  sbar.exec("sleep 10", function()
-    if state.status == "done" then reset_to_idle() end
-  end)
 end
 
 local function start_timer(duration_secs)
@@ -200,8 +206,9 @@ timer:subscribe("mouse.clicked", function(env)
   end
 end)
 
--- Update Loop (routine tick + wake catch-up share one body)
-local function tick()
+-- Update Loop (routine tick + wake catch-up share one body).
+-- woke=true means system_woke: treat any "Done!" as stale and clear immediately.
+local function tick(woke)
   if state.status == "running" then
     local remaining = math.max(0, state.target_epoch - os.time())
     if remaining <= 0 then
@@ -211,12 +218,13 @@ local function tick()
       update_label(remaining)
     end
   elseif state.status == "done" then
-    -- Reached on system_woke: a "Done!" held across sleep is stale.
-    reset_to_idle()
+    if woke or os.time() >= state.done_clear_epoch then
+      reset_to_idle()
+    end
   end
 end
 
-timer:subscribe("routine", tick)
-timer:subscribe("system_woke", tick)
+timer:subscribe("routine", function() tick(false) end)
+timer:subscribe("system_woke", function() tick(true) end)
 
 return timer

@@ -111,19 +111,29 @@ local function update_highlight(focused_sid)
 end
 
 -- Main Setup
--- 1. Get Monitor List to determine setup type
+-- 1. Get Monitor List to determine setup type.
+-- Retry up to 5x at 1s intervals if aerospace hasn't published monitors yet
+-- (cold boot race: sketchybar can start before aerospace is ready).
+local function bootstrap(attempt)
 sbar.exec("aerospace list-monitors", function(monitor_output)
-  if not monitor_output or monitor_output == "" then return end
+  if not monitor_output or monitor_output == "" then
+    if attempt < 5 then
+      sbar.exec("sleep 1", function() bootstrap(attempt + 1) end)
+    end
+    return
+  end
   local is_laptop_only = false
   local monitor_list = {}
   for line in monitor_output:gmatch("[^\r\n]+") do
     table.insert(monitor_list, line)
   end
 
-  local active_profile = monitor_profiles[default_monitor_profile]
+  -- Renamed from `active_profile` to avoid shadowing the outer function of
+  -- the same name (sentinel reader, line 13).
+  local monitor_profile = monitor_profiles[default_monitor_profile]
   for _, profile in pairs(monitor_profiles) do
     if profile.match and monitor_output:find(profile.match) then
-      active_profile = profile
+      monitor_profile = profile
       break
     end
   end
@@ -152,7 +162,7 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
       local display_id = laptop_display
 
       if not is_laptop_only then
-        local map = (active_profile and active_profile.map) or {}
+        local map = (monitor_profile and monitor_profile.map) or {}
         display_id = map[monitor_id] or laptop_display
       end
 
@@ -229,7 +239,6 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
 
     front_app:subscribe("front_app_switched", function(env)
       front_app:set({ label = env.INFO })
-      update_all_windows()
     end)
 
     front_app:subscribe("mouse.clicked", function(env)
@@ -301,5 +310,8 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
 
   fetch_monitor_workspaces(1) -- Start fetching for monitor 1
 end)
+end
+
+bootstrap(1)
 
 return spaces
