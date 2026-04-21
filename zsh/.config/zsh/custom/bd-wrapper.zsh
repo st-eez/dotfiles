@@ -1,10 +1,10 @@
-# bd init wrapper: rewrites `bd prime` hooks to `bd prime --mcp` after bd init.
+# bd init wrapper: drops a custom .beads/PRIME.md override after bd init.
 #
-# Why: ren.md governs the beads workflow, so we want bd prime's minimal (~50 token)
-# output instead of the full ~1-2k command reference. beads has no native knob for
-# this — `bd init` always writes plain `bd prime` into .claude/settings.json. This
-# wrapper post-processes that file after every bd init so new repos match the
-# ren-flavored strategy without hand-editing.
+# Why: bd prime's default output is opinionated (prohibits TodoWrite, forces
+# bd remember over native memory). We ship our own workflow rules via a
+# PRIME.md override — `bd prime` reads .beads/PRIME.md and emits that instead.
+# --mcp flag becomes a no-op once the override exists, so the plain `bd prime`
+# hook that `bd init` writes is already correct; we just drop the override.
 #
 # Scope: only `bd init` is intercepted. Every other bd subcommand passes through.
 bd() {
@@ -15,25 +15,11 @@ bd() {
 
   if [[ "$1" == "init" ]]; then
     command bd "$@" || return $?
-    [[ -f .claude/settings.json ]] || return 0
-    python3 - "$PWD/.claude/settings.json" <<'PY'
-import json, sys
-path = sys.argv[1]
-with open(path) as f:
-    data = json.load(f)
-changed = False
-for event in ("SessionStart", "PreCompact"):
-    for entry in data.get("hooks", {}).get(event, []):
-        for hook in entry.get("hooks", []):
-            if hook.get("command") == "bd prime":
-                hook["command"] = "bd prime --mcp"
-                changed = True
-if changed:
-    with open(path, "w") as f:
-        json.dump(data, f, indent=2)
-        f.write("\n")
-    print("bd-wrapper: rewrote `bd prime` -> `bd prime --mcp` in .claude/settings.json")
-PY
+    local template="$HOME/.claude/templates/beads-prime.md"
+    if [[ -f "$template" && -d .beads ]]; then
+      cp "$template" .beads/PRIME.md
+      echo "bd-wrapper: dropped .beads/PRIME.md override from $template"
+    fi
   else
     command bd "$@"
   fi
