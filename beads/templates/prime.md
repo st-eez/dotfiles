@@ -8,7 +8,9 @@ Before saying "done": `bd close <completed-ids> --reason "..."`.
 - **Beads default**: durable work — issues, follow-ups, blockers — goes in beads (`bd create`, `bd ready`, `bd close`).
 - **TodoWrite/TaskCreate fine** for ephemeral in-session lists. Don't promote them to durable storage.
 - **Create bead before code** for non-trivial work; mark `in_progress` when starting.
-- **Memory**: native auto-memory at `~/.claude/projects/<encoded-cwd>/memory/`. `MEMORY.md` is the always-loaded index; individual `.md` files are read on demand. Do NOT use `bd remember`.
+- **Memory**: use agent-native memory, never `bd remember`.
+  - *Claude Code*: `~/.claude/projects/<encoded-cwd>/memory/` — per-project, hand-edited. `MEMORY.md` is the always-loaded index; sibling `.md` files are read on demand.
+  - *Codex*: `~/.codex/memories/` — **global, auto-generated from idle threads; do not hand-edit**. Put durable rules in `AGENTS.md` / `PRIME.md`, not memories.
 - **Never `bd edit`** — opens $EDITOR and blocks the agent. Use `bd update ...`.
 - Priority is `P0-P4` or `0-4`, never word form.
 

@@ -5,7 +5,7 @@ This repo uses **bd (beads)** for durable work tracking. Run `bd prime` for the 
 ### What goes where
 - **Durable work** (issues, follow-ups, blockers, anything outlasting the session) → `bd create`.
 - **Ephemeral in-session lists** (plans, transient todos) → TodoWrite/TaskCreate. Do **not** promote these to beads.
-- **Memory** → native auto-memory at `~/.claude/projects/<encoded-cwd>/memory/`. **Do NOT use `bd remember`.**
+- **Memory** → agent-native memory. **Do NOT use `bd remember`.** For codex, memories live at `~/.codex/memories/` and are auto-generated — do not hand-edit. Put durable rules here in `AGENTS.md` or run `bd prime`.
 
 ### Hard rules
 - **Never `bd edit`** — opens `$EDITOR` and blocks the agent. Use `bd update ...` / `bd note ...` / `bd comment ...`.
