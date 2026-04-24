@@ -60,3 +60,5 @@ issue-prefix: "dot"
 # - linear.api-key
 # - github.org
 # - github.repo
+
+export.git-add: false
