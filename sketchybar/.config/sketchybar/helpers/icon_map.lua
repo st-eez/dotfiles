@@ -34,6 +34,7 @@ return {
 	["Clock"] = ":clock:",
 	["Contacts"] = ":contacts:",
 	["CotEditor"] = ":coteditor:",
+	["Codex"] = ":openai:",
 	["Cursor"] = ":cursor:",
 	["DataSpell"] = ":dataspell:",
 	["Default"] = ":default:",
