@@ -16,14 +16,14 @@ trap 'rm -rf "$tmp"' EXIT
 JQ_BIN="$(command -v jq 2>/dev/null || true)"
 [[ -n "$JQ_BIN" ]] || { echo "jq is required to run this test" >&2; exit 1; }
 
-# The helper requires bash >= 4 (declare -A). macOS ships /bin/bash 3.2, so
-# locate a modern bash and expose it through env for the shebang resolver.
-if command -v bash >/dev/null 2>&1 && [[ "$(bash -c 'echo ${BASH_VERSINFO[0]}')" -ge 4 ]]; then
+# Exercise the live SketchyBar/launchd risk: on macOS, /usr/bin/env bash can
+# resolve to /bin/bash 3.2. The helper must not require Bash 4-only features.
+if [[ -x /bin/bash ]]; then
+  BASH_BIN="/bin/bash"
+elif command -v bash >/dev/null 2>&1; then
   BASH_BIN="$(command -v bash)"
-elif [[ -x /opt/homebrew/bin/bash ]]; then
-  BASH_BIN="/opt/homebrew/bin/bash"
 else
-  echo "bash >= 4 required" >&2; exit 1
+  echo "bash required" >&2; exit 1
 fi
 BASH_DIR="$(dirname "$BASH_BIN")"
 

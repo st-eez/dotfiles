@@ -19,17 +19,26 @@ export LC_ALL="${LC_ALL:-en_US.UTF-8}"
 
 command -v agent-state >/dev/null 2>&1 || exit 0
 command -v jq >/dev/null 2>&1 || exit 0
+command -v awk >/dev/null 2>&1 || exit 0
 
-declare -A LOC
-if command -v tmux >/dev/null 2>&1; then
-  while IFS=$'\t' read -r pid session wi pi; do
-    [[ -n "$pid" ]] && LOC[$pid]="${session}:${wi}.${pi}"
-  done < <(tmux list-panes -a -F '#{pane_id}	#{session_name}	#{window_index}	#{pane_index}' 2>/dev/null || true)
-fi
+{
+  if command -v tmux >/dev/null 2>&1; then
+    tmux list-panes -a -F '#{pane_id}	#{session_name}	#{window_index}	#{pane_index}' 2>/dev/null \
+      | awk 'BEGIN { FS = OFS = "\t" } { print "L", $1, $2 ":" $3 "." $4 }' \
+      || true
+  fi
 
-agent-state --all --json 2>/dev/null \
-  | jq -r '.[] | [.pane, .agent, .state, .name, (.detail.session_id // "")] | @tsv' \
-  | while IFS=$'\t' read -r pane agent state name session_id; do
-      loc="${LOC[$pane]:-?:?.?}"
-      printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$pane" "$agent" "$state" "$name" "$loc" "$session_id"
-    done
+  agent-state --all --json 2>/dev/null \
+    | jq -r '.[] | [.pane, .agent, .state, .name, (.detail.session_id // "")] | @tsv' \
+    | awk 'BEGIN { FS = OFS = "\t" } { print "A", $0 }'
+} | awk '
+  BEGIN { FS = OFS = "\t" }
+  $1 == "L" {
+    loc[$2] = $3
+    next
+  }
+  $1 == "A" {
+    pane = $2
+    print $2, $3, $4, $5, ((pane in loc) ? loc[pane] : "?:?.?"), $6
+  }
+'
