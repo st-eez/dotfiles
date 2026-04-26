@@ -1,0 +1,258 @@
+#!/usr/bin/env bash
+# bd shim — shell-agnostic wrapper around the real bd binary.
+#
+# Replaces the prior $ZSH_CUSTOM/bd-wrapper.zsh function so the dotfiles
+# integration fires regardless of shell or invocation context (interactive
+# zsh, bash, agent Bash tools, scripts, cron, etc).
+#
+# Subcommands:
+#   bd init                  # upstream init, then post-init integration
+#   bd reapply-integration   # apply integration to an existing bd repo
+#   bd <anything else>       # passes through to the real bd
+#
+# After init / reapply, this shim:
+#   1. Writes .beads/PRIME.md from the dotfiles template.
+#   2. Replaces the <!-- BEGIN BEADS INTEGRATION --> block in CLAUDE.md.
+#   3. Replaces the same block in AGENTS.md.
+#   4. Merges bd prime hooks into .claude/settings.json.
+#   5. Writes .codex/hooks.json with a bd prime SessionStart hook.
+#
+# Templates live at $HOME/.dotfiles/beads/templates (overridable via
+# BD_DOTFILES_TEMPLATES). This shim is meant to be symlinked into a PATH
+# directory that precedes the real bd's location (e.g., ~/.local/bin/bd).
+
+set -uo pipefail
+
+TEMPLATES_DIR="${BD_DOTFILES_TEMPLATES:-$HOME/.dotfiles/beads/templates}"
+
+# Resolve this shim's real path so we can skip its directory when locating
+# the upstream bd binary (avoids self-recursion if PATH has duplicate dirs).
+self_resolve() {
+  local target=$1 link
+  while link=$(readlink "$target" 2>/dev/null); do
+    case $link in
+      /*) target=$link ;;
+      *)  target="$(cd "$(dirname "$target")" && pwd -P)/$link" ;;
+    esac
+  done
+  printf '%s\n' "$(cd "$(dirname "$target")" && pwd -P)/$(basename "$target")"
+}
+
+SELF_PATH=$(self_resolve "$0")
+SELF_DIR=$(dirname "$SELF_PATH")
+
+find_real_bd() {
+  local IFS=:
+  local d candidate resolved
+  for d in $PATH; do
+    [[ -z "$d" ]] && continue
+    candidate="$d/bd"
+    [[ -x "$candidate" ]] || continue
+    resolved=$(self_resolve "$candidate") || continue
+    [[ "$resolved" == "$SELF_PATH" ]] && continue
+    printf '%s\n' "$candidate"
+    return 0
+  done
+  return 1
+}
+
+# Replace the content between <!-- BEGIN BEADS INTEGRATION --> and
+# <!-- END BEADS INTEGRATION --> in $1 with the contents of $2. Preserves
+# the marker lines themselves. Silent no-op if file or markers are absent.
+replace_block() {
+  local file=$1 template=$2
+  [[ -f "$file" && -f "$template" ]] || return 0
+  grep -q '^<!-- BEGIN BEADS INTEGRATION' "$file" || return 0
+  grep -q '^<!-- END BEADS INTEGRATION'   "$file" || return 0
+
+  local tmp
+  tmp=$(mktemp) || return 1
+  awk -v tf="$template" '
+    BEGIN {
+      while ((getline line < tf) > 0) content = content line "\n"
+      close(tf)
+      sub(/\n$/, "", content)
+    }
+    /^<!-- BEGIN BEADS INTEGRATION/ { print; print content; in_block=1; next }
+    /^<!-- END BEADS INTEGRATION/   { print; in_block=0; next }
+    in_block                         { next }
+    { print }
+  ' "$file" > "$tmp" && mv "$tmp" "$file"
+  echo "bd-shim: replaced BEADS block in $file"
+}
+
+# Project-scoped Claude Code hooks: SessionStart + PreCompact run `bd prime`.
+# Idempotent: existing hooks are merged, not replaced.
+write_claude_hooks() {
+  mkdir -p .claude || return 1
+  local settings=.claude/settings.json
+
+  if ! command -v python3 >/dev/null 2>&1; then
+    if [[ -f "$settings" ]]; then
+      echo "bd-shim: python3 missing; leaving existing $settings unchanged" >&2
+      return 0
+    fi
+    cat > "$settings" <<'JSON'
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bd prime"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bd prime"
+          }
+        ]
+      }
+    ]
+  }
+}
+JSON
+    echo "bd-shim: wrote $settings"
+    return 0
+  fi
+
+  python3 - "$settings" <<'PY'
+import json
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+try:
+    data = json.loads(path.read_text())
+except FileNotFoundError:
+    data = {}
+except json.JSONDecodeError as exc:
+    print(f"bd-shim: invalid {path}: {exc}", file=sys.stderr)
+    sys.exit(1)
+
+hooks = data.setdefault("hooks", {})
+
+def ensure_bd_prime(event):
+    groups = hooks.setdefault(event, [])
+    for group in groups:
+        if group.get("matcher", "") != "":
+            continue
+        commands = group.setdefault("hooks", [])
+        for hook in commands:
+            if hook.get("type") == "command" and hook.get("command") == "bd prime":
+                return False
+        commands.append({"type": "command", "command": "bd prime"})
+        return True
+
+    groups.append({
+        "matcher": "",
+        "hooks": [
+            {"type": "command", "command": "bd prime"},
+        ],
+    })
+    return True
+
+changed = ensure_bd_prime("SessionStart")
+changed = ensure_bd_prime("PreCompact") or changed
+
+if changed:
+    path.write_text(json.dumps(data, indent=2) + "\n")
+    print(f"bd-shim: updated {path}")
+else:
+    print(f"bd-shim: {path} already wired")
+PY
+}
+
+# Project-scoped Codex hook: SessionStart runs `bd prime`.
+# Codex treats project-local hooks as trust-gated — you'll be prompted once
+# per new repo to mark it trusted before the hook fires.
+write_codex_hooks() {
+  mkdir -p .codex || return 1
+  cat > .codex/hooks.json <<'JSON'
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bd prime",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
+JSON
+  echo "bd-shim: wrote .codex/hooks.json"
+}
+
+post_init() {
+  [[ -d .beads ]] || return 0
+  if [[ ! -d "$TEMPLATES_DIR" ]]; then
+    echo "bd-shim: templates dir missing: $TEMPLATES_DIR" >&2
+    return 0
+  fi
+
+  if [[ -f "$TEMPLATES_DIR/prime.md" ]]; then
+    cp -f "$TEMPLATES_DIR/prime.md" .beads/PRIME.md
+    echo "bd-shim: wrote .beads/PRIME.md"
+  fi
+
+  replace_block CLAUDE.md "$TEMPLATES_DIR/claude.md"
+  replace_block AGENTS.md "$TEMPLATES_DIR/agents.md"
+  write_claude_hooks
+  write_codex_hooks
+}
+
+REAL_BD=$(find_real_bd) || {
+  echo "bd-shim: real bd binary not found in PATH (skipped self at $SELF_DIR)" >&2
+  exit 127
+}
+
+case "${1:-}" in
+  reapply-integration)
+    shift
+    if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+      cat <<USAGE
+Usage: bd reapply-integration
+
+Reapply the dotfiles-managed Beads integration to an existing bd repo:
+  - .beads/PRIME.md
+  - CLAUDE.md Beads block, when markers exist
+  - AGENTS.md Beads block, when markers exist
+  - .claude/settings.json bd prime hooks
+  - .codex/hooks.json bd prime hook
+
+This does not run bd init or modify the Beads database.
+USAGE
+      exit 0
+    fi
+    if [[ $# -ne 0 ]]; then
+      echo "Usage: bd reapply-integration" >&2
+      exit 2
+    fi
+    if [[ ! -d .beads ]]; then
+      echo "bd reapply-integration: no .beads directory in current repo" >&2
+      exit 1
+    fi
+    post_init
+    ;;
+  init)
+    "$REAL_BD" "$@" || exit $?
+    post_init
+    ;;
+  *)
+    exec "$REAL_BD" "$@"
+    ;;
+esac
