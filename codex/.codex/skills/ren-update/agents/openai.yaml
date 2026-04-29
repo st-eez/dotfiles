@@ -1,4 +1,0 @@
-interface:
-  display_name: "ren-update"
-  short_description: "Run the eval-gated workflow for Ren prompt and voice updates"
-  default_prompt: "Use $ren-update to update Ren through the eval-gated workflow instead of making an in-session promise."

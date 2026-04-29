@@ -1,4 +1,0 @@
-interface:
-  display_name: "agenda"
-  short_description: "Run the daily planning workflow"
-  default_prompt: "Use $agenda to run my morning planning ritual and build today's slate."
