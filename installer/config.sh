@@ -31,6 +31,9 @@ export DEV_PKGS=(
     playwright-cli
     python
     lua
+    gopls
+    pyright
+    lua-language-server
     pnpm
     prettier
     stow
@@ -125,6 +128,7 @@ get_pacman_pkg() {
         gemini)    echo "" ;;                     # Use npm: @google/gemini-cli
         opencode)  echo "" ;;                     # Use native installer
         prettier)  echo "" ;;                     # Use npm
+        pyright)   echo "" ;;                     # Use npm
         pnpm)      echo "" ;;                     # Use corepack
         starship)  echo "starship" ;;
         *)         echo "$1" ;; # Default: same name
@@ -150,6 +154,8 @@ get_apt_pkg() {
         gemini)    echo "" ;;   # Use npm
         opencode)  echo "" ;;   # Use npm
         prettier)  echo "" ;;   # Use npm
+        pyright)   echo "" ;;   # Use npm
+        lua-language-server) echo "" ;; # No standard apt package; manual on Debian
         pnpm)      echo "" ;;   # Use corepack
         starship)  echo "" ;;   # Use native installer
         *)         echo "$1" ;; # Default: same name
@@ -186,6 +192,7 @@ get_binary_name() {
                 echo "python3"
             fi
             ;;
+        pyright)          echo "pyright-langserver" ;;
         *)               echo "$1" ;;
     esac
 }
@@ -220,6 +227,9 @@ get_pkg_description() {
         lazygit)      echo "Git TUI" ;;
         localsend)    echo "Local file sharing" ;;
         lua)          echo "Lua interpreter" ;;
+        gopls)        echo "Go language server" ;;
+        pyright)      echo "Python language server" ;;
+        lua-language-server) echo "Lua language server" ;;
         nmap)         echo "Network scanner" ;;
         nvim)         echo "Neovim + LazyVim" ;;
         opencode)     echo "OpenCode AI assistant" ;;
@@ -246,6 +256,7 @@ get_pkg_description() {
 get_alt_install_method() {
     case "$1" in
         prettier)  echo "npm:prettier" ;;
+        pyright)   echo "npm:pyright" ;;
         pnpm)      echo "corepack:pnpm" ;;
         codex)     echo "npm:@openai/codex" ;;
         gemini)    echo "npm:@google/gemini-cli" ;;
@@ -283,6 +294,9 @@ get_alt_install_method() {
         starship)
             # Debian/Ubuntu/Mint: apt version often outdated, use official script
             [[ "$DISTRO" == "debian" ]] && echo "native:install_starship_script"
+            ;;
+        lua-language-server)
+            [[ "$DISTRO" == "debian" ]] && echo "manual:install via Homebrew on macOS, pacman on Arch, or upstream LuaLS releases on Debian"
             ;;
         uv)
             [[ "$OS" != "macos" ]] && echo "manual:install via Homebrew on macOS; Linux setup is not wired into this repo yet"
