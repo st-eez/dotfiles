@@ -44,6 +44,7 @@ export AI_PKGS=(
     codex
     gemini
     opencode
+    pi
 )
 
 # File & Search Tools
@@ -222,6 +223,7 @@ get_pkg_description() {
         nmap)         echo "Network scanner" ;;
         nvim)         echo "Neovim + LazyVim" ;;
         opencode)     echo "OpenCode AI assistant" ;;
+        pi)           echo "Pi coding agent + custom extensions" ;;
         playwright-cli) echo "Playwright automation CLI" ;;
         pnpm)         echo "Fast package manager" ;;
         prettier)     echo "Code formatter" ;;
@@ -251,6 +253,7 @@ get_alt_install_method() {
             # Linux: use native installer (brew handles macOS)
             [[ "$OS" != "macos" ]] && echo "native:curl -fsSL https://opencode.ai/install | bash"
             ;;
+        pi)        echo "npm:@mariozechner/pi-coding-agent" ;;
         beads)
             [[ "$OS" != "macos" ]] && echo "manual:install via Homebrew on macOS; Linux setup is not wired into this repo yet"
             ;;

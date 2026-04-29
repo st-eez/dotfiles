@@ -63,6 +63,11 @@ raycast/extensions/prompt-optimizer/.gemini-clipboard/
 .secrets
 *.secrets
 zsh/.secrets
+pi/.pi/agent/.env
+pi/.pi/agent/auth.json
+pi/.pi/agent/sessions/
+pi/.pi/agent/git/
+pi/.pi/agent/npm/
 
 # Gemini Clipboard
 .gemini-clipboard

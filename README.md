@@ -89,6 +89,7 @@ Edit `~/.gitconfig` with your name and email.
 | `zsh/`        | Oh-My-Zsh + Starship prompt                            |
 | `karabiner/`  | Caps Lock → Escape (tap) / Alt (hold)                  |
 | `raycast/`    | Keybind search extension                               |
+| `pi/`         | Pi coding agent settings, skills, and extensions       |
 | `borders/`    | Window border styling                                  |
 | `Brewfile`    | All packages and apps                                  |
 
@@ -147,6 +148,7 @@ Three monitor configurations for Aerospace. Local edits use `skip-worktree` (won
 ## Private Config
 
 - `~/.secrets` – API keys, tokens (not tracked)
+- `~/.pi/agent/.env` and `~/.pi/agent/auth.json` – Pi API keys/auth (not tracked)
 
 ---
 
