@@ -1,0 +1,190 @@
+schema_version = 1
+
+[theme]
+id = "vantarouge"
+name = "Vantarouge"
+variant = "deep-rouge"
+source = "https://github.com/basecamp/omarchy"
+
+[identifiers]
+ghostty = "Vantarouge"
+nvim_colorscheme = "vantablack"
+nvim_plugin = "bjarneo/vantablack.nvim"
+antigravity = "Vantablack"
+opencode = "vantarouge"
+obsidian = "Vantablack"
+
+[palette]
+bg0 = "#0d0d0d"
+bg1 = "#1a1a1a"
+bg2 = "#2a2a2a"
+fg = "#eaeaea"
+grey = "#8a8a8a"
+red = "#c94f4f"
+orange = "#aa7462"
+yellow = "#ad9168"
+green = "#879b78"
+cyan = "#809996"
+blue = "#858fa8"
+magenta = "#9f748d"
+
+[overrides.neovim]
+config_lua = """
+require("vantablack").setup({
+  styles = {
+    comments = { italic = true },
+    keywords = { italic = true },
+    functions = {},
+    variables = {},
+  },
+  on_colors = function(colors)
+    colors.bg = "#0d0d0d"
+    colors.bg_dark = "#0d0d0d"
+    colors.bg_dark1 = "#0d0d0d"
+    colors.bg_highlight = "#1a1a1a"
+    colors.fg = "#eaeaea"
+    colors.fg_dark = "#d6d6d6"
+    colors.comment = "#8a8a8a"
+
+    -- Keep Vantablack mapping semantics, swap in Vantarouge canonical palette.
+    colors.red = "#c94f4f"
+    colors.red1 = "#c94f4f"
+    colors.orange = "#aa7462"
+    colors.yellow = "#ad9168"
+    colors.green = "#879b78"
+    colors.green1 = "#879b78"
+    colors.green2 = "#879b78"
+    colors.cyan = "#809996"
+    colors.teal = "#809996"
+    colors.blue = "#858fa8"
+    colors.blue2 = "#809996"
+    colors.magenta = "#9f748d"
+    colors.magenta2 = "#9f748d"
+    colors.purple = "#9f748d"
+
+    -- Keep derived semantic colors aligned with the overridden canonical slots.
+    colors.error = colors.red1
+    colors.warning = colors.yellow
+    colors.info = colors.blue2
+    colors.hint = colors.teal
+    colors.todo = colors.blue
+  end,
+})
+
+-- NOTE: vantablack.nvim currently exposes on_highlights in config defaults
+-- but does not apply it internally, so enforce todo keyword readability here.
+local group = vim.api.nvim_create_augroup("VantarougeTodoHighlights", { clear = true })
+vim.api.nvim_create_autocmd("ColorScheme", {
+  group = group,
+  pattern = "vantablack",
+  callback = function()
+    -- Fix near-invisible Visual selection (upstream #191919 on #0d0d0d)
+    vim.api.nvim_set_hl(0, "Visual", { bg = "#342020" })
+    vim.api.nvim_set_hl(0, "TodoBgWARN", { fg = "#eaeaea", bg = "NONE", bold = true })
+    vim.api.nvim_set_hl(0, "TodoBgTODO", { fg = "#eaeaea", bg = "NONE", bold = true })
+    vim.api.nvim_set_hl(0, "TodoBgFIX", { fg = "#eaeaea", bg = "NONE", bold = true })
+    vim.api.nvim_set_hl(0, "TodoBgHACK", { fg = "#eaeaea", bg = "NONE", bold = true })
+    vim.api.nvim_set_hl(0, "TodoBgNOTE", { fg = "#eaeaea", bg = "NONE", bold = true })
+    vim.api.nvim_set_hl(0, "TodoBgPERF", { fg = "#eaeaea", bg = "NONE", bold = true })
+    vim.api.nvim_set_hl(0, "TodoFgWARN", { fg = "#ad9168", bold = true })
+    vim.api.nvim_set_hl(0, "TodoFgTODO", { fg = "#858fa8", bold = true })
+    vim.api.nvim_set_hl(0, "TodoFgFIX", { fg = "#c94f4f", bold = true })
+    vim.api.nvim_set_hl(0, "TodoFgHACK", { fg = "#aa7462", bold = true })
+    vim.api.nvim_set_hl(0, "TodoFgNOTE", { fg = "#809996", bold = true })
+    vim.api.nvim_set_hl(0, "TodoFgPERF", { fg = "#9f748d", bold = true })
+  end,
+})
+"""
+
+[overrides.obsidian]
+active_file_accent = "#c94f4f"
+
+[overrides.sketchybar]
+highlight = "#858fa8"
+
+[overrides.starship]
+directory_style = "bold #c94f4f"
+repo_root_style = "bold #c94f4f"
+git_branch_style = "#eaeaea"
+git_status_ahead_style = "#8a8a8a"
+git_status_warning_style = "#ad9168"
+git_status_conflicted_style = "bold #c94f4f"
+character_success_style = "bold #eaeaea"
+character_error_style = "bold #c94f4f"
+
+[overrides.eza]
+directory = "38;2;201;79;79;1"
+executable = "37"
+symlink = "38;2;159;116;141"
+source_code = "37"
+git_modified = "38;2;173;145;104"
+git_new = "38;2;159;116;141"
+git_deleted = "38;2;201;79;79"
+git_renamed = "38;2;128;153;150"
+git_conflicted = "38;2;201;79;79;1"
+permission_read = "90"
+permission_write = "90"
+permission_execute = "38;2;173;145;104"
+permission_execute_other = "38;2;173;145;104"
+permission_group_read = "90"
+permission_group_write = "90"
+permission_group_execute = "38;2;173;145;104"
+permission_other_read = "90"
+permission_other_write = "90"
+permission_other_execute = "38;2;173;145;104"
+permission_special = "38;2;201;79;79;1"
+permission_special_other = "38;2;201;79;79;1"
+permission_attribute = "90"
+size_number = "90"
+size_unit = "90"
+
+[overrides.borders]
+active_color = "#c94f4f"
+
+[overrides.tmux]
+thm_green = "#eaeaea"
+thm_surface_1 = "#343434"
+thm_overlay_2 = "#666666"
+thm_teal = "#c94f4f"
+thm_maroon = "#aa7462"
+thm_sapphire = "#809996"
+thm_lavender = "#9f748d"
+thm_mauve = "#9f748d"
+catppuccin_status_application_icon_bg = "#c94f4f"
+catppuccin_status_uptime_icon_bg = "#ad9168"
+pane_active_border_style_fg = "#c94f4f"
+
+[overrides.ghostty]
+split_divider_color = "#8a8a8a"
+
+[overrides.ghostty_theme]
+file = "vantarouge.ghostty"
+background = "#0d0d0d"
+foreground = "#eaeaea"
+cursor_color = "#c94f4f"
+cursor_text = "#0d0d0d"
+selection_background = "#342020"
+selection_foreground = "#eaeaea"
+color0 = "#0d0d0d"
+color8 = "#5f5f5f"
+color15 = "#ffffff"
+
+[overrides.opencode_theme]
+file = "vantarouge.json"
+
+[overrides.pi_theme]
+file = "vantarouge.json"
+
+[overrides.pi_theme.vars]
+selection = "#342020"
+errorBg = "#261a1a"
+
+[overrides.pi_theme.colors]
+text = "fg"
+thinkingText = "grey"
+selectedBg = "selection"
+userMessageBg = "bg2"
+toolErrorBg = "errorBg"
+mdLink = "red"
+mdCode = "red"
+syntaxPunctuation = "fg"

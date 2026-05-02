@@ -134,3 +134,18 @@ color15 = "#ffffff"
 
 [overrides.opencode_theme]
 file = "vantasteez.json"
+
+[overrides.pi_theme]
+file = "vantasteez.json"
+
+[overrides.pi_theme.vars]
+selection = "#283042"
+
+[overrides.pi_theme.colors]
+text = "fg"
+thinkingText = "grey"
+selectedBg = "selection"
+userMessageBg = "bg2"
+mdLink = "blue"
+mdCode = "cyan"
+syntaxPunctuation = "fg"

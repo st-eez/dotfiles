@@ -27,12 +27,13 @@ STATE_FILE="$HOME/.config/current-theme"
 THEMES_MANIFEST="$THEMES_DIR/themes.json"
 THEMES=()
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
+# ANSI colors for output. Prefix these so sourced theme palette variables
+# like RED/GREEN/BLUE do not clobber CLI formatting.
+ANSI_RED='\033[0;31m'
+ANSI_GREEN='\033[0;32m'
+ANSI_YELLOW='\033[0;33m'
+ANSI_BLUE='\033[0;34m'
+ANSI_NC='\033[0m'
 
 usage() {
     echo "Usage: theme-set <theme> | --next | --prev"
@@ -132,12 +133,12 @@ default_theme() {
 show_status() {
     local current
     current=$(get_current_theme)
-    echo -e "${BLUE}Current theme:${NC} $current"
+    echo -e "${ANSI_BLUE}Current theme:${ANSI_NC} $current"
     echo ""
     echo "Available themes:"
     for t in "${THEMES[@]}"; do
         if [[ "$t" == "$current" ]]; then
-            echo -e "  ${GREEN}● $t${NC} (active)"
+            echo -e "  ${ANSI_GREEN}● $t${ANSI_NC} (active)"
         else
             echo "  ○ $t"
         fi
@@ -201,10 +202,10 @@ case "$THEME" in
     --prev|-p) THEME=$(cycle_theme prev) ;;
 esac
 
-log() { echo -e "  ${GREEN}✓${NC} $1"; }
-warn() { echo -e "  ${YELLOW}!${NC} $1"; }
-skip() { echo -e "  ${BLUE}○${NC} $1 (not installed)"; }
-error() { echo -e "  ${RED}✗${NC} $1"; exit 1; }
+log() { echo -e "  ${ANSI_GREEN}✓${ANSI_NC} $1"; }
+warn() { echo -e "  ${ANSI_YELLOW}!${ANSI_NC} $1"; }
+skip() { echo -e "  ${ANSI_BLUE}○${ANSI_NC} $1 (not installed)"; }
+error() { echo -e "  ${ANSI_RED}✗${ANSI_NC} $1"; exit 1; }
 
 # App detection - returns 0 if installed, 1 if not
 is_installed() {
@@ -263,7 +264,7 @@ THEME_META_FILE="$THEMES_DIR/meta/$THEME.env"
 source "$THEME_META_FILE"
 
 echo ""
-echo -e "${BLUE}Setting theme:${NC} $THEME_NAME"
+echo -e "${ANSI_BLUE}Setting theme:${ANSI_NC} $THEME_NAME"
 echo ""
 
 # =============================================================================
@@ -318,14 +319,19 @@ elif [[ -f "$THEMES_DIR/configs/$THEME/bordersrc" ]]; then
 fi
 
 # =============================================================================
-# 4. Starship - REMOVED (migrated from P10k)
+# 4. Terminal-adjacent tools - Starship + shell environment (eza)
 # =============================================================================
-# Starship theming will be added in Phase 3
-# if [[ -f "$THEMES_DIR/configs/$THEME/starship.toml" ]]; then
-#     mkdir -p ~/.config
-#     ln -sfn "$THEMES_DIR/configs/$THEME/starship.toml" ~/.config/starship.toml
-#     log "Starship"
-# fi
+if [[ -f "$THEMES_DIR/configs/$THEME/starship.toml" ]]; then
+    mkdir -p ~/.config
+    ln -sfn "$THEMES_DIR/configs/$THEME/starship.toml" ~/.config/starship.toml
+    log "Starship"
+fi
+
+if [[ -f "$THEMES_DIR/configs/$THEME/terminal-env.sh" ]]; then
+    mkdir -p ~/.config
+    ln -sfn "$THEMES_DIR/configs/$THEME/terminal-env.sh" ~/.config/theme-terminal.env
+    log "Terminal env"
+fi
 
 # =============================================================================
 # 5. Neovim - symlink theme.lua (with Stow folding guard)
@@ -527,15 +533,15 @@ echo "$THEME" > "$STATE_FILE"
 
 if [[ -n "$BACKUP_DIR" && -d "$BACKUP_DIR" ]]; then
     echo ""
-    echo -e "${YELLOW}Backups:${NC} ${BACKUP_DIR/$HOME/~}"
+    echo -e "${ANSI_YELLOW}Backups:${ANSI_NC} ${BACKUP_DIR/$HOME/~}"
 fi
 
 echo ""
-echo -e "${GREEN}Done!${NC} Theme set to: $THEME_NAME"
+echo -e "${ANSI_GREEN}Done!${ANSI_NC} Theme set to: $THEME_NAME"
 echo ""
 echo "To apply changes:"
-echo "  - Terminal prompt: open a new terminal"
+echo "  - Terminal prompt/eza colors: open a new terminal"
 echo "  - Neovim: quit and reopen"
 echo "  - OpenCode: restart"
 echo ""
-echo "Note: Starship prompt not yet themed - configure manually with 'starship config'"
+echo "Note: Existing shells need reload/new terminal for Starship/eza environment changes"

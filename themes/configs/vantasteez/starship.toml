@@ -1,0 +1,51 @@
+# Vantasteez Starship theme
+# Managed by theme-set - do not edit manually
+add_newline = true
+command_timeout = 200
+format = "$os$hostname[$directory$git_branch$git_status]($style)$character"
+
+[os]
+disabled = false
+style = "#eaeaea"
+
+[os.symbols]
+Macos = "󰀵 "
+Arch = "󰣇 "
+Ubuntu = " "
+Mint = "󰣭 "
+Linux = " "
+
+[hostname]
+ssh_only = true
+format = "[$hostname](#eaeaea):"
+
+[character]
+error_symbol = "[✘](bold #c995a0)"
+success_symbol = "[❯](bold #eaeaea)"
+
+[directory]
+truncation_length = 3
+truncation_symbol = "…/"
+style = "#eaeaea"
+before_repo_root_style = "#eaeaea"
+repo_root_style = "bold #8fbfc8"
+repo_root_format = "[$before_root_path]($before_repo_root_style)[$repo_root]($repo_root_style)[$path]($style)[$read_only]($read_only_style) "
+
+[git_branch]
+format = "[$symbol$branch]($style) "
+symbol = " "
+style = "#a3c8a0"
+
+[git_status]
+format = '$all_status$ahead_behind'
+ahead = "[⇡${count}](#a3c8a0) "
+diverged = "[⇕⇡${ahead_count}⇣${behind_count}](#d8c08a) "
+behind = "[⇣${count}](#d8c08a) "
+conflicted = "[](#c995a0) "
+up_to_date = ""
+untracked = "[?](#d8c08a) "
+modified = "[](#d8c08a) "
+stashed = ""
+staged = ""
+renamed = ""
+deleted = ""

@@ -91,6 +91,24 @@
       }
     },
     {
+      "id": "vantarouge",
+      "name": "Vantarouge",
+      "colors": {
+        "bg0": "#0d0d0d",
+        "bg1": "#1a1a1a",
+        "bg2": "#2a2a2a",
+        "fg": "#eaeaea",
+        "grey": "#8a8a8a",
+        "red": "#c94f4f",
+        "green": "#879b78",
+        "yellow": "#ad9168",
+        "blue": "#858fa8",
+        "magenta": "#9f748d",
+        "cyan": "#809996",
+        "orange": "#aa7462"
+      }
+    },
+    {
       "id": "vantasteez",
       "name": "Vantasteez",
       "colors": {

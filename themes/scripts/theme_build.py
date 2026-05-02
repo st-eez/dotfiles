@@ -63,6 +63,8 @@ MANAGED_THEME_CONFIG_FILENAMES = (
     "neovim.lua",
     "obsidian-snippet.css",
     "btop.theme",
+    "starship.toml",
+    "terminal-env.sh",
 )
 MANAGED_OPTIONAL_THEME_CONFIG_EXTENSIONS = (".json", ".ghostty")
 OPENCODE_THEME_SCHEMA_URL = "https://opencode.ai/theme.json"
@@ -85,8 +87,65 @@ ALLOWED_OVERRIDE_TARGETS = {
     "opencode",
     "opencode_theme",
     "ghostty_theme",
+    "pi_theme",
     "btop",
+    "starship",
+    "eza",
 }
+PI_THEME_SCHEMA_URL = "https://raw.githubusercontent.com/badlogic/pi-mono/main/packages/coding-agent/src/modes/interactive/theme/theme-schema.json"
+PI_THEME_COLOR_KEYS = (
+    "accent",
+    "border",
+    "borderAccent",
+    "borderMuted",
+    "success",
+    "error",
+    "warning",
+    "muted",
+    "dim",
+    "text",
+    "thinkingText",
+    "selectedBg",
+    "userMessageBg",
+    "userMessageText",
+    "customMessageBg",
+    "customMessageText",
+    "customMessageLabel",
+    "toolPendingBg",
+    "toolSuccessBg",
+    "toolErrorBg",
+    "toolTitle",
+    "toolOutput",
+    "mdHeading",
+    "mdLink",
+    "mdLinkUrl",
+    "mdCode",
+    "mdCodeBlock",
+    "mdCodeBlockBorder",
+    "mdQuote",
+    "mdQuoteBorder",
+    "mdHr",
+    "mdListBullet",
+    "toolDiffAdded",
+    "toolDiffRemoved",
+    "toolDiffContext",
+    "syntaxComment",
+    "syntaxKeyword",
+    "syntaxFunction",
+    "syntaxVariable",
+    "syntaxString",
+    "syntaxNumber",
+    "syntaxType",
+    "syntaxOperator",
+    "syntaxPunctuation",
+    "thinkingOff",
+    "thinkingMinimal",
+    "thinkingLow",
+    "thinkingMedium",
+    "thinkingHigh",
+    "thinkingXhigh",
+    "bashMode",
+)
 
 
 class ThemeSourceError(ValueError):
@@ -214,6 +273,10 @@ def default_configs_dir() -> Path:
 
 def default_wallpapers_dir() -> Path:
     return Path(__file__).resolve().parent.parent / "wallpapers"
+
+
+def default_pi_themes_dir() -> Path:
+    return Path(__file__).resolve().parents[2] / "pi" / ".pi" / "agent" / "themes"
 
 
 def default_themes_json_path() -> Path:
@@ -1244,6 +1307,318 @@ def render_opencode_theme(theme_source: ThemeSource) -> tuple[str, str] | None:
     return output_filename, json.dumps(payload, indent=2) + "\n"
 
 
+def render_pi_theme(theme_source: ThemeSource) -> tuple[str, str] | None:
+    overrides = _extract_overrides_for_target(theme_source, "pi_theme")
+    if not overrides:
+        return None
+
+    _assert_allowed_override_keys(
+        theme_source,
+        "pi_theme",
+        overrides,
+        {"file", "name", "vars", "colors", "export"},
+    )
+
+    output_filename = _resolve_string_override(
+        theme_source,
+        "pi_theme",
+        overrides,
+        "file",
+        f"{theme_source.theme.id}.json",
+    )
+    _normalize_pi_theme_filename(theme_source, output_filename)
+
+    vars_payload: dict[str, str | int] = _build_default_pi_theme_vars(theme_source)
+    vars_overrides = overrides.get("vars", {})
+    if not isinstance(vars_overrides, dict):
+        raise ThemeSourceError(theme_source.file_path, "overrides.pi_theme.vars must be a TOML table")
+    for key in sorted(vars_overrides.keys()):
+        if not isinstance(key, str):
+            raise ThemeSourceError(theme_source.file_path, "overrides.pi_theme.vars keys must be strings")
+        vars_payload[key] = _normalize_pi_theme_color_value(
+            theme_source,
+            f"overrides.pi_theme.vars.{key}",
+            vars_overrides[key],
+            vars_payload,
+            allow_empty=True,
+        )
+
+    colors_payload: dict[str, str | int] = _build_default_pi_theme_colors(theme_source)
+    colors_overrides = overrides.get("colors", {})
+    if not isinstance(colors_overrides, dict):
+        raise ThemeSourceError(theme_source.file_path, "overrides.pi_theme.colors must be a TOML table")
+    unknown_color_keys = sorted(set(colors_overrides.keys()) - set(PI_THEME_COLOR_KEYS))
+    if unknown_color_keys:
+        unknown_display = ", ".join(unknown_color_keys)
+        raise ThemeSourceError(theme_source.file_path, f"Unknown key(s) in overrides.pi_theme.colors: {unknown_display}")
+    for key in sorted(colors_overrides.keys()):
+        colors_payload[key] = _normalize_pi_theme_color_value(
+            theme_source,
+            f"overrides.pi_theme.colors.{key}",
+            colors_overrides[key],
+            vars_payload,
+            allow_empty=True,
+        )
+
+    export_payload = _build_default_pi_theme_export(theme_source)
+    export_overrides = overrides.get("export", {})
+    if not isinstance(export_overrides, dict):
+        raise ThemeSourceError(theme_source.file_path, "overrides.pi_theme.export must be a TOML table")
+    _ensure_known_keys(theme_source.file_path, "overrides.pi_theme.export", export_overrides, {"pageBg", "cardBg", "infoBg"})
+    for key in sorted(export_overrides.keys()):
+        export_payload[key] = _normalize_hex_color(
+            theme_source.file_path,
+            f"overrides.pi_theme.export.{key}",
+            export_overrides[key],
+        )
+
+    theme_name = _resolve_string_override(theme_source, "pi_theme", overrides, "name", theme_source.theme.id)
+    payload = {
+        "$schema": PI_THEME_SCHEMA_URL,
+        "name": theme_name,
+        "vars": vars_payload,
+        "colors": colors_payload,
+        "export": export_payload,
+    }
+    return output_filename, json.dumps(payload, indent=2) + "\n"
+
+
+def render_starship_config(theme_source: ThemeSource) -> str:
+    palette = theme_source.palette
+    overrides = _extract_overrides_for_target(theme_source, "starship")
+    _assert_allowed_override_keys(
+        theme_source,
+        "starship",
+        overrides,
+        {
+            "os_style",
+            "hostname_style",
+            "character_success_style",
+            "character_error_style",
+            "directory_style",
+            "repo_root_style",
+            "git_branch_style",
+            "git_status_ahead_style",
+            "git_status_warning_style",
+            "git_status_conflicted_style",
+        },
+    )
+
+    os_style = _resolve_string_override(theme_source, "starship", overrides, "os_style", palette.fg)
+    hostname_style = _resolve_string_override(theme_source, "starship", overrides, "hostname_style", palette.fg)
+    character_success_style = _resolve_string_override(
+        theme_source,
+        "starship",
+        overrides,
+        "character_success_style",
+        f"bold {palette.fg}",
+    )
+    character_error_style = _resolve_string_override(
+        theme_source,
+        "starship",
+        overrides,
+        "character_error_style",
+        f"bold {palette.red}",
+    )
+    directory_style = _resolve_string_override(theme_source, "starship", overrides, "directory_style", palette.fg)
+    repo_root_style = _resolve_string_override(
+        theme_source,
+        "starship",
+        overrides,
+        "repo_root_style",
+        f"bold {palette.cyan}",
+    )
+    git_branch_style = _resolve_string_override(
+        theme_source,
+        "starship",
+        overrides,
+        "git_branch_style",
+        palette.green,
+    )
+    git_status_ahead_style = _resolve_string_override(
+        theme_source,
+        "starship",
+        overrides,
+        "git_status_ahead_style",
+        palette.green,
+    )
+    git_status_warning_style = _resolve_string_override(
+        theme_source,
+        "starship",
+        overrides,
+        "git_status_warning_style",
+        palette.yellow,
+    )
+    git_status_conflicted_style = _resolve_string_override(
+        theme_source,
+        "starship",
+        overrides,
+        "git_status_conflicted_style",
+        palette.red,
+    )
+
+    lines = [
+        f"# {_title_case_theme_id(theme_source.theme.id)} Starship theme",
+        "# Managed by theme-set - do not edit manually",
+        "add_newline = true",
+        "command_timeout = 200",
+        'format = "$os$hostname[$directory$git_branch$git_status]($style)$character"',
+        "",
+        "[os]",
+        "disabled = false",
+        f'style = "{os_style}"',
+        "",
+        "[os.symbols]",
+        'Macos = "󰀵 "',
+        'Arch = "󰣇 "',
+        'Ubuntu = " "',
+        'Mint = "󰣭 "',
+        'Linux = " "',
+        "",
+        "[hostname]",
+        "ssh_only = true",
+        f'format = "[$hostname]({hostname_style}):"',
+        "",
+        "[character]",
+        f'error_symbol = "[✘]({character_error_style})"',
+        f'success_symbol = "[❯]({character_success_style})"',
+        "",
+        "[directory]",
+        "truncation_length = 3",
+        'truncation_symbol = "…/"',
+        f'style = "{directory_style}"',
+        f'before_repo_root_style = "{directory_style}"',
+        f'repo_root_style = "{repo_root_style}"',
+        'repo_root_format = "[$before_root_path]($before_repo_root_style)[$repo_root]($repo_root_style)[$path]($style)[$read_only]($read_only_style) "',
+        "",
+        "[git_branch]",
+        'format = "[$symbol$branch]($style) "',
+        'symbol = " "',
+        f'style = "{git_branch_style}"',
+        "",
+        "[git_status]",
+        "format = '$all_status$ahead_behind'",
+        f'ahead = "[⇡${{count}}]({git_status_ahead_style}) "',
+        f'diverged = "[⇕⇡${{ahead_count}}⇣${{behind_count}}]({git_status_warning_style}) "',
+        f'behind = "[⇣${{count}}]({git_status_warning_style}) "',
+        f'conflicted = "[]({git_status_conflicted_style}) "',
+        'up_to_date = ""',
+        f'untracked = "[?]({git_status_warning_style}) "',
+        f'modified = "[]({git_status_warning_style}) "',
+        'stashed = ""',
+        'staged = ""',
+        'renamed = ""',
+        'deleted = ""',
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def render_terminal_env(theme_source: ThemeSource) -> str:
+    palette = theme_source.palette
+    overrides = _extract_overrides_for_target(theme_source, "eza")
+    _assert_allowed_override_keys(
+        theme_source,
+        "eza",
+        overrides,
+        {
+            "directory",
+            "executable",
+            "symlink",
+            "broken_symlink",
+            "punctuation",
+            "date",
+            "header",
+            "user",
+            "group",
+            "git_new",
+            "git_modified",
+            "git_deleted",
+            "git_renamed",
+            "git_ignored",
+            "git_conflicted",
+            "source_code",
+            "document",
+            "image",
+            "video",
+            "music",
+            "archive",
+            "build",
+            "permission_read",
+            "permission_write",
+            "permission_execute",
+            "permission_execute_other",
+            "permission_group_read",
+            "permission_group_write",
+            "permission_group_execute",
+            "permission_other_read",
+            "permission_other_write",
+            "permission_other_execute",
+            "permission_special",
+            "permission_special_other",
+            "permission_attribute",
+            "size_number",
+            "size_unit",
+        },
+    )
+
+    def style(key: str, default: str) -> str:
+        return _resolve_string_override(theme_source, "eza", overrides, key, default)
+
+    eza_pairs = {
+        "di": style("directory", "34;1"),
+        "ex": style("executable", "32;1"),
+        "ln": style("symlink", "36"),
+        "or": style("broken_symlink", "31;1"),
+        "xx": style("punctuation", "90"),
+        "da": style("date", "90"),
+        "hd": style("header", "37;1"),
+        "uu": style("user", "37"),
+        "gu": style("group", "37"),
+        "ga": style("git_new", "32"),
+        "gm": style("git_modified", "33"),
+        "gd": style("git_deleted", "31"),
+        "gv": style("git_renamed", "35"),
+        "gi": style("git_ignored", "90"),
+        "gc": style("git_conflicted", "31;1"),
+        "sc": style("source_code", "36"),
+        "do": style("document", "37"),
+        "im": style("image", "35"),
+        "vi": style("video", "35"),
+        "mu": style("music", "35"),
+        "co": style("archive", "33"),
+        "bu": style("build", "33"),
+        "ur": style("permission_read", "90"),
+        "uw": style("permission_write", "90"),
+        "ux": style("permission_execute", "32"),
+        "ue": style("permission_execute_other", "32"),
+        "gr": style("permission_group_read", "90"),
+        "gw": style("permission_group_write", "90"),
+        "gx": style("permission_group_execute", "32"),
+        "tr": style("permission_other_read", "90"),
+        "tw": style("permission_other_write", "90"),
+        "tx": style("permission_other_execute", "32"),
+        "su": style("permission_special", "31;1"),
+        "sf": style("permission_special_other", "31;1"),
+        "xa": style("permission_attribute", "90"),
+        "sn": style("size_number", "32"),
+        "sb": style("size_unit", "32"),
+    }
+    eza_colors = ":".join(f"{key}={value}" for key, value in eza_pairs.items())
+
+    lines = [
+        "#!/usr/bin/env sh",
+        f"# {_title_case_theme_id(theme_source.theme.id)} terminal-adjacent theme",
+        "# Managed by theme-set - do not edit manually",
+        f"export STEEZ_THEME={_shell_double_quote(theme_source.theme.id)}",
+        f"export STEEZ_THEME_BG={_shell_double_quote(palette.bg0)}",
+        f"export STEEZ_THEME_FG={_shell_double_quote(palette.fg)}",
+        f"export STEEZ_THEME_ACCENT={_shell_double_quote(palette.red)}",
+        f"export EZA_COLORS={_shell_double_quote(eza_colors)}",
+        "export EXA_COLORS=\"$EZA_COLORS\"",
+    ]
+    return "\n".join(lines) + "\n"
+
+
 def render_btop_theme(theme_source: ThemeSource) -> str:
     palette = theme_source.palette
     overrides = _extract_overrides_for_target(theme_source, "btop")
@@ -1479,6 +1854,8 @@ def render_theme_app_configs(theme_source: ThemeSource) -> dict[str, str]:
         "neovim.lua": render_neovim_config(theme_source),
         "obsidian-snippet.css": render_obsidian_snippet(theme_source),
         "btop.theme": render_btop_theme(theme_source),
+        "starship.toml": render_starship_config(theme_source),
+        "terminal-env.sh": render_terminal_env(theme_source),
     }
     opencode_theme = render_opencode_theme(theme_source)
     if opencode_theme is not None:
@@ -1554,6 +1931,56 @@ def render_solid_wallpaper_png(
 ) -> bytes:
     red, green, blue = _hex_to_rgb_channels(theme_source.palette.bg0)
     return _render_solid_png(width, height, red, green, blue)
+
+
+def generate_pi_theme_files(
+    sources_dir: str | Path | None = None,
+    pi_themes_dir: str | Path | None = None,
+) -> list[Path]:
+    resolved_pi_themes_dir = Path(pi_themes_dir).resolve() if pi_themes_dir else default_pi_themes_dir()
+    resolved_pi_themes_dir.mkdir(parents=True, exist_ok=True)
+
+    theme_sources = load_theme_sources(sources_dir)
+    written_files: list[Path] = []
+    expected_files: set[Path] = set()
+
+    for theme_source in theme_sources:
+        rendered_theme = render_pi_theme(theme_source)
+        if rendered_theme is None:
+            continue
+        filename, content = rendered_theme
+        theme_path = resolved_pi_themes_dir / filename
+        theme_path.write_text(content, encoding="utf-8")
+        written_files.append(theme_path)
+        expected_files.add(theme_path)
+
+    for theme_source in theme_sources:
+        stale_file = resolved_pi_themes_dir / f"{theme_source.theme.id}.json"
+        if stale_file.exists() and stale_file not in expected_files:
+            stale_file.unlink()
+
+    return written_files
+
+
+def run_generate_pi_themes_mode(
+    sources_dir: str | Path | None = None,
+    pi_themes_dir: str | Path | None = None,
+    output: TextIO | None = None,
+) -> int:
+    resolved_output = output if output is not None else sys.stdout
+    try:
+        written_files = generate_pi_theme_files(sources_dir=sources_dir, pi_themes_dir=pi_themes_dir)
+    except ThemeSourceError as error:
+        print(f"theme-build generate-pi-themes: FAIL ({error})", file=resolved_output)
+        return 1
+
+    resolved_pi_themes_dir = Path(pi_themes_dir).resolve() if pi_themes_dir else default_pi_themes_dir()
+    print(
+        "theme-build generate-pi-themes: OK "
+        f"({len(written_files)} file(s) written to {resolved_pi_themes_dir})",
+        file=resolved_output,
+    )
+    return 0
 
 
 def generate_theme_wallpaper_files(
@@ -1774,6 +2201,11 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         help="Generate themes/wallpapers/<theme-id>/1-solid.png from source TOML values.",
     )
     parser.add_argument(
+        "--generate-pi-themes",
+        action="store_true",
+        help="Generate pi/.pi/agent/themes/<theme-id>.json from source TOML values.",
+    )
+    parser.add_argument(
         "--sources-dir",
         type=Path,
         default=default_sources_dir(),
@@ -1803,6 +2235,12 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         default=default_themes_json_path(),
         help="Output path for generated themes.json manifest.",
     )
+    parser.add_argument(
+        "--pi-themes-dir",
+        type=Path,
+        default=default_pi_themes_dir(),
+        help="Directory for generated Pi theme JSON files.",
+    )
     return parser
 
 
@@ -1816,10 +2254,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         bool(args.generate_themes_json),
         bool(args.generate_configs),
         bool(args.generate_wallpapers),
+        bool(args.generate_pi_themes),
     ]
     if sum(selected_modes) > 1:
         parser.error(
-            "--check, --generate-meta, --generate-themes-json, --generate-configs, and --generate-wallpapers are mutually exclusive"
+            "--check, --generate-meta, --generate-themes-json, --generate-configs, --generate-wallpapers, and --generate-pi-themes are mutually exclusive"
         )
 
     if args.check:
@@ -1832,6 +2271,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return run_generate_configs_mode(args.sources_dir, args.configs_dir)
     if args.generate_wallpapers:
         return run_generate_wallpapers_mode(args.sources_dir, args.wallpapers_dir)
+    if args.generate_pi_themes:
+        return run_generate_pi_themes_mode(args.sources_dir, args.pi_themes_dir)
     parser.print_help(sys.stderr)
     return 2
 
@@ -2039,6 +2480,137 @@ def _default_ghostty_header_title(theme_source: ThemeSource) -> str:
         if suffix and suffix.lower() not in title.lower():
             title = f"{title} {suffix}"
     return title
+
+
+def _normalize_pi_theme_filename(theme_source: ThemeSource, value: str) -> str:
+    if "/" in value or "\\" in value:
+        raise ThemeSourceError(
+            theme_source.file_path,
+            "overrides.pi_theme.file must be a filename without path separators",
+        )
+    if not value.endswith(".json"):
+        raise ThemeSourceError(theme_source.file_path, "overrides.pi_theme.file must end with .json")
+    expected_filename = f"{theme_source.theme.id}.json"
+    if value != expected_filename:
+        raise ThemeSourceError(
+            theme_source.file_path,
+            f"overrides.pi_theme.file must be {expected_filename}",
+        )
+    return value
+
+
+def _build_default_pi_theme_vars(theme_source: ThemeSource) -> dict[str, str | int]:
+    palette = theme_source.palette
+    return {
+        "bg0": palette.bg0,
+        "bg1": palette.bg1,
+        "bg2": palette.bg2,
+        "bg3": _mix_hex_colors(palette.bg2, palette.fg, 0.18),
+        "fg": palette.fg,
+        "fgMuted": _mix_hex_colors(palette.fg, palette.grey, 0.45),
+        "grey": palette.grey,
+        "red": palette.red,
+        "orange": palette.orange,
+        "yellow": palette.yellow,
+        "green": palette.green,
+        "cyan": palette.cyan,
+        "blue": palette.blue,
+        "magenta": palette.magenta,
+        "selection": _mix_hex_colors(palette.bg0, palette.red, 0.34),
+        "pendingBg": _mix_hex_colors(palette.bg0, palette.blue, 0.16),
+        "successBg": _mix_hex_colors(palette.bg0, palette.green, 0.16),
+        "errorBg": _mix_hex_colors(palette.bg0, palette.red, 0.16),
+        "customBg": _mix_hex_colors(palette.bg0, palette.magenta, 0.14),
+    }
+
+
+def _build_default_pi_theme_colors(theme_source: ThemeSource) -> dict[str, str | int]:
+    return {
+        "accent": "red",
+        "border": "red",
+        "borderAccent": "magenta",
+        "borderMuted": "bg3",
+        "success": "green",
+        "error": "red",
+        "warning": "yellow",
+        "muted": "grey",
+        "dim": "bg3",
+        "text": "",
+        "thinkingText": "grey",
+        "selectedBg": "selection",
+        "userMessageBg": "bg1",
+        "userMessageText": "",
+        "customMessageBg": "customBg",
+        "customMessageText": "",
+        "customMessageLabel": "magenta",
+        "toolPendingBg": "pendingBg",
+        "toolSuccessBg": "successBg",
+        "toolErrorBg": "errorBg",
+        "toolTitle": "red",
+        "toolOutput": "fgMuted",
+        "mdHeading": "yellow",
+        "mdLink": "blue",
+        "mdLinkUrl": "grey",
+        "mdCode": "cyan",
+        "mdCodeBlock": "fg",
+        "mdCodeBlockBorder": "bg3",
+        "mdQuote": "grey",
+        "mdQuoteBorder": "bg3",
+        "mdHr": "bg3",
+        "mdListBullet": "red",
+        "toolDiffAdded": "green",
+        "toolDiffRemoved": "red",
+        "toolDiffContext": "grey",
+        "syntaxComment": "grey",
+        "syntaxKeyword": "magenta",
+        "syntaxFunction": "blue",
+        "syntaxVariable": "fg",
+        "syntaxString": "green",
+        "syntaxNumber": "orange",
+        "syntaxType": "cyan",
+        "syntaxOperator": "yellow",
+        "syntaxPunctuation": "fgMuted",
+        "thinkingOff": "bg3",
+        "thinkingMinimal": "grey",
+        "thinkingLow": "blue",
+        "thinkingMedium": "cyan",
+        "thinkingHigh": "magenta",
+        "thinkingXhigh": "red",
+        "bashMode": "orange",
+    }
+
+
+def _build_default_pi_theme_export(theme_source: ThemeSource) -> dict[str, str]:
+    palette = theme_source.palette
+    return {
+        "pageBg": palette.bg0,
+        "cardBg": palette.bg1,
+        "infoBg": _mix_hex_colors(palette.bg0, palette.yellow, 0.16),
+    }
+
+
+def _normalize_pi_theme_color_value(
+    theme_source: ThemeSource,
+    key_path: str,
+    value: Any,
+    vars_payload: Mapping[str, str | int],
+    *,
+    allow_empty: bool,
+) -> str | int:
+    if isinstance(value, int):
+        if value < 0 or value > 255:
+            raise ThemeSourceError(theme_source.file_path, f"{key_path} must be between 0 and 255")
+        return value
+    if not isinstance(value, str):
+        raise ThemeSourceError(theme_source.file_path, f"{key_path} must be a string or 256-color integer")
+    normalized = value.strip()
+    if normalized == "" and allow_empty:
+        return ""
+    if HEX_COLOR_PATTERN.fullmatch(normalized):
+        return normalized.lower()
+    if normalized in vars_payload:
+        return normalized
+    raise ThemeSourceError(theme_source.file_path, f"{key_path} must be a #RRGGBB color, 256-color integer, vars key, or empty string")
 
 
 def _normalize_opencode_theme_filename(theme_source: ThemeSource, value: str) -> str:

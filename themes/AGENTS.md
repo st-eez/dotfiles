@@ -5,7 +5,7 @@
 The theme system is source-driven:
 
 - Edit canonical files in `themes/sources/<theme-id>.toml`.
-- Generate artifacts into `themes/meta/`, `themes/configs/`, `themes/themes.json`, and `themes/wallpapers/<theme-id>/1-solid.png`.
+- Generate artifacts into `themes/meta/`, `themes/configs/`, `themes/themes.json`, `themes/wallpapers/<theme-id>/1-solid.png`, and `pi/.pi/agent/themes/`.
 - `theme-set` consumes generated artifacts and updates runtime files/symlinks.
 
 Generated artifacts are not hand-edited.
@@ -40,19 +40,20 @@ python3 "$DOTFILES/themes/scripts/theme_build.py" --generate-meta
 python3 "$DOTFILES/themes/scripts/theme_build.py" --generate-themes-json
 python3 "$DOTFILES/themes/scripts/theme_build.py" --generate-configs
 python3 "$DOTFILES/themes/scripts/theme_build.py" --generate-wallpapers
+python3 "$DOTFILES/themes/scripts/theme_build.py" --generate-pi-themes
 
 # Guardrail: fail if generated outputs drift after regeneration
-git diff --exit-code -- "$DOTFILES/themes/meta" "$DOTFILES/themes/themes.json" "$DOTFILES/themes/configs" "$DOTFILES/themes/wallpapers"
+git diff --exit-code -- "$DOTFILES/themes/meta" "$DOTFILES/themes/themes.json" "$DOTFILES/themes/configs" "$DOTFILES/themes/wallpapers" "$DOTFILES/pi/.pi/agent/themes"
 ```
 
 ## DRIFT-PREVENTION WORKFLOW
 
 1. Edit only canonical source files in `themes/sources/` (and optional wallpaper assets `2-*`, `3-*`, etc.).
 2. Run `theme_build.py --check`.
-3. Regenerate all artifacts (`--generate-meta`, `--generate-themes-json`, `--generate-configs`, `--generate-wallpapers`).
+3. Regenerate all artifacts (`--generate-meta`, `--generate-themes-json`, `--generate-configs`, `--generate-wallpapers`, `--generate-pi-themes`).
 4. Run `python3 -m unittest "$HOME/Projects/Personal/dotfiles/themes/tests/test_theme_build.py"`.
 5. Run scoped drift check:
-   `git diff --exit-code -- "$HOME/Projects/Personal/dotfiles/themes/meta" "$HOME/Projects/Personal/dotfiles/themes/themes.json" "$HOME/Projects/Personal/dotfiles/themes/configs" "$HOME/Projects/Personal/dotfiles/themes/wallpapers"`.
+   `git diff --exit-code -- "$HOME/Projects/Personal/dotfiles/themes/meta" "$HOME/Projects/Personal/dotfiles/themes/themes.json" "$HOME/Projects/Personal/dotfiles/themes/configs" "$HOME/Projects/Personal/dotfiles/themes/wallpapers" "$HOME/Projects/Personal/dotfiles/pi/.pi/agent/themes"`.
 6. Smoke test runtime behavior with `theme-set <theme-id>`.
 
 ## RAYCAST INTEGRATION
@@ -91,6 +92,7 @@ Do not edit extension code for normal theme additions; edit source TOML and rege
 | Obsidian | JSON edit + CSS copy | Auto (watched) | None |
 | Neovim | Symlink `theme.lua` | Manual | Quit/reopen |
 | OpenCode | JSON edit | Manual | Restart |
+| Pi | Stowed `~/.pi/agent/themes/*.json` | Manual | Restart or `/settings` |
 
 ## ADDING A NEW THEME
 
@@ -101,6 +103,7 @@ Do not edit extension code for normal theme additions; edit source TOML and rege
    - `python3 "$HOME/Projects/Personal/dotfiles/themes/scripts/theme_build.py" --generate-themes-json`
    - `python3 "$HOME/Projects/Personal/dotfiles/themes/scripts/theme_build.py" --generate-configs`
    - `python3 "$HOME/Projects/Personal/dotfiles/themes/scripts/theme_build.py" --generate-wallpapers`
+   - `python3 "$HOME/Projects/Personal/dotfiles/themes/scripts/theme_build.py" --generate-pi-themes`
 4. Validate:
    - `python3 "$HOME/Projects/Personal/dotfiles/themes/scripts/theme_build.py" --check`
    - `python3 -m unittest "$HOME/Projects/Personal/dotfiles/themes/tests/test_theme_build.py"`
@@ -119,6 +122,7 @@ Do not edit extension code for normal theme additions; edit source TOML and rege
 | Generated configs | `themes/configs/<theme-id>/*` | Generated-owned (no manual edits) |
 | Generated manifest | `themes/themes.json` | Generated-owned (no manual edits) |
 | Generated wallpaper | `themes/wallpapers/<theme-id>/1-solid.png` | Generated-owned (no manual edits) |
+| Generated Pi themes | `pi/.pi/agent/themes/*.json` | Generated-owned (no manual edits) |
 | Optional wallpapers | `themes/wallpapers/<theme-id>/2-*` and higher | Source-owned assets |
 | Runtime files | `$HOME/.config/*` + app settings files | Runtime-owned (updated by `theme-set`) |
 

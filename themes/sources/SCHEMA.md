@@ -75,7 +75,7 @@ the canonical palette or identifiers:
 - Namespace shape: `overrides.<target>.<key> = <value>`
 - `<target>` is the artifact/app key (examples: `neovim`, `ghostty`, `obsidian`,
   `sketchybar`, `borders`, `tmux`, `wallpaper`, `antigravity`, `opencode`,
-  `ghostty_theme`)
+  `ghostty_theme`, `pi_theme`)
 - `<key>` is target-specific and interpreted only by that target generator
 - Unknown targets are invalid unless explicitly supported by the generator set
 - Overrides must be additive; core required fields remain authoritative
@@ -130,6 +130,18 @@ the canonical palette or identifiers:
 | `defs.<name>` | hex `#RRGGBB` | generated from palette transforms | Override generated OpenCode color defs by key. |
 | `theme.<token>.dark` | string | generated semantic token mapping | Value must be a defs key or a hex color. |
 | `theme.<token>.light` | string | generated semantic token mapping | Value must be a defs key or a hex color. |
+
+### `overrides.pi_theme` Keys
+
+| Key | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `file` | string | `<theme-id>.json` | Must match `<theme-id>.json`; enables generation of optional Pi custom theme file in `pi/.pi/agent/themes/`. |
+| `name` | string | `theme.id` | Pi theme identifier selected by `pi/.pi/agent/settings.json`. |
+| `vars.<name>` | hex `#RRGGBB`, integer `0..255`, string, or empty string | generated from palette transforms | Override or add Pi color variables. String values must be hex colors, existing vars keys, or empty string. |
+| `colors.<token>` | hex `#RRGGBB`, integer `0..255`, vars key, or empty string | generated semantic token mapping | Override any required Pi color token. Unknown tokens are invalid. |
+| `export.pageBg` | hex `#RRGGBB` | `palette.bg0` | Optional `/export` HTML page background. |
+| `export.cardBg` | hex `#RRGGBB` | `palette.bg1` | Optional `/export` HTML card background. |
+| `export.infoBg` | hex `#RRGGBB` | generated palette mix | Optional `/export` HTML info background. |
 
 ## Concrete Example (`themes/sources/tokyo-night.toml`)
 

@@ -60,7 +60,7 @@ class ThemeBuildTests(unittest.TestCase):
         theme_sources = theme_build.load_theme_sources(DOTFILES_ROOT / "themes" / "sources")
         ids = [theme_source.theme.id for theme_source in theme_sources]
         self.assertEqual(ids, sorted(ids))
-        self.assertEqual(ids, ["everforest", "gruvbox", "osaka-jade", "tokyo-night", "vantablack", "vantasteez"])
+        self.assertEqual(ids, ["everforest", "gruvbox", "osaka-jade", "tokyo-night", "vantablack", "vantarouge", "vantasteez"])
 
     def test_load_theme_source_normalizes_hex_to_lowercase(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -438,10 +438,13 @@ class ThemeBuildTests(unittest.TestCase):
 
             expected_files = [
                 "bordersrc",
+                "btop.theme",
                 "ghostty.conf",
                 "neovim.lua",
                 "obsidian-snippet.css",
                 "sketchybar-colors.lua",
+                "starship.toml",
+                "terminal-env.sh",
                 "tmux.conf",
             ]
             self.assertEqual(
@@ -482,6 +485,9 @@ class ThemeBuildTests(unittest.TestCase):
             self.assertTrue((configs_dir / "sample-theme" / "ghostty.conf").exists())
             self.assertTrue((configs_dir / "sample-theme" / "neovim.lua").exists())
             self.assertTrue((configs_dir / "sample-theme" / "obsidian-snippet.css").exists())
+            self.assertTrue((configs_dir / "sample-theme" / "btop.theme").exists())
+            self.assertTrue((configs_dir / "sample-theme" / "starship.toml").exists())
+            self.assertTrue((configs_dir / "sample-theme" / "terminal-env.sh").exists())
 
     def test_generate_theme_config_files_writes_optional_opencode_theme(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -572,6 +578,137 @@ class ThemeBuildTests(unittest.TestCase):
                 theme_build.render_opencode_theme(theme_source)
 
         self.assertIn("overrides.opencode_theme.file must be sample-theme.json", str(caught.exception))
+
+    def test_generate_pi_theme_files_writes_and_prunes(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            sources_dir = root / "sources"
+            pi_themes_dir = root / "pi-themes"
+            sources_dir.mkdir()
+            pi_themes_dir.mkdir()
+
+            source_file = sources_dir / "sample-theme.toml"
+            source_file.write_text(
+                VALID_THEME_TOML
+                + textwrap.dedent(
+                    """
+
+                    [overrides.pi_theme]
+                    file = "sample-theme.json"
+                    """
+                ),
+                encoding="utf-8",
+            )
+            stale_file = pi_themes_dir / "sample-theme.json"
+            stale_file.write_text("stale=true\n", encoding="utf-8")
+
+            written_files = theme_build.generate_pi_theme_files(
+                sources_dir=sources_dir,
+                pi_themes_dir=pi_themes_dir,
+            )
+
+            self.assertEqual([path.name for path in written_files], ["sample-theme.json"])
+            payload = json.loads((pi_themes_dir / "sample-theme.json").read_text(encoding="utf-8"))
+            self.assertEqual(payload["$schema"], theme_build.PI_THEME_SCHEMA_URL)
+            self.assertEqual(payload["name"], "sample-theme")
+            self.assertEqual(set(payload["colors"].keys()), set(theme_build.PI_THEME_COLOR_KEYS))
+            self.assertEqual(payload["vars"]["bg0"], "#1a1b26")
+            self.assertEqual(payload["colors"]["accent"], "red")
+
+    def test_render_pi_theme_applies_overrides(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source_file = Path(temp_dir) / "sample-theme.toml"
+            source_file.write_text(
+                VALID_THEME_TOML
+                + textwrap.dedent(
+                    """
+
+                    [overrides.pi_theme]
+                    file = "sample-theme.json"
+                    name = "sample-pi"
+
+                    [overrides.pi_theme.vars]
+                    rose = "#ff99aa"
+
+                    [overrides.pi_theme.colors]
+                    accent = "rose"
+                    text = ""
+
+                    [overrides.pi_theme.export]
+                    infoBg = "#332211"
+                    """
+                ),
+                encoding="utf-8",
+            )
+            theme_source = theme_build.load_theme_source(source_file)
+
+        rendered = theme_build.render_pi_theme(theme_source)
+        self.assertIsNotNone(rendered)
+        if rendered is None:
+            self.fail("expected pi theme render")
+        filename, content = rendered
+        payload = json.loads(content)
+        self.assertEqual(filename, "sample-theme.json")
+        self.assertEqual(payload["name"], "sample-pi")
+        self.assertEqual(payload["vars"]["rose"], "#ff99aa")
+        self.assertEqual(payload["colors"]["accent"], "rose")
+        self.assertEqual(payload["colors"]["text"], "")
+        self.assertEqual(payload["export"]["infoBg"], "#332211")
+
+    def test_render_pi_theme_rejects_invalid_file_name(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source_file = Path(temp_dir) / "sample-theme.toml"
+            source_file.write_text(
+                VALID_THEME_TOML
+                + textwrap.dedent(
+                    """
+
+                    [overrides.pi_theme]
+                    file = "other-name.json"
+                    """
+                ),
+                encoding="utf-8",
+            )
+            theme_source = theme_build.load_theme_source(source_file)
+
+            with self.assertRaises(theme_build.ThemeSourceError) as caught:
+                theme_build.render_pi_theme(theme_source)
+
+        self.assertIn("overrides.pi_theme.file must be sample-theme.json", str(caught.exception))
+
+    def test_main_generate_pi_themes_mode_writes_themes(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            sources_dir = root / "sources"
+            pi_themes_dir = root / "pi-themes"
+            sources_dir.mkdir()
+            (sources_dir / "sample-theme.toml").write_text(
+                VALID_THEME_TOML
+                + textwrap.dedent(
+                    """
+
+                    [overrides.pi_theme]
+                    file = "sample-theme.json"
+                    """
+                ),
+                encoding="utf-8",
+            )
+
+            captured_output = io.StringIO()
+            with contextlib.redirect_stdout(captured_output):
+                exit_code = theme_build.main(
+                    [
+                        "--generate-pi-themes",
+                        "--sources-dir",
+                        str(sources_dir),
+                        "--pi-themes-dir",
+                        str(pi_themes_dir),
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            self.assertIn("theme-build generate-pi-themes: OK", captured_output.getvalue())
+            self.assertTrue((pi_themes_dir / "sample-theme.json").exists())
 
     def test_generate_theme_config_files_writes_optional_ghostty_theme(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -690,6 +827,21 @@ class ThemeBuildTests(unittest.TestCase):
                 self.assertTrue(artifact_path.exists(), f"missing artifact {artifact_path}")
                 actual_content = artifact_path.read_text(encoding="utf-8")
                 self.assertEqual(actual_content, expected_content, f"artifact mismatch: {artifact_path}")
+
+    def test_render_pi_themes_match_repo_artifacts(self) -> None:
+        sources_dir = DOTFILES_ROOT / "themes" / "sources"
+        pi_themes_dir = DOTFILES_ROOT / "pi" / ".pi" / "agent" / "themes"
+        theme_sources = theme_build.load_theme_sources(sources_dir)
+
+        for theme_source in theme_sources:
+            rendered = theme_build.render_pi_theme(theme_source)
+            if rendered is None:
+                continue
+            filename, expected_content = rendered
+            artifact_path = pi_themes_dir / filename
+            self.assertTrue(artifact_path.exists(), f"missing artifact {artifact_path}")
+            actual_content = artifact_path.read_text(encoding="utf-8")
+            self.assertEqual(actual_content, expected_content, f"artifact mismatch: {artifact_path}")
 
     def test_render_solid_wallpapers_match_repo_artifacts(self) -> None:
         sources_dir = DOTFILES_ROOT / "themes" / "sources"

@@ -1,0 +1,51 @@
+# Osaka Jade Starship theme
+# Managed by theme-set - do not edit manually
+add_newline = true
+command_timeout = 200
+format = "$os$hostname[$directory$git_branch$git_status]($style)$character"
+
+[os]
+disabled = false
+style = "#c1c497"
+
+[os.symbols]
+Macos = "󰀵 "
+Arch = "󰣇 "
+Ubuntu = " "
+Mint = "󰣭 "
+Linux = " "
+
+[hostname]
+ssh_only = true
+format = "[$hostname](#c1c497):"
+
+[character]
+error_symbol = "[✘](bold #ff5345)"
+success_symbol = "[❯](bold #c1c497)"
+
+[directory]
+truncation_length = 3
+truncation_symbol = "…/"
+style = "#c1c497"
+before_repo_root_style = "#c1c497"
+repo_root_style = "bold #2dd5b7"
+repo_root_format = "[$before_root_path]($before_repo_root_style)[$repo_root]($repo_root_style)[$path]($style)[$read_only]($read_only_style) "
+
+[git_branch]
+format = "[$symbol$branch]($style) "
+symbol = " "
+style = "#549e6a"
+
+[git_status]
+format = '$all_status$ahead_behind'
+ahead = "[⇡${count}](#549e6a) "
+diverged = "[⇕⇡${ahead_count}⇣${behind_count}](#e5c736) "
+behind = "[⇣${count}](#e5c736) "
+conflicted = "[](#ff5345) "
+up_to_date = ""
+untracked = "[?](#e5c736) "
+modified = "[](#e5c736) "
+stashed = ""
+staged = ""
+renamed = ""
+deleted = ""

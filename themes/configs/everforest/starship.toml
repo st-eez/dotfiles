@@ -1,0 +1,51 @@
+# Everforest Starship theme
+# Managed by theme-set - do not edit manually
+add_newline = true
+command_timeout = 200
+format = "$os$hostname[$directory$git_branch$git_status]($style)$character"
+
+[os]
+disabled = false
+style = "#d3c6aa"
+
+[os.symbols]
+Macos = "󰀵 "
+Arch = "󰣇 "
+Ubuntu = " "
+Mint = "󰣭 "
+Linux = " "
+
+[hostname]
+ssh_only = true
+format = "[$hostname](#d3c6aa):"
+
+[character]
+error_symbol = "[✘](bold #e67e80)"
+success_symbol = "[❯](bold #d3c6aa)"
+
+[directory]
+truncation_length = 3
+truncation_symbol = "…/"
+style = "#d3c6aa"
+before_repo_root_style = "#d3c6aa"
+repo_root_style = "bold #83c092"
+repo_root_format = "[$before_root_path]($before_repo_root_style)[$repo_root]($repo_root_style)[$path]($style)[$read_only]($read_only_style) "
+
+[git_branch]
+format = "[$symbol$branch]($style) "
+symbol = " "
+style = "#a7c080"
+
+[git_status]
+format = '$all_status$ahead_behind'
+ahead = "[⇡${count}](#a7c080) "
+diverged = "[⇕⇡${ahead_count}⇣${behind_count}](#dbbc7f) "
+behind = "[⇣${count}](#dbbc7f) "
+conflicted = "[](#e67e80) "
+up_to_date = ""
+untracked = "[?](#dbbc7f) "
+modified = "[](#dbbc7f) "
+stashed = ""
+staged = ""
+renamed = ""
+deleted = ""

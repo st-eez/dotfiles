@@ -118,9 +118,23 @@ function _set_pane_title_precmd() {
 }
 add-zsh-hook precmd _set_pane_title_precmd
 
-# Use eza's built-in defaults (matches Linux/Omarchy behavior)
+# Theme-managed terminal-adjacent colors (eza, shared theme env).
+# Symlinked by theme-set to themes/configs/<theme>/terminal-env.sh.
+[[ -f "$XDG_CONFIG_HOME/theme-terminal.env" ]] && source "$XDG_CONFIG_HOME/theme-terminal.env"
+
+# Use eza's built-in defaults plus theme-managed EZA_COLORS overrides.
 unset LS_COLORS
 zstyle ':completion:*' list-colors ''
+
+# Let Vantarouge steer zsh-syntax-highlighting instead of its green-heavy defaults.
+if (( ${+ZSH_HIGHLIGHT_STYLES} )) && [[ "$STEEZ_THEME" == "vantarouge" ]]; then
+  ZSH_HIGHLIGHT_STYLES[command]="fg=red,bold"
+  ZSH_HIGHLIGHT_STYLES[precommand]="fg=red,bold"
+  ZSH_HIGHLIGHT_STYLES[hashed-command]="fg=red,bold"
+  ZSH_HIGHLIGHT_STYLES[builtin]="fg=red,bold"
+  ZSH_HIGHLIGHT_STYLES[function]="fg=red,bold"
+  ZSH_HIGHLIGHT_STYLES[alias]="fg=red,bold"
+fi
 
 # User configuration
 
@@ -220,10 +234,13 @@ if command -v starship >/dev/null 2>&1; then
   eval "$(starship init zsh)"
 fi
 
-# Force consistent completion colors cross-platform
-# Apple zsh and Arch zsh have different compiled defaults when list-colors is empty
-# Explicitly set directories to ANSI 34 (blue) to match eza and ensure consistency
-zstyle ':completion:*' list-colors 'di=34'
+# Force consistent completion colors cross-platform.
+# Apple zsh and Arch zsh have different compiled defaults when list-colors is empty.
+if [[ "$STEEZ_THEME" == "vantarouge" ]]; then
+  zstyle ':completion:*' list-colors 'di=31;1'
+else
+  zstyle ':completion:*' list-colors 'di=34'
+fi
 
 # pnpm env (auto-added by pnpm)
 [[ -f "$HOME/.local/share/../bin/env" ]] && . "$HOME/.local/share/../bin/env"

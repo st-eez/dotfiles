@@ -33,6 +33,9 @@ sketchybar/.config/sketchybar/AGENTS.md
 opencode/.config/opencode/node_modules/
 opencode/.config/opencode/package-lock.json
 
+# Pi config moved to ~/Projects/Personal/pi-config
+pi/
+
 # Neovim (changes on theme switch)
 nvim/.config/nvim/lazy-lock.json
 

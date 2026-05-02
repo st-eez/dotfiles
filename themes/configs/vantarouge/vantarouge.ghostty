@@ -1,0 +1,28 @@
+# Vantarouge
+# Managed by theme-set - do not edit manually
+background = 0d0d0d
+foreground = eaeaea
+cursor-color = c94f4f
+cursor-text = 0d0d0d
+selection-background = 342020
+selection-foreground = eaeaea
+
+# Normal colors (palette 0-7)
+palette = 0=#0d0d0d
+palette = 1=#c94f4f
+palette = 2=#879b78
+palette = 3=#ad9168
+palette = 4=#858fa8
+palette = 5=#9f748d
+palette = 6=#809996
+palette = 7=#eaeaea
+
+# Bright colors (palette 8-15)
+palette = 8=#5f5f5f
+palette = 9=#c94f4f
+palette = 10=#879b78
+palette = 11=#ad9168
+palette = 12=#858fa8
+palette = 13=#9f748d
+palette = 14=#809996
+palette = 15=#ffffff

@@ -1,0 +1,51 @@
+# Tokyo Night Starship theme
+# Managed by theme-set - do not edit manually
+add_newline = true
+command_timeout = 200
+format = "$os$hostname[$directory$git_branch$git_status]($style)$character"
+
+[os]
+disabled = false
+style = "#c0caf5"
+
+[os.symbols]
+Macos = "󰀵 "
+Arch = "󰣇 "
+Ubuntu = " "
+Mint = "󰣭 "
+Linux = " "
+
+[hostname]
+ssh_only = true
+format = "[$hostname](#c0caf5):"
+
+[character]
+error_symbol = "[✘](bold #f7768e)"
+success_symbol = "[❯](bold #c0caf5)"
+
+[directory]
+truncation_length = 3
+truncation_symbol = "…/"
+style = "#c0caf5"
+before_repo_root_style = "#c0caf5"
+repo_root_style = "bold #7dcfff"
+repo_root_format = "[$before_root_path]($before_repo_root_style)[$repo_root]($repo_root_style)[$path]($style)[$read_only]($read_only_style) "
+
+[git_branch]
+format = "[$symbol$branch]($style) "
+symbol = " "
+style = "#9ece6a"
+
+[git_status]
+format = '$all_status$ahead_behind'
+ahead = "[⇡${count}](#9ece6a) "
+diverged = "[⇕⇡${ahead_count}⇣${behind_count}](#e0af68) "
+behind = "[⇣${count}](#e0af68) "
+conflicted = "[](#f7768e) "
+up_to_date = ""
+untracked = "[?](#e0af68) "
+modified = "[](#e0af68) "
+stashed = ""
+staged = ""
+renamed = ""
+deleted = ""
