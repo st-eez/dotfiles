@@ -56,29 +56,70 @@ find_real_bd() {
   return 1
 }
 
-# Replace the content between <!-- BEGIN BEADS INTEGRATION --> and
-# <!-- END BEADS INTEGRATION --> in $1 with the contents of $2. Preserves
-# the marker lines themselves. Silent no-op if file or markers are absent.
+# Ensure $1 contains a managed Beads integration block sourced from $2.
+# If markers already exist, replace the content between them. If markers are
+# absent, insert a new block after the top-level heading, or append if there is
+# no heading. A partial marker pair is treated as an error to avoid corruption.
 replace_block() {
   local file=$1 template=$2
   [[ -f "$file" && -f "$template" ]] || return 0
-  grep -q '^<!-- BEGIN BEADS INTEGRATION' "$file" || return 0
-  grep -q '^<!-- END BEADS INTEGRATION'   "$file" || return 0
 
-  local tmp
+  local has_begin=0 has_end=0
+  grep -q '^<!-- BEGIN BEADS INTEGRATION' "$file" && has_begin=1
+  grep -q '^<!-- END BEADS INTEGRATION' "$file" && has_end=1
+  if [[ "$has_begin" != "$has_end" ]]; then
+    echo "bd-shim: partial BEADS block markers in $file; leaving unchanged" >&2
+    return 1
+  fi
+
+  local tmp hash begin_marker end_marker
   tmp=$(mktemp) || return 1
-  awk -v tf="$template" '
-    BEGIN {
-      while ((getline line < tf) > 0) content = content line "\n"
-      close(tf)
-      sub(/\n$/, "", content)
-    }
-    /^<!-- BEGIN BEADS INTEGRATION/ { print; print content; in_block=1; next }
-    /^<!-- END BEADS INTEGRATION/   { print; in_block=0; next }
-    in_block                         { next }
-    { print }
-  ' "$file" > "$tmp" && mv "$tmp" "$file"
-  echo "bd-shim: replaced BEADS block in $file"
+  hash=$(shasum -a 256 "$template" 2>/dev/null | awk '{print substr($1,1,8)}') || hash=""
+  [[ -n "$hash" ]] || hash="unknown"
+  begin_marker="<!-- BEGIN BEADS INTEGRATION v:1 hash:$hash -->"
+  end_marker="<!-- END BEADS INTEGRATION -->"
+
+  if [[ "$has_begin" -eq 1 ]]; then
+    awk -v tf="$template" '
+      BEGIN {
+        while ((getline line < tf) > 0) content = content line "\n"
+        close(tf)
+        sub(/\n$/, "", content)
+      }
+      /^<!-- BEGIN BEADS INTEGRATION/ { print; print content; in_block=1; next }
+      /^<!-- END BEADS INTEGRATION/   { print; in_block=0; next }
+      in_block                         { next }
+      { print }
+    ' "$file" > "$tmp" && mv "$tmp" "$file"
+    echo "bd-shim: replaced BEADS block in $file"
+  else
+    awk -v tf="$template" -v begin_marker="$begin_marker" -v end_marker="$end_marker" '
+      BEGIN {
+        while ((getline line < tf) > 0) content = content line "\n"
+        close(tf)
+        sub(/\n$/, "", content)
+      }
+      NR == 1 && /^# / {
+        print
+        print ""
+        print begin_marker
+        print content
+        print end_marker
+        inserted=1
+        next
+      }
+      { print }
+      END {
+        if (!inserted) {
+          if (NR > 0) print ""
+          print begin_marker
+          print content
+          print end_marker
+        }
+      }
+    ' "$file" > "$tmp" && mv "$tmp" "$file"
+    echo "bd-shim: inserted BEADS block in $file"
+  fi
 }
 
 # Project-scoped Claude Code hooks: SessionStart + PreCompact run `bd prime`.
@@ -229,8 +270,8 @@ Usage: bd reapply-integration
 
 Reapply the dotfiles-managed Beads integration to an existing bd repo:
   - .beads/PRIME.md
-  - CLAUDE.md Beads block, when markers exist
-  - AGENTS.md Beads block, when markers exist
+  - CLAUDE.md Beads block, inserted or replaced
+  - AGENTS.md Beads block, inserted or replaced
   - .claude/settings.json bd prime hooks
   - .codex/hooks.json bd prime hook
 
@@ -249,6 +290,13 @@ USAGE
     post_init
     ;;
   init)
+    for arg in "$@"; do
+      case "$arg" in
+        -h|--help)
+          exec "$REAL_BD" "$@"
+          ;;
+      esac
+    done
     "$REAL_BD" "$@" || exit $?
     post_init
     ;;
