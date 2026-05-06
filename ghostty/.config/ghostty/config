@@ -8,7 +8,7 @@ background-opacity = 0.85
 font-family = JetBrainsMono Nerd Font
 font-size = 13
 keybind = shift+enter=text:\n
-keybind = cmd+k=text:\x0c
+keybind = super+k=text:\x0c
 keybind = super+left=text:\x1bOH
 
 # Split appearance
