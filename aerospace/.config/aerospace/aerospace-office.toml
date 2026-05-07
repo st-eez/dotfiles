@@ -168,7 +168,7 @@ run = 'layout floating'
 
 [[on-window-detected]]
 if.app-id = 'com.google.chrome.for.testing'
-run = 'layout floating'
+run = ['layout floating', 'move-node-to-workspace 4']
 
 [[on-window-detected]]
 run = 'layout floating'
