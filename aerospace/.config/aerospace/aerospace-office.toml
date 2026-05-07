@@ -167,6 +167,10 @@ if.app-name-regex-substring = 'tlauncher'
 run = 'layout floating'
 
 [[on-window-detected]]
+if.app-id = 'com.google.chrome.for.testing'
+run = 'layout floating'
+
+[[on-window-detected]]
 run = 'layout floating'
 if.app-id = 'net.whatsapp.WhatsApp'
 
