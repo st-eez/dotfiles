@@ -7,10 +7,11 @@ Before saying "done": `bd close <completed-ids> --reason "..."`.
 ## Core Rules
 - **Beads default**: durable work — issues, follow-ups, blockers — goes in beads (`bd create`, `bd ready`, `bd close`).
 - **TodoWrite/TaskCreate fine** for ephemeral in-session lists. Don't promote them to durable storage.
-- **Create bead before code** for non-trivial work; mark `in_progress` when starting.
+- **Create bead before code** for non-trivial work; mark in-progress with `bd update <id> --claim` when starting.
 - **Memory**: use agent-native memory. **Never `bd remember`** — beads is for issue tracking, not knowledge.
 - **Never `bd edit`** — opens $EDITOR and blocks the agent. Use `bd update ...`.
 - Priority is `P0-P4` or `0-4`, never word form.
+- Parallelize when work is independent; use `bd dep add` only for real dependencies.
 
 ## Creating Beads — Atomic & Self-Contained
 
@@ -26,14 +27,6 @@ Every bead must be pickup-ready for a junior engineer who has only this bead's c
 3. **Why** — the constraint or motivation. If unclear, the bead is premature.
 4. **Acceptance** — how to verify. A test name, a command, a user-visible behavior. Not "looks right".
 5. **Known unknowns** — assumptions made, questions the implementer may hit. Better to surface than hide.
-
-**Pre-create checklist** — before `bd create`, answer each out loud:
-- [ ] Could a stranger with repo access start this tomorrow with zero other context?
-- [ ] Is there exactly one outcome, or am I bundling?
-- [ ] Did I name the file/function/symbol instead of the general area?
-- [ ] Is acceptance something the implementer can run or observe, not a feeling?
-
-Parallelize only when dependencies are real — `bd dep add` when they're not.
 
 ### Good vs bad
 
@@ -58,5 +51,6 @@ Parallelize only when dependencies are real — `bd dep add` when they're not.
 - `bd update <id> --claim` to start; `--add-label` / `--remove-label` / `--append-notes`.
 - `bd close <id> --reason "..." --suggest-next` to close.
 - `bd dep add <issue> <depends-on>` / `bd dep tree <id>` for edges.
+- `bd help` / `bd <subcommand> --help` — anything not listed above.
 
 Start: check `bd ready` for available work.
