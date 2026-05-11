@@ -85,12 +85,11 @@ def render_tab(index: str, title: str, active: bool, attention: bool, width: int
 
 
 def main() -> int:
-    if len(sys.argv) < 4:
+    if len(sys.argv) < 3:
         return 1
 
     client_width = max(1, int(sys.argv[1]))
     session_id = sys.argv[2]
-    prefix_active = sys.argv[3] == "1"
 
     colors = {key: option(f"@thm_{key}", fallback) for key, fallback in DEFAULTS.items()}
 
@@ -105,7 +104,6 @@ def main() -> int:
     if not windows:
         return 0
 
-    prefix = ""
     available = client_width
     gap = 1 if len(windows) > 1 else 0
     total_gap = gap * (len(windows) - 1)
@@ -113,13 +111,14 @@ def main() -> int:
     base_width = tab_area // len(windows)
     remainder = tab_area % len(windows)
 
-    parts = [prefix]
+    parts: list[str] = []
     for position, fields in enumerate(windows):
         index, title, active, attention = (fields + ["", "", "", ""])[:4]
         width = base_width + (1 if position < remainder else 0)
+        attention_on = attention not in ("", "0")
         parts.append(
             f"#[range=window|{index}]"
-            + render_tab(index, title, active == "1", bool(attention), width, colors)
+            + render_tab(index, title, active == "1", attention_on, width, colors)
             + "#[norange]"
         )
         if gap and position != len(windows) - 1:
