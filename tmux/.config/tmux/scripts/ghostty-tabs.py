@@ -18,7 +18,7 @@ DEFAULTS = {
     "ghostty_inactive_tab": "#242424",
 }
 
-CAP_WIDTH = 3  # " ⊕ " — single circled-plus glyph with side padding for click area
+CAP_WIDTH = 3  # " <nf-fa-plus_circle> " — Nerd Font plus-circle with side padding
 
 
 def tmux(*args: str) -> str:
@@ -55,9 +55,12 @@ def centered_title(title: str, shortcut: str, width: int) -> str:
     return text[:width].ljust(width)
 
 
+NF_PLUS_CIRCLE = ""  # Nerd Font / FontAwesome plus-circle glyph
+
+
 def render_cap(colors: dict[str, str]) -> str:
     fg = colors["overlay_0"]
-    return f"{style(fg=fg, bg=colors['crust'])} ⊕ "
+    return f"{style(fg=fg, bg=colors['crust'])} {NF_PLUS_CIRCLE} "
 
 
 def render_tab(index: str, title: str, active: bool, attention: bool, width: int, colors: dict[str, str]) -> str:
