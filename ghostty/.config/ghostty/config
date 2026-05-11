@@ -36,6 +36,16 @@ keybind = super+3=text:\x023
 keybind = super+digit_3=text:\x023
 keybind = super+4=text:\x024
 keybind = super+digit_4=text:\x024
+keybind = super+5=text:\x025
+keybind = super+digit_5=text:\x025
+keybind = super+6=text:\x026
+keybind = super+digit_6=text:\x026
+keybind = super+7=text:\x027
+keybind = super+digit_7=text:\x027
+keybind = super+8=text:\x028
+keybind = super+digit_8=text:\x028
+keybind = super+9=text:\x02l
+keybind = super+digit_9=text:\x02l
 
 # Split appearance
 unfocused-split-opacity = 0.5
