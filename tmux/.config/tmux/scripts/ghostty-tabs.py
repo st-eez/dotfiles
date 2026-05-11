@@ -118,11 +118,12 @@ def main() -> int:
         return 0
 
     cap_gap = 1
-    right_reserve = CAP_WIDTH + cap_gap
-    # Small leading pad so tab 1 isn't flush with the window border. Kept
-    # shorter than the right reserve because the cap's inner whitespace
-    # already provides visual breathing room on that side.
-    left_pad = 1
+    # Symmetric edge padding so neither tab 1 nor the cap is flush with
+    # the window border.
+    edge_pad = 1
+    left_pad = edge_pad
+    right_pad = edge_pad
+    right_reserve = cap_gap + CAP_WIDTH + right_pad
     reserved = left_pad + right_reserve
     available = max(1, client_width - reserved)
     gap = 1 if len(windows) > 1 else 0
@@ -147,6 +148,7 @@ def main() -> int:
 
     parts.append(f"{style(fg=colors['fg'], bg=colors['crust'])}{' ' * cap_gap}")
     parts.append(f"#[range=user|new-window]{render_cap(colors)}#[norange]")
+    parts.append(f"{style(fg=colors['fg'], bg=colors['crust'])}{' ' * right_pad}")
 
     output = "".join(parts)
     output += style(fg=colors["fg"], bg=colors["crust"])
