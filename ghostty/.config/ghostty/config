@@ -9,7 +9,7 @@
 # interactive zsh in this surface; dead (= last pane killed) → launcher exits
 # → Ghostty closes the window. The launcher must NOT exec zsh after tmux — exec
 # would drop the cleanup trap.
-command = "zsh -lc 'exec zsh \"$HOME/.config/ghostty/launch-tmux.zsh\"'"
+command = zsh -lc 'exec zsh "$HOME/.config/ghostty/launch-tmux.zsh"'
 
 # Theme colors - managed by theme-set (symlink)
 config-file = ?"~/.config/ghostty/theme.conf"
