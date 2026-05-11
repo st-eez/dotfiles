@@ -63,6 +63,20 @@ def render_cap(colors: dict[str, str]) -> str:
     return f"{style(fg=fg, bg=colors['crust'])}{NF_PLUS_CIRCLE}"
 
 
+def surface_label(session_name: str) -> str:
+    prefix = "ghostty-"
+    if session_name.startswith(prefix) and session_name[len(prefix) :].isdigit():
+        return f"#{session_name[len(prefix) :]}"
+    return f"#{session_name}" if session_name else "#?"
+
+
+def render_surface_badge(label: str, colors: dict[str, str]) -> str:
+    return (
+        f"{style(fg=colors['fg'], bg=colors['surface_0'])} {label} "
+        f"{style(fg=colors['fg'], bg=colors['crust'])} "
+    )
+
+
 def render_tab(index: str, title: str, active: bool, attention: bool, width: int, colors: dict[str, str]) -> str:
     if width <= 0:
         return ""
@@ -103,8 +117,11 @@ def main() -> int:
     # argv[3] is window_id, passed only to bust tmux's #() cache on window switch.
     # Without it the cache key stays constant across switches and the tab row
     # serves stale output until the next status-interval tick.
+    session_name = sys.argv[4] if len(sys.argv) > 4 else ""
 
     colors = {key: option(f"@thm_{key}", fallback) for key, fallback in DEFAULTS.items()}
+    badge_label = surface_label(session_name)
+    badge_width = len(badge_label) + 3
 
     rows = tmux(
         "list-windows",
@@ -126,7 +143,7 @@ def main() -> int:
     left_pad = edge_pad
     right_pad = edge_pad
     right_reserve = cap_gap + CAP_WIDTH + right_pad
-    reserved = left_pad + right_reserve
+    reserved = left_pad + badge_width + right_reserve
     available = max(1, client_width - reserved)
     gap = 1 if len(windows) > 1 else 0
     total_gap = gap * (len(windows) - 1)
@@ -136,6 +153,7 @@ def main() -> int:
 
     parts: list[str] = []
     parts.append(f"{style(fg=colors['fg'], bg=colors['crust'])}{' ' * left_pad}")
+    parts.append(render_surface_badge(badge_label, colors))
     for position, fields in enumerate(windows):
         index, title, active, attention = (fields + ["", "", "", ""])[:4]
         width = base_width + (1 if position < remainder else 0)

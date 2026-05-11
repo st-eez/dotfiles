@@ -1,13 +1,15 @@
 # The session is the surface. Anything that ends the surface ends the session;
 # detach is internal to the surface — window and session both stay.
 #
-# Each Ghostty surface launches its own tmux session named by sh PID. A trap
-# in the launcher kills the session whenever the launcher itself exits (clean
-# end, SIGHUP from window-close, SIGTERM). After tmux exits, `has-session`
-# decides: alive (= user did prefix+d) → fall to interactive zsh in this
-# surface; dead (= last pane killed) → launcher exits → Ghostty closes the
-# window. The launcher must NOT exec zsh — exec drops the trap.
-command = "zsh -lc 'sess=ghostty-$$; trap \"tmux kill-session -t $sess 2>/dev/null; exit\" EXIT HUP TERM; tmux new-session -A -s $sess; tmux has-session -t $sess 2>/dev/null && zsh -i'"
+# Each Ghostty surface launches its own numbered tmux session. The launcher
+# allocates the first free ghostty-N name under a lock so concurrent windows
+# never attach to the same session. A trap kills the session whenever the
+# launcher exits (clean end, SIGHUP from window-close, SIGTERM). After tmux
+# exits, `has-session` decides: alive (= user did prefix+d) → fall to
+# interactive zsh in this surface; dead (= last pane killed) → launcher exits
+# → Ghostty closes the window. The launcher must NOT exec zsh after tmux — exec
+# would drop the cleanup trap.
+command = "zsh -lc 'exec zsh \"$HOME/.config/ghostty/launch-tmux.zsh\"'"
 
 # Theme colors - managed by theme-set (symlink)
 config-file = ?"~/.config/ghostty/theme.conf"
@@ -22,10 +24,11 @@ keybind = super+left=text:\x1bOH
 # ── Route Cmd-shortcuts into tmux by emitting its prefix sequence ───────────
 # Ghostty emits `<C-b><key>`; tmux's existing root bindings handle it. `\x02`
 # is Ctrl-B (tmux's prefix2; safer than NUL=C-Space for byte encoding).
-# tmux is guaranteed to be the foreground program (see `command =` above), so
-# there is no "outside tmux" case to handle.
+# tmux owns these chords during normal attached use. After explicit detach,
+# they fall through as raw bytes in the temporary fallback shell.
 keybind = super+t=text:\x02c
 keybind = super+w=text:\x02x
+keybind = super+alt+w=ignore
 keybind = super+d=text:\x02|
 keybind = super+shift+d=text:\x02-
 keybind = super+1=text:\x021
