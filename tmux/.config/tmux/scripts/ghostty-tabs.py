@@ -117,9 +117,9 @@ def main() -> int:
     if not windows:
         return 0
 
-    # No explicit gap between the last tab and the cap; the cap's own inner
-    # whitespace (" <glyph> ") provides the visual separation.
-    cap_gap = 0
+    # 1-col gap between the last tab's trailing curve and the cap glyph;
+    # zero touches the tab's rounded edge and reads as overlap.
+    cap_gap = 1
     # Symmetric edge padding so neither tab 1 nor the cap is flush with
     # the window border.
     edge_pad = 1
