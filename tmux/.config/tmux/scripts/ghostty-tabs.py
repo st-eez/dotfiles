@@ -117,7 +117,12 @@ def main() -> int:
     if not windows:
         return 0
 
-    reserved = CAP_WIDTH + 1  # cap + gap before it
+    cap_gap = 1
+    right_reserve = CAP_WIDTH + cap_gap
+    # Mirror the right reserve on the left so the tab block sits centered
+    # between an empty leading strip and the cap on the trailing edge.
+    left_pad = right_reserve
+    reserved = left_pad + right_reserve
     available = max(1, client_width - reserved)
     gap = 1 if len(windows) > 1 else 0
     total_gap = gap * (len(windows) - 1)
@@ -126,6 +131,7 @@ def main() -> int:
     remainder = tab_area % len(windows)
 
     parts: list[str] = []
+    parts.append(f"{style(fg=colors['fg'], bg=colors['crust'])}{' ' * left_pad}")
     for position, fields in enumerate(windows):
         index, title, active, attention = (fields + ["", "", "", ""])[:4]
         width = base_width + (1 if position < remainder else 0)
@@ -138,7 +144,7 @@ def main() -> int:
         if gap and position != len(windows) - 1:
             parts.append(f"{style(fg=colors['fg'], bg=colors['crust'])} ")
 
-    parts.append(f"{style(fg=colors['fg'], bg=colors['crust'])} ")
+    parts.append(f"{style(fg=colors['fg'], bg=colors['crust'])}{' ' * cap_gap}")
     parts.append(f"#[range=user|new-window]{render_cap(colors)}#[norange]")
 
     output = "".join(parts)
