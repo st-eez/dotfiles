@@ -18,7 +18,7 @@ DEFAULTS = {
     "ghostty_inactive_tab": "#242424",
 }
 
-CAP_WIDTH = 5  # two powerline ends + " + "
+CAP_WIDTH = 3  # two powerline ends + "+"; 3 cells reads as a circle at 1-row height
 
 
 def tmux(*args: str) -> str:
@@ -63,7 +63,7 @@ def render_cap(colors: dict[str, str]) -> str:
             style(fg=bg, bg=colors["crust"]),
             "",
             style(fg=fg, bg=bg),
-            " + ",
+            "+",
             style(fg=bg, bg=colors["crust"]),
             "",
         ]
@@ -107,6 +107,9 @@ def main() -> int:
 
     client_width = max(1, int(sys.argv[1]))
     session_id = sys.argv[2]
+    # argv[3] is window_id, passed only to bust tmux's #() cache on window switch.
+    # Without it the cache key stays constant across switches and the tab row
+    # serves stale output until the next status-interval tick.
 
     colors = {key: option(f"@thm_{key}", fallback) for key, fallback in DEFAULTS.items()}
 
