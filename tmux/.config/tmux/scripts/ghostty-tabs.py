@@ -122,7 +122,7 @@ def main() -> int:
     # Small leading pad so tab 1 isn't flush with the window border. Kept
     # shorter than the right reserve because the cap's inner whitespace
     # already provides visual breathing room on that side.
-    left_pad = 2
+    left_pad = 1
     reserved = left_pad + right_reserve
     available = max(1, client_width - reserved)
     gap = 1 if len(windows) > 1 else 0
