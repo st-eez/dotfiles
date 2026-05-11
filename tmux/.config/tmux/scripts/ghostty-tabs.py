@@ -18,6 +18,8 @@ DEFAULTS = {
     "ghostty_inactive_tab": "#242424",
 }
 
+CAP_WIDTH = 5  # two powerline ends + " + "
+
 
 def tmux(*args: str) -> str:
     return subprocess.check_output(["tmux", *args], text=True).rstrip("\n")
@@ -51,6 +53,21 @@ def centered_title(title: str, shortcut: str, width: int) -> str:
     title = truncate(title, title_width).center(title_width)
     text = f"{title} {shortcut}"
     return text[:width].ljust(width)
+
+
+def render_cap(colors: dict[str, str]) -> str:
+    bg = colors["ghostty_inactive_tab"]
+    fg = colors["overlay_0"]
+    return "".join(
+        [
+            style(fg=bg, bg=colors["crust"]),
+            "",
+            style(fg=fg, bg=bg),
+            " + ",
+            style(fg=bg, bg=colors["crust"]),
+            "",
+        ]
+    )
 
 
 def render_tab(index: str, title: str, active: bool, attention: bool, width: int, colors: dict[str, str]) -> str:
@@ -104,7 +121,8 @@ def main() -> int:
     if not windows:
         return 0
 
-    available = client_width
+    reserved = CAP_WIDTH + 1  # cap + gap before it
+    available = max(1, client_width - reserved)
     gap = 1 if len(windows) > 1 else 0
     total_gap = gap * (len(windows) - 1)
     tab_area = max(len(windows), available - total_gap)
@@ -123,6 +141,9 @@ def main() -> int:
         )
         if gap and position != len(windows) - 1:
             parts.append(f"{style(fg=colors['fg'], bg=colors['crust'])} ")
+
+    parts.append(f"{style(fg=colors['fg'], bg=colors['crust'])} ")
+    parts.append(f"#[range=user|new-window]{render_cap(colors)}#[norange]")
 
     output = "".join(parts)
     output += style(fg=colors["fg"], bg=colors["crust"])
