@@ -18,7 +18,7 @@ DEFAULTS = {
     "ghostty_inactive_tab": "#242424",
 }
 
-CAP_WIDTH = 3  # two powerline ends + "+"; 3 cells reads as a circle at 1-row height
+CAP_WIDTH = 3  # " ⊕ " — single circled-plus glyph with side padding for click area
 
 
 def tmux(*args: str) -> str:
@@ -56,18 +56,8 @@ def centered_title(title: str, shortcut: str, width: int) -> str:
 
 
 def render_cap(colors: dict[str, str]) -> str:
-    bg = colors["ghostty_inactive_tab"]
     fg = colors["overlay_0"]
-    return "".join(
-        [
-            style(fg=bg, bg=colors["crust"]),
-            "",
-            style(fg=fg, bg=bg),
-            "+",
-            style(fg=bg, bg=colors["crust"]),
-            "",
-        ]
-    )
+    return f"{style(fg=fg, bg=colors['crust'])} ⊕ "
 
 
 def render_tab(index: str, title: str, active: bool, attention: bool, width: int, colors: dict[str, str]) -> str:
