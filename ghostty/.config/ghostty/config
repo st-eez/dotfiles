@@ -46,6 +46,14 @@ keybind = super+8=text:\x028
 keybind = super+digit_8=text:\x028
 keybind = super+9=text:\x02l
 keybind = super+digit_9=text:\x02l
+keybind = super+shift+[=text:\x02p
+keybind = super+shift+]=text:\x02n
+keybind = super+shift+enter=text:\x02z
+keybind = super+alt+w=text:\x02&
+keybind = super+alt+up=text:\x02\x1b[A
+keybind = super+alt+down=text:\x02\x1b[B
+keybind = super+alt+right=text:\x02\x1b[C
+keybind = super+alt+left=text:\x02\x1b[D
 
 # Split appearance
 unfocused-split-opacity = 0.5
