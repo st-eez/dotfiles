@@ -6,19 +6,36 @@ while ! mkdir "$lock_dir" 2>/dev/null; do
   sleep 0.05
 done
 
+sess=""
+
 release_lock() {
   rmdir "$lock_dir" 2>/dev/null || true
 }
 
-trap 'release_lock' EXIT
-trap 'release_lock; exit 0' HUP TERM INT
+cleanup_session() {
+  if [[ -n "${sess:-}" ]]; then
+    tmux kill-session -t "=$sess" 2>/dev/null || true
+  fi
+}
 
-sess=""
+cleanup() {
+  cleanup_session
+  release_lock
+}
+
+cleanup_and_exit() {
+  cleanup
+  exit 0
+}
+
+trap cleanup EXIT
+trap cleanup_and_exit HUP TERM INT
+
 for i in {1..99}; do
   candidate="ghostty-$i"
   if ! tmux has-session -t "=$candidate" 2>/dev/null; then
-    tmux new-session -d -s "$candidate"
     sess="$candidate"
+    tmux new-session -d -s "$sess"
     break
   fi
 done
@@ -29,19 +46,6 @@ if [[ -z "$sess" ]]; then
 fi
 
 release_lock
-trap - EXIT HUP TERM INT
-
-cleanup_session() {
-  tmux kill-session -t "=$sess" 2>/dev/null || true
-}
-
-cleanup_and_exit() {
-  cleanup_session
-  exit 0
-}
-
-trap cleanup_session EXIT
-trap cleanup_and_exit HUP TERM
 
 tmux attach-session -t "=$sess" || true
 tmux has-session -t "=$sess" 2>/dev/null && zsh -i
