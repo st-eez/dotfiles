@@ -53,6 +53,8 @@ keybind = super+alt+up=text:\x02\x1b[A
 keybind = super+alt+down=text:\x02\x1b[B
 keybind = super+alt+right=text:\x02\x1b[C
 keybind = super+alt+left=text:\x02\x1b[D
+keybind = super+]=text:\x02o
+keybind = super+[=text:\x02O
 
 # Split appearance
 unfocused-split-opacity = 0.5
