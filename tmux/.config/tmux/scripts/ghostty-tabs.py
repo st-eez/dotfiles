@@ -71,9 +71,16 @@ def surface_label(session_name: str) -> str:
 
 
 def render_surface_badge(label: str, colors: dict[str, str]) -> str:
-    return (
-        f"{style(fg=colors['fg'], bg=colors['surface_0'])} {label} "
-        f"{style(fg=colors['fg'], bg=colors['crust'])} "
+    bg = colors["surface_0"]
+    return "".join(
+        [
+            style(fg=bg, bg=colors["crust"]),
+            "",
+            style(fg=colors["fg"], bg=bg),
+            label,
+            style(fg=bg, bg=colors["crust"]),
+            " ",
+        ]
     )
 
 
@@ -154,6 +161,14 @@ def main() -> int:
     parts: list[str] = []
     parts.append(f"{style(fg=colors['fg'], bg=colors['crust'])}{' ' * left_pad}")
     parts.append(render_surface_badge(badge_label, colors))
+
+    if len(windows) == 1:
+        parts.append(f"{style(fg=colors['fg'], bg=colors['crust'])}{' ' * right_pad}")
+        output = "".join(parts)
+        output += style(fg=colors["fg"], bg=colors["crust"])
+        print(output, end="")
+        return 0
+
     for position, fields in enumerate(windows):
         index, title, active, attention = (fields + ["", "", "", ""])[:4]
         width = base_width + (1 if position < remainder else 0)
