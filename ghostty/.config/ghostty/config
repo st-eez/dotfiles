@@ -1,5 +1,9 @@
-# Use zsh regardless of system default shell
-command = zsh
+# Launch every Ghostty surface into its own tmux session (unique by sh PID).
+# Detach (prefix+d) falls through to bare zsh in the same surface — no window
+# close. Re-attach with `tmux attach -t <name>` (use `tmux ls` to find names).
+# Architectural choice: tmux owns the tab/split/window concepts; Ghostty is a
+# tmux container. Cmd-shortcuts below route to tmux's prefix bindings.
+command = "sh -c 'tmux new-session -A -s ghostty-$$ ; exec zsh'"
 
 # Theme colors - managed by theme-set (symlink)
 config-file = ?"~/.config/ghostty/theme.conf"
@@ -10,6 +14,23 @@ font-size = 13
 keybind = shift+enter=text:\n
 keybind = super+k=text:\x0c
 keybind = super+left=text:\x1bOH
+
+# ── Route Cmd-shortcuts into tmux by emitting its prefix sequence ───────────
+# Ghostty emits `<C-b><key>`; tmux's existing root bindings handle it. `\x02`
+# is Ctrl-B (tmux's prefix2; safer than NUL=C-Space for byte encoding).
+# tmux is guaranteed to be the foreground program (see `command =` above), so
+# there is no "outside tmux" case to handle.
+keybind = super+t=text:\x02c
+keybind = super+d=text:\x02|
+keybind = super+shift+d=text:\x02-
+keybind = super+1=text:\x021
+keybind = super+digit_1=text:\x021
+keybind = super+2=text:\x022
+keybind = super+digit_2=text:\x022
+keybind = super+3=text:\x023
+keybind = super+digit_3=text:\x023
+keybind = super+4=text:\x024
+keybind = super+digit_4=text:\x024
 
 # Split appearance
 unfocused-split-opacity = 0.5
