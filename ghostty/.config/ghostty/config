@@ -21,6 +21,7 @@ keybind = super+left=text:\x1bOH
 # tmux is guaranteed to be the foreground program (see `command =` above), so
 # there is no "outside tmux" case to handle.
 keybind = super+t=text:\x02c
+keybind = super+w=text:\x02x
 keybind = super+d=text:\x02|
 keybind = super+shift+d=text:\x02-
 keybind = super+1=text:\x021
