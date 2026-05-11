@@ -1,9 +1,13 @@
-# Launch every Ghostty surface into its own tmux session (unique by sh PID).
-# Detach (prefix+d) falls through to bare zsh in the same surface — no window
-# close. Re-attach with `tmux attach -t <name>` (use `tmux ls` to find names).
-# Architectural choice: tmux owns the tab/split/window concepts; Ghostty is a
-# tmux container. Cmd-shortcuts below route to tmux's prefix bindings.
-command = "zsh -lc 'tmux new-session -A -s ghostty-$$ ; exec zsh'"
+# The session is the surface. Anything that ends the surface ends the session;
+# detach is internal to the surface — window and session both stay.
+#
+# Each Ghostty surface launches its own tmux session named by sh PID. A trap
+# in the launcher kills the session whenever the launcher itself exits (clean
+# end, SIGHUP from window-close, SIGTERM). After tmux exits, `has-session`
+# decides: alive (= user did prefix+d) → fall to interactive zsh in this
+# surface; dead (= last pane killed) → launcher exits → Ghostty closes the
+# window. The launcher must NOT exec zsh — exec drops the trap.
+command = "zsh -lc 'sess=ghostty-$$; trap \"tmux kill-session -t $sess 2>/dev/null; exit\" EXIT HUP TERM; tmux new-session -A -s $sess; tmux has-session -t $sess 2>/dev/null && zsh -i'"
 
 # Theme colors - managed by theme-set (symlink)
 config-file = ?"~/.config/ghostty/theme.conf"
