@@ -18,7 +18,7 @@ DEFAULTS = {
     "ghostty_inactive_tab": "#242424",
 }
 
-CAP_WIDTH = 3  # " <nf-fa-plus_circle> " — Nerd Font plus-circle with side padding
+CAP_WIDTH = 1  # bare nf-fa-plus_circle glyph; no inner padding
 
 
 def tmux(*args: str) -> str:
@@ -60,7 +60,7 @@ NF_PLUS_CIRCLE = ""  # Nerd Font / FontAwesome plus-circle glyph
 
 def render_cap(colors: dict[str, str]) -> str:
     fg = colors["overlay_0"]
-    return f"{style(fg=fg, bg=colors['crust'])} {NF_PLUS_CIRCLE} "
+    return f"{style(fg=fg, bg=colors['crust'])}{NF_PLUS_CIRCLE}"
 
 
 def render_tab(index: str, title: str, active: bool, attention: bool, width: int, colors: dict[str, str]) -> str:
@@ -117,7 +117,9 @@ def main() -> int:
     if not windows:
         return 0
 
-    cap_gap = 1
+    # No explicit gap between the last tab and the cap; the cap's own inner
+    # whitespace (" <glyph> ") provides the visual separation.
+    cap_gap = 0
     # Symmetric edge padding so neither tab 1 nor the cap is flush with
     # the window border.
     edge_pad = 1
