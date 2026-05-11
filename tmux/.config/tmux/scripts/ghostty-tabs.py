@@ -95,7 +95,7 @@ def render_tab(index: str, title: str, active: bool, attention: bool, width: int
 
     bg = colors["ghostty_active_tab"] if active else colors["ghostty_inactive_tab"]
     fg = colors["fg"] if active else colors["overlay_0"]
-    shortcut_fg = colors["fg"] if active else colors["overlay_2"]
+    shortcut_fg = colors["fg"] if active else colors["overlay_0"]
     dot = "●" if attention else ""
     shortcut = f"⌘{index}{dot}"
     content_width = width - 2
@@ -107,7 +107,7 @@ def render_tab(index: str, title: str, active: bool, attention: bool, width: int
             "",
             style(fg=fg, bg=bg),
             content[: max(0, content_width - len(shortcut))],
-            style(fg=shortcut_fg, bg=bg),
+            f"#[fg={shortcut_fg},bg={bg},bold]",
             content[max(0, content_width - len(shortcut)) :],
             style(fg=bg, bg=colors["crust"]),
             "",
