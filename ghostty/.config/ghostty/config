@@ -3,7 +3,7 @@
 # close. Re-attach with `tmux attach -t <name>` (use `tmux ls` to find names).
 # Architectural choice: tmux owns the tab/split/window concepts; Ghostty is a
 # tmux container. Cmd-shortcuts below route to tmux's prefix bindings.
-command = "sh -c 'tmux new-session -A -s ghostty-$$ ; exec zsh'"
+command = "zsh -lc 'tmux new-session -A -s ghostty-$$ ; exec zsh'"
 
 # Theme colors - managed by theme-set (symlink)
 config-file = ?"~/.config/ghostty/theme.conf"
