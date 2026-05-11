@@ -25,6 +25,7 @@ Temporary Items
 # Personal notes and configs
 WORKING_NOTES*.md
 PROJECT_NOTES*.md
+plans/dot-w6a9-pi-memory-extension-design-spec.md
 sketchybar/.config/sketchybar/AGENTS.md
 .gitconfig
 .gitconfig-*
