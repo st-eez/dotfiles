@@ -55,7 +55,7 @@ def centered_title(title: str, shortcut: str, width: int) -> str:
     return text[:width].ljust(width)
 
 
-NF_PLUS_CIRCLE = ""  # Nerd Font / FontAwesome plus-circle glyph
+NF_PLUS_CIRCLE = "󰐙"  # nf-md-plus_circle_outline (outline ring, solid +)
 
 
 def render_cap(colors: dict[str, str]) -> str:
@@ -177,7 +177,9 @@ def main() -> int:
     # the window border.
     edge_pad = 1
     left_pad = edge_pad
-    right_pad = edge_pad
+    # Extra col on the right so the new-window cap doesn't kiss the window
+    # border; 1 col reads as "touching", 2 reads as proper inset.
+    right_pad = edge_pad + 1
     right_reserve = cap_gap + CAP_WIDTH + right_pad
     reserved = left_pad + badge_width + right_reserve
     available = max(1, client_width - reserved)
