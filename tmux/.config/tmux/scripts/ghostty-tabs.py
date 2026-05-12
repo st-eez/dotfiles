@@ -117,9 +117,11 @@ def render_tab(
         label = truncate(index, width)
         return f"{style(fg=fg, bg=bg)}{label.center(width)}"
 
-    cap_cols = (1 if cap_left else 0) + (1 if cap_right else 0)
+    # Always reserve 2 cap-cell columns so the content area width is
+    # constant regardless of cap state — that keeps the centered title
+    # and shortcut from shifting when a tab transitions active/inactive.
     right_inner_pad = 1
-    content_width = max(1, width - cap_cols)
+    content_width = max(1, width - 2)
     text_width = max(1, content_width - right_inner_pad)
     dot = "●" if attention else ""
     shortcut = f"⌘{index}{dot}"
@@ -128,6 +130,8 @@ def render_tab(
     parts: list[str] = []
     if cap_left:
         parts.append(f"{style(fg=bg, bg=left_bg)}")
+    else:
+        parts.append(f"{style(fg=fg, bg=bg)} ")
     parts.append(style(fg=fg, bg=bg))
     parts.append(content[: max(0, text_width - len(shortcut))])
     parts.append(f"#[fg={shortcut_fg},bg={bg},bold]")
@@ -135,6 +139,8 @@ def render_tab(
     parts.append(f"#[fg={fg},bg={bg},nobold]{' ' * right_inner_pad}")
     if cap_right:
         parts.append(f"{style(fg=bg, bg=right_bg)}")
+    else:
+        parts.append(f"{style(fg=fg, bg=bg)} ")
     return "".join(parts)
 
 
