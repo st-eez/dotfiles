@@ -143,12 +143,8 @@ fi
 # You may need to manually set your language environment
 # export LANG=en_US.UTF-8
 
-# Preferred editor for local and remote sessions
-if [[ -n $SSH_CONNECTION ]]; then
-  export EDITOR='vim'
-else
-  export EDITOR='nvim'
-fi
+# $EDITOR is set in .zshenv so non-interactive subshells (`zsh -lc`, scripts,
+# the tmux launcher) see it. Setting it here would only affect interactive zsh.
 
 # Compilation flags
 # export ARCHFLAGS="-arch $(uname -m)"
