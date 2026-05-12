@@ -84,35 +84,58 @@ def render_surface_badge(label: str, colors: dict[str, str]) -> str:
     )
 
 
-def render_tab(index: str, title: str, active: bool, attention: bool, width: int, colors: dict[str, str]) -> str:
+def render_tab(
+    index: str,
+    title: str,
+    active: bool,
+    attention: bool,
+    width: int,
+    colors: dict[str, str],
+    cap_left: bool = True,
+    cap_right: bool = True,
+    cap_left_bg: str = "",
+    cap_right_bg: str = "",
+) -> str:
     if width <= 0:
         return ""
+
+    if active:
+        bg = colors["ghostty_active_tab"]
+        fg = colors["fg"]
+    else:
+        bg = colors["ghostty_inactive_tab"]
+        fg = colors["overlay_0"]
+    shortcut_fg = fg
+
+    # Cap cell background. Default to bar bg (rounded edge against the strip).
+    # Override with the neighbor pill's bg when there is no gap, so the cap's
+    # negative space matches the neighbor and the curve blends smoothly.
+    left_bg = cap_left_bg or colors["crust"]
+    right_bg = cap_right_bg or colors["crust"]
+
     if width < 8:
         label = truncate(index, width)
-        bg = colors["ghostty_active_tab"] if active else colors["ghostty_inactive_tab"]
-        fg = colors["fg"] if active else colors["overlay_2"]
         return f"{style(fg=fg, bg=bg)}{label.center(width)}"
 
-    bg = colors["ghostty_active_tab"] if active else colors["ghostty_inactive_tab"]
-    fg = colors["fg"] if active else colors["overlay_0"]
-    shortcut_fg = colors["fg"] if active else colors["overlay_0"]
+    cap_cols = (1 if cap_left else 0) + (1 if cap_right else 0)
+    right_inner_pad = 1
+    content_width = max(1, width - cap_cols)
+    text_width = max(1, content_width - right_inner_pad)
     dot = "●" if attention else ""
     shortcut = f"⌘{index}{dot}"
-    content_width = width - 2
-    content = centered_title(title, shortcut, content_width)
+    content = centered_title(title, shortcut, text_width)
 
-    return "".join(
-        [
-            style(fg=bg, bg=colors["crust"]),
-            "",
-            style(fg=fg, bg=bg),
-            content[: max(0, content_width - len(shortcut))],
-            f"#[fg={shortcut_fg},bg={bg},bold]",
-            content[max(0, content_width - len(shortcut)) :],
-            style(fg=bg, bg=colors["crust"]),
-            "",
-        ]
-    )
+    parts: list[str] = []
+    if cap_left:
+        parts.append(f"{style(fg=bg, bg=left_bg)}")
+    parts.append(style(fg=fg, bg=bg))
+    parts.append(content[: max(0, text_width - len(shortcut))])
+    parts.append(f"#[fg={shortcut_fg},bg={bg},bold]")
+    parts.append(content[max(0, text_width - len(shortcut)) :])
+    parts.append(f"#[fg={fg},bg={bg},nobold]{' ' * right_inner_pad}")
+    if cap_right:
+        parts.append(f"{style(fg=bg, bg=right_bg)}")
+    return "".join(parts)
 
 
 def main() -> int:
@@ -152,8 +175,29 @@ def main() -> int:
     right_reserve = cap_gap + CAP_WIDTH + right_pad
     reserved = left_pad + badge_width + right_reserve
     available = max(1, client_width - reserved)
-    gap = 1 if len(windows) > 1 else 0
-    total_gap = gap * (len(windows) - 1)
+
+    # Pre-compute per-tab caps so we can size and lay out with knowledge of
+    # which boundaries are flat-vs-rounded.
+    last_index = len(windows) - 1
+    tab_caps: list[tuple[bool, bool]] = []
+    for position, fields in enumerate(windows):
+        fields_padded = (fields + ["", "", "", ""])[:4]
+        is_active = fields_padded[2] == "1"
+        cap_left = True if is_active else position == 0
+        cap_right = True if is_active else position == last_index
+        tab_caps.append((cap_left, cap_right))
+
+    # Inter-tab gap rule (matches ghostty native):
+    #   - mixed (one rounded, one flat): no gap; rounded cap blends into neighbor.
+    #   - both flat (adjacent inactives): no gap; they merge into one continuous pill.
+    #   - both rounded: 1-col bar-bg gap so the two curves don't visually overlap.
+    pair_gaps: list[int] = []
+    for i in range(1, len(windows)):
+        left_right = tab_caps[i - 1][1]
+        right_left = tab_caps[i][0]
+        pair_gaps.append(1 if (left_right and right_left) else 0)
+
+    total_gap = sum(pair_gaps)
     tab_area = max(len(windows), available - total_gap)
     base_width = tab_area // len(windows)
     remainder = tab_area % len(windows)
@@ -169,16 +213,43 @@ def main() -> int:
         print(output, end="")
         return 0
 
+    # Per-tab pill bg so we can blend a tab's cap into its neighbor.
+    tab_bgs: list[str] = []
+    for fields in windows:
+        is_active_bg = (fields + ["", "", "", ""])[2] == "1"
+        tab_bgs.append(colors["ghostty_active_tab"] if is_active_bg else colors["ghostty_inactive_tab"])
+
     for position, fields in enumerate(windows):
         index, title, active, attention = (fields + ["", "", "", ""])[:4]
         width = base_width + (1 if position < remainder else 0)
         attention_on = attention not in ("", "0")
+        is_active = active == "1"
+        cap_left, cap_right = tab_caps[position]
+        # Blend cap cells into a neighbor when there is no gap between them,
+        # so the curve's negative space picks up the neighbor color.
+        cap_left_bg = ""
+        cap_right_bg = ""
+        if cap_left and position > 0 and pair_gaps[position - 1] == 0:
+            cap_left_bg = tab_bgs[position - 1]
+        if cap_right and position < last_index and pair_gaps[position] == 0:
+            cap_right_bg = tab_bgs[position + 1]
         parts.append(
             f"#[range=window|{index}]"
-            + render_tab(index, title, active == "1", attention_on, width, colors)
+            + render_tab(
+                index,
+                title,
+                is_active,
+                attention_on,
+                width,
+                colors,
+                cap_left,
+                cap_right,
+                cap_left_bg,
+                cap_right_bg,
+            )
             + "#[norange]"
         )
-        if gap and position != len(windows) - 1:
+        if position != last_index and pair_gaps[position]:
             parts.append(f"{style(fg=colors['fg'], bg=colors['crust'])} ")
 
     parts.append(f"{style(fg=colors['fg'], bg=colors['crust'])}{' ' * cap_gap}")
