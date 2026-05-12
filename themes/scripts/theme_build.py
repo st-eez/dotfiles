@@ -602,7 +602,7 @@ def render_borders_config(theme_source: ThemeSource) -> str:
         },
     )
 
-    active_color = _resolve_hex_override(theme_source, "borders", overrides, "active_color", palette.fg)
+    active_color = _resolve_borders_active_color(theme_source)
     inactive_color = _resolve_hex_override(theme_source, "borders", overrides, "inactive_color", palette.bg2)
 
     lines = [
@@ -622,6 +622,7 @@ def render_borders_config(theme_source: ThemeSource) -> str:
 
 def render_tmux_config(theme_source: ThemeSource) -> str:
     palette = theme_source.palette
+    borders_active_color = _resolve_borders_active_color(theme_source)
     overrides = _extract_overrides_for_target(theme_source, "tmux")
     tmux_color_defaults: dict[str, str] = {
         "thm_bg": palette.bg1,
@@ -656,7 +657,6 @@ def render_tmux_config(theme_source: ThemeSource) -> str:
         "catppuccin_status_application_icon_bg",
         "catppuccin_status_uptime_icon_bg",
         "pane_border_style_fg",
-        "pane_active_border_style_fg",
     }
     _assert_allowed_override_keys(
         theme_source,
@@ -697,13 +697,7 @@ def render_tmux_config(theme_source: ThemeSource) -> str:
         "pane_border_style_fg",
         resolved_tmux_colors["thm_overlay_2"],
     )
-    pane_active_border_style_fg = _resolve_hex_override(
-        theme_source,
-        "tmux",
-        overrides,
-        "pane_active_border_style_fg",
-        resolved_tmux_colors["thm_green"],
-    )
+    pane_active_border_style_fg = borders_active_color
 
     theme_title = _title_case_theme_id(theme_source.theme.id)
     lines = [
@@ -746,6 +740,9 @@ def render_tmux_config(theme_source: ThemeSource) -> str:
         f'set -g @thm_flamingo "{resolved_tmux_colors["thm_flamingo"]}"',
         f'set -g @thm_rosewater "{resolved_tmux_colors["thm_rosewater"]}"',
         "",
+        "# Borders",
+        f'set -g @borders_active_color "{borders_active_color}"',
+        "",
         "# Window overrides",
         'set -g @catppuccin_window_current_number_color "#{@thm_teal}"',
         'set -g @catppuccin_window_number_color "#{@thm_overlay_2}"',
@@ -760,6 +757,16 @@ def render_tmux_config(theme_source: ThemeSource) -> str:
         f'set -g pane-active-border-style "fg={pane_active_border_style_fg}"',
     ]
     return "\n".join(lines) + "\n"
+
+
+def _resolve_borders_active_color(theme_source: ThemeSource) -> str:
+    return _resolve_hex_override(
+        theme_source,
+        "borders",
+        _extract_overrides_for_target(theme_source, "borders"),
+        "active_color",
+        theme_source.palette.fg,
+    )
 
 
 def render_ghostty_config(theme_source: ThemeSource) -> str:

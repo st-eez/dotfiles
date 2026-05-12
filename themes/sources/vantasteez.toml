@@ -115,7 +115,6 @@ thm_lavender = "#8a8a8a"
 thm_mauve = "#d0d0d0"
 catppuccin_status_application_icon_bg = "#8a8a8a"
 catppuccin_status_uptime_icon_bg = "#8a8a8a"
-pane_active_border_style_fg = "#6a6a6a"
 
 [overrides.ghostty]
 split_divider_color = "#8a8a8a"

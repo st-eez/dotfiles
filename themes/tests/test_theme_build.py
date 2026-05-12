@@ -456,6 +456,8 @@ class ThemeBuildTests(unittest.TestCase):
             tmux_contents = (configs_dir / "sample-theme" / "tmux.conf").read_text(encoding="utf-8")
             self.assertIn('set -g @thm_bg "#24283b"', tmux_contents)
             self.assertIn('set -g @thm_teal "#7dcfff"', tmux_contents)
+            self.assertIn('set -g @borders_active_color "#c0caf5"', tmux_contents)
+            self.assertIn('set -g pane-active-border-style "fg=#c0caf5"', tmux_contents)
 
     def test_main_generate_configs_mode_writes_configs(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -761,6 +763,27 @@ class ThemeBuildTests(unittest.TestCase):
                 theme_build.render_ghostty_theme(theme_source)
 
         self.assertIn("overrides.ghostty_theme.file must be sample-theme.ghostty", str(caught.exception))
+
+    def test_render_tmux_config_uses_borders_active_color_override(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source_file = Path(temp_dir) / "sample-theme.toml"
+            source_file.write_text(
+                VALID_THEME_TOML
+                + textwrap.dedent(
+                    """
+
+                    [overrides.borders]
+                    active_color = "#ff9e64"
+                    """
+                ),
+                encoding="utf-8",
+            )
+            theme_source = theme_build.load_theme_source(source_file)
+
+        rendered = theme_build.render_tmux_config(theme_source)
+
+        self.assertIn('set -g @borders_active_color "#ff9e64"', rendered)
+        self.assertIn('set -g pane-active-border-style "fg=#ff9e64"', rendered)
 
     def test_render_neovim_config_applies_plugin_overrides(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

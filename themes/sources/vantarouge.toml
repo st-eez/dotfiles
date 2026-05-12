@@ -152,7 +152,6 @@ thm_lavender = "#9f748d"
 thm_mauve = "#9f748d"
 catppuccin_status_application_icon_bg = "#c94f4f"
 catppuccin_status_uptime_icon_bg = "#ad9168"
-pane_active_border_style_fg = "#c94f4f"
 
 [overrides.ghostty]
 split_divider_color = "#8a8a8a"
