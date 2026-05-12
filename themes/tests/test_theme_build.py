@@ -765,6 +765,27 @@ class ThemeBuildTests(unittest.TestCase):
 
         self.assertIn("overrides.ghostty_theme.file must be sample-theme.ghostty", str(caught.exception))
 
+    def test_render_tmux_config_resolves_pane_border_format_colors(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source_file = Path(temp_dir) / "sample-theme.toml"
+            source_file.write_text(VALID_THEME_TOML, encoding="utf-8")
+            theme_source = theme_build.load_theme_source(source_file)
+
+        rendered = theme_build.render_tmux_config(theme_source)
+        pane_border_format = next(
+            line for line in rendered.splitlines() if line.startswith('set -g pane-border-format "')
+        )
+
+        self.assertIn("#{?pane_active,", pane_border_format)
+        self.assertIn("#{?client_prefix,", pane_border_format)
+        self.assertIn("#c0caf5", pane_border_format)
+        self.assertIn("#414868", pane_border_format)
+        self.assertIn("#[fg=#c0caf5 bg=#c0caf5 bold]PREFIX", pane_border_format)
+        self.assertIn("#[fg=#1a1b26 bg=#c0caf5 bold]", pane_border_format)
+        self.assertIn("#[fg=#565f89 bg=#414868]", pane_border_format)
+        self.assertNotIn("#{@borders_", pane_border_format)
+        self.assertNotIn("#{@thm_", pane_border_format)
+
     def test_render_tmux_config_uses_borders_active_color_override(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             source_file = Path(temp_dir) / "sample-theme.toml"

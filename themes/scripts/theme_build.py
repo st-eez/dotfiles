@@ -695,9 +695,38 @@ def render_tmux_config(theme_source: ThemeSource) -> str:
         "tmux",
         overrides,
         "pane_border_style_fg",
-        resolved_tmux_colors["thm_overlay_2"],
+        borders_inactive_color,
     )
     pane_active_border_style_fg = borders_active_color
+    pane_border_format = (
+        "#{?pane_active,"
+        "#{?client_prefix,"
+        f"#[fg={borders_active_color}]"
+        ""
+        f"#[fg={resolved_tmux_colors['thm_fg']} bg={borders_active_color} bold]"
+        "PREFIX #{window_index}.#{pane_index}"
+        f"#[fg={borders_active_color} bg=default]"
+        ""
+        "#[default]"
+        ","
+        f"#[fg={borders_active_color}]"
+        ""
+        f"#[fg={resolved_tmux_colors['thm_crust']} bg={borders_active_color} bold]"
+        "#{window_index}.#{pane_index}"
+        f"#[fg={borders_active_color} bg=default]"
+        ""
+        "#[default]"
+        "}"
+        ","
+        f"#[fg={borders_inactive_color}]"
+        ""
+        f"#[fg={resolved_tmux_colors['thm_overlay_0']} bg={borders_inactive_color}]"
+        "#{window_index}.#{pane_index}"
+        f"#[fg={borders_inactive_color} bg=default]"
+        ""
+        "#[default]"
+        "}"
+    )
 
     theme_title = _title_case_theme_id(theme_source.theme.id)
     lines = [
@@ -756,6 +785,7 @@ def render_tmux_config(theme_source: ThemeSource) -> str:
         "# Pane borders",
         f'set -g pane-border-style "fg={pane_border_style_fg}"',
         f'set -g pane-active-border-style "fg={pane_active_border_style_fg}"',
+        f'set -g pane-border-format "{pane_border_format}"',
     ]
     return "\n".join(lines) + "\n"
 
