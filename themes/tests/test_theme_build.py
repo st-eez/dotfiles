@@ -457,6 +457,7 @@ class ThemeBuildTests(unittest.TestCase):
             self.assertIn('set -g @thm_bg "#24283b"', tmux_contents)
             self.assertIn('set -g @thm_teal "#7dcfff"', tmux_contents)
             self.assertIn('set -g @borders_active_color "#c0caf5"', tmux_contents)
+            self.assertIn('set -g @borders_inactive_color "#414868"', tmux_contents)
             self.assertIn('set -g pane-active-border-style "fg=#c0caf5"', tmux_contents)
 
     def test_main_generate_configs_mode_writes_configs(self) -> None:
@@ -774,6 +775,7 @@ class ThemeBuildTests(unittest.TestCase):
 
                     [overrides.borders]
                     active_color = "#ff9e64"
+                    inactive_color = "#1a1b26"
                     """
                 ),
                 encoding="utf-8",
@@ -783,6 +785,7 @@ class ThemeBuildTests(unittest.TestCase):
         rendered = theme_build.render_tmux_config(theme_source)
 
         self.assertIn('set -g @borders_active_color "#ff9e64"', rendered)
+        self.assertIn('set -g @borders_inactive_color "#1a1b26"', rendered)
         self.assertIn('set -g pane-active-border-style "fg=#ff9e64"', rendered)
 
     def test_render_neovim_config_applies_plugin_overrides(self) -> None:

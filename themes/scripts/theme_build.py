@@ -590,7 +590,6 @@ def render_sketchybar_colors(theme_source: ThemeSource) -> str:
 
 
 def render_borders_config(theme_source: ThemeSource) -> str:
-    palette = theme_source.palette
     overrides = _extract_overrides_for_target(theme_source, "borders")
     _assert_allowed_override_keys(
         theme_source,
@@ -603,7 +602,7 @@ def render_borders_config(theme_source: ThemeSource) -> str:
     )
 
     active_color = _resolve_borders_active_color(theme_source)
-    inactive_color = _resolve_hex_override(theme_source, "borders", overrides, "inactive_color", palette.bg2)
+    inactive_color = _resolve_borders_inactive_color(theme_source)
 
     lines = [
         "#!/usr/bin/env bash",
@@ -623,6 +622,7 @@ def render_borders_config(theme_source: ThemeSource) -> str:
 def render_tmux_config(theme_source: ThemeSource) -> str:
     palette = theme_source.palette
     borders_active_color = _resolve_borders_active_color(theme_source)
+    borders_inactive_color = _resolve_borders_inactive_color(theme_source)
     overrides = _extract_overrides_for_target(theme_source, "tmux")
     tmux_color_defaults: dict[str, str] = {
         "thm_bg": palette.bg1,
@@ -742,6 +742,7 @@ def render_tmux_config(theme_source: ThemeSource) -> str:
         "",
         "# Borders",
         f'set -g @borders_active_color "{borders_active_color}"',
+        f'set -g @borders_inactive_color "{borders_inactive_color}"',
         "",
         "# Window overrides",
         'set -g @catppuccin_window_current_number_color "#{@thm_teal}"',
@@ -766,6 +767,16 @@ def _resolve_borders_active_color(theme_source: ThemeSource) -> str:
         _extract_overrides_for_target(theme_source, "borders"),
         "active_color",
         theme_source.palette.fg,
+    )
+
+
+def _resolve_borders_inactive_color(theme_source: ThemeSource) -> str:
+    return _resolve_hex_override(
+        theme_source,
+        "borders",
+        _extract_overrides_for_target(theme_source, "borders"),
+        "inactive_color",
+        theme_source.palette.bg2,
     )
 
 

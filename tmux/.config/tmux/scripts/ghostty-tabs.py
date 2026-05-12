@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
+from dataclasses import dataclass
 
 
 DEFAULTS = {
@@ -19,15 +20,45 @@ DEFAULTS = {
 }
 
 CAP_WIDTH = 1  # bare nf-fa-plus_circle glyph; no inner padding
+NF_PLUS_CIRCLE = "󰐙"  # nf-md-plus_circle_outline (outline ring, solid +)
+# Powerline rounded caps. Spelled as escapes so editors/Read tools that render
+# private-use-area codepoints as zero-width don't silently strip them.
+PILL_LEFT = ""   #
+PILL_RIGHT = ""  #
+
+
+@dataclass(frozen=True, slots=True)
+class Tab:
+    index: str
+    title: str
+    active: bool
+    attention: bool
+    bg: str
+    cap_left: bool
+    cap_right: bool
 
 
 def tmux(*args: str) -> str:
     return subprocess.check_output(["tmux", *args], text=True).rstrip("\n")
 
 
-def option(name: str, fallback: str) -> str:
-    value = tmux("show-option", "-gqv", name)
-    return value or fallback
+def load_thm_colors() -> dict[str, str]:
+    """Batch-read all @thm_* options in one subprocess call.
+
+    tmux show-options emits `name "value"` (or `name value` when unquoted)
+    one option per line — strip surrounding quotes to recover the value.
+    """
+    out = tmux("show-options", "-g")
+    resolved: dict[str, str] = {}
+    for line in out.splitlines():
+        name, _, raw = line.partition(" ")
+        if not name.startswith("@thm_"):
+            continue
+        value = raw.strip()
+        if len(value) >= 2 and value[0] == '"' and value[-1] == '"':
+            value = value[1:-1]
+        resolved[name[len("@thm_") :]] = value
+    return {key: resolved.get(key, fallback) for key, fallback in DEFAULTS.items()}
 
 
 def style(**attrs: str) -> str:
@@ -55,9 +86,6 @@ def centered_title(title: str, shortcut: str, width: int) -> str:
     return text[:width].ljust(width)
 
 
-NF_PLUS_CIRCLE = "󰐙"  # nf-md-plus_circle_outline (outline ring, solid +)
-
-
 def render_cap(colors: dict[str, str]) -> str:
     fg = colors["overlay_0"]
     return f"{style(fg=fg, bg=colors['crust'])}{NF_PLUS_CIRCLE}"
@@ -75,73 +103,91 @@ def render_surface_badge(label: str, colors: dict[str, str]) -> str:
     return "".join(
         [
             style(fg=bg, bg=colors["crust"]),
-            "",
+            PILL_LEFT,
             style(fg=colors["fg"], bg=bg),
             label,
             style(fg=bg, bg=colors["crust"]),
-            " ",
+            f"{PILL_RIGHT} ",
         ]
     )
 
 
 def render_tab(
-    index: str,
-    title: str,
-    active: bool,
-    attention: bool,
+    tab: Tab,
     width: int,
     colors: dict[str, str],
-    cap_left: bool = True,
-    cap_right: bool = True,
-    cap_left_bg: str = "",
-    cap_right_bg: str = "",
+    cap_left_bg: str,
+    cap_right_bg: str,
 ) -> str:
     if width <= 0:
         return ""
 
-    if active:
+    if tab.active:
         bg = colors["ghostty_active_tab"]
         fg = colors["fg"]
     else:
         bg = colors["ghostty_inactive_tab"]
         fg = colors["overlay_0"]
-    shortcut_fg = fg
 
-    # Cap cell background. Default to bar bg (rounded edge against the strip).
-    # Override with the neighbor pill's bg when there is no gap, so the cap's
-    # negative space matches the neighbor and the curve blends smoothly.
     left_bg = cap_left_bg or colors["crust"]
     right_bg = cap_right_bg or colors["crust"]
 
     if width < 8:
-        label = truncate(index, width)
-        return f"{style(fg=fg, bg=bg)}{label.center(width)}"
+        return f"{style(fg=fg, bg=bg)}{truncate(tab.index, width).center(width)}"
 
     # Always reserve 2 cap-cell columns so the content area width is
-    # constant regardless of cap state — that keeps the centered title
-    # and shortcut from shifting when a tab transitions active/inactive.
+    # constant regardless of cap state — keeps the centered title and
+    # shortcut from shifting when a tab transitions active/inactive.
     right_inner_pad = 1
     content_width = max(1, width - 2)
     text_width = max(1, content_width - right_inner_pad)
-    dot = "●" if attention else ""
-    shortcut = f"⌘{index}{dot}"
-    content = centered_title(title, shortcut, text_width)
+    dot = "●" if tab.attention else ""
+    shortcut = f"⌘{tab.index}{dot}"
+    content = centered_title(tab.title, shortcut, text_width)
+    split = max(0, text_width - len(shortcut))
 
     parts: list[str] = []
-    if cap_left:
-        parts.append(f"{style(fg=bg, bg=left_bg)}")
+    if tab.cap_left:
+        parts.append(f"{style(fg=bg, bg=left_bg)}{PILL_LEFT}")
     else:
         parts.append(f"{style(fg=fg, bg=bg)} ")
     parts.append(style(fg=fg, bg=bg))
-    parts.append(content[: max(0, text_width - len(shortcut))])
-    parts.append(f"#[fg={shortcut_fg},bg={bg},bold]")
-    parts.append(content[max(0, text_width - len(shortcut)) :])
+    parts.append(content[:split])
+    parts.append(f"#[fg={fg},bg={bg},bold]")
+    parts.append(content[split:])
     parts.append(f"#[fg={fg},bg={bg},nobold]{' ' * right_inner_pad}")
-    if cap_right:
-        parts.append(f"{style(fg=bg, bg=right_bg)}")
+    if tab.cap_right:
+        parts.append(f"{style(fg=bg, bg=right_bg)}{PILL_RIGHT}")
     else:
         parts.append(f"{style(fg=fg, bg=bg)} ")
     return "".join(parts)
+
+
+def parse_tabs(rows: list[list[str]], colors: dict[str, str]) -> list[Tab]:
+    """One-pass normalization: pad fields, derive active/attention/caps/bg.
+
+    Cap rule: the active tab always gets rounded caps on both sides; an
+    inactive tab is rounded only on its outer edge (position 0's left,
+    last position's right). All other inactive boundaries stay flat so
+    adjacent inactives can merge into one continuous pill.
+    """
+    last = len(rows) - 1
+    tabs: list[Tab] = []
+    for position, fields in enumerate(rows):
+        padded = (fields + ["", "", "", ""])[:4]
+        active = padded[2] == "1"
+        tabs.append(
+            Tab(
+                index=padded[0],
+                title=padded[1],
+                active=active,
+                attention=padded[3] not in ("", "0"),
+                bg=colors["ghostty_active_tab"] if active else colors["ghostty_inactive_tab"],
+                cap_left=active or position == 0,
+                cap_right=active or position == last,
+            )
+        )
+    return tabs
 
 
 def main() -> int:
@@ -155,7 +201,7 @@ def main() -> int:
     # serves stale output until the next status-interval tick.
     session_name = sys.argv[4] if len(sys.argv) > 4 else ""
 
-    colors = {key: option(f"@thm_{key}", fallback) for key, fallback in DEFAULTS.items()}
+    colors = load_thm_colors()
     badge_label = surface_label(session_name)
     badge_width = len(badge_label) + 3
 
@@ -169,6 +215,9 @@ def main() -> int:
     windows = [row.split("\t") for row in rows if row]
     if not windows:
         return 0
+
+    tabs = parse_tabs(windows, colors)
+    last_index = len(tabs) - 1
 
     # 1-col gap between the last tab's trailing curve and the cap glyph;
     # zero touches the tab's rounded edge and reads as overlap.
@@ -184,77 +233,50 @@ def main() -> int:
     reserved = left_pad + badge_width + right_reserve
     available = max(1, client_width - reserved)
 
-    # Pre-compute per-tab caps so we can size and lay out with knowledge of
-    # which boundaries are flat-vs-rounded.
-    last_index = len(windows) - 1
-    tab_caps: list[tuple[bool, bool]] = []
-    for position, fields in enumerate(windows):
-        fields_padded = (fields + ["", "", "", ""])[:4]
-        is_active = fields_padded[2] == "1"
-        cap_left = True if is_active else position == 0
-        cap_right = True if is_active else position == last_index
-        tab_caps.append((cap_left, cap_right))
-
     # Inter-tab gap rule (matches ghostty native):
     #   - mixed (one rounded, one flat): no gap; rounded cap blends into neighbor.
     #   - both flat (adjacent inactives): no gap; they merge into one continuous pill.
     #   - both rounded: 1-col bar-bg gap so the two curves don't visually overlap.
-    pair_gaps: list[int] = []
-    for i in range(1, len(windows)):
-        left_right = tab_caps[i - 1][1]
-        right_left = tab_caps[i][0]
-        pair_gaps.append(1 if (left_right and right_left) else 0)
+    pair_gaps = [
+        1 if (tabs[i - 1].cap_right and tabs[i].cap_left) else 0
+        for i in range(1, len(tabs))
+    ]
 
     total_gap = sum(pair_gaps)
-    tab_area = max(len(windows), available - total_gap)
-    base_width = tab_area // len(windows)
-    remainder = tab_area % len(windows)
+    tab_area = max(len(tabs), available - total_gap)
+    base_width = tab_area // len(tabs)
+    remainder = tab_area % len(tabs)
 
     parts: list[str] = []
     parts.append(f"{style(fg=colors['fg'], bg=colors['crust'])}{' ' * left_pad}")
     parts.append(render_surface_badge(badge_label, colors))
 
-    if len(windows) == 1:
+    if len(tabs) == 1:
         parts.append(f"{style(fg=colors['fg'], bg=colors['crust'])}{' ' * right_pad}")
-        output = "".join(parts)
-        output += style(fg=colors["fg"], bg=colors["crust"])
+        output = "".join(parts) + style(fg=colors["fg"], bg=colors["crust"])
         print(output, end="")
         return 0
 
-    # Per-tab pill bg so we can blend a tab's cap into its neighbor.
-    tab_bgs: list[str] = []
-    for fields in windows:
-        is_active_bg = (fields + ["", "", "", ""])[2] == "1"
-        tab_bgs.append(colors["ghostty_active_tab"] if is_active_bg else colors["ghostty_inactive_tab"])
+    def neighbor_bg(position: int, side: str) -> str:
+        # Blend a tab's cap into the adjacent pill when they share a flat
+        # boundary; otherwise default to bar bg (handled by render_tab).
+        if side == "left":
+            has_cap = tabs[position].cap_left
+            neighbor_pos = position - 1
+            gap_idx = position - 1
+        else:
+            has_cap = tabs[position].cap_right
+            neighbor_pos = position + 1
+            gap_idx = position
+        if not has_cap or not (0 <= neighbor_pos <= last_index):
+            return ""
+        return tabs[neighbor_pos].bg if pair_gaps[gap_idx] == 0 else ""
 
-    for position, fields in enumerate(windows):
-        index, title, active, attention = (fields + ["", "", "", ""])[:4]
+    for position, tab in enumerate(tabs):
         width = base_width + (1 if position < remainder else 0)
-        attention_on = attention not in ("", "0")
-        is_active = active == "1"
-        cap_left, cap_right = tab_caps[position]
-        # Blend cap cells into a neighbor when there is no gap between them,
-        # so the curve's negative space picks up the neighbor color.
-        cap_left_bg = ""
-        cap_right_bg = ""
-        if cap_left and position > 0 and pair_gaps[position - 1] == 0:
-            cap_left_bg = tab_bgs[position - 1]
-        if cap_right and position < last_index and pair_gaps[position] == 0:
-            cap_right_bg = tab_bgs[position + 1]
         parts.append(
-            f"#[range=window|{index}]"
-            + render_tab(
-                index,
-                title,
-                is_active,
-                attention_on,
-                width,
-                colors,
-                cap_left,
-                cap_right,
-                cap_left_bg,
-                cap_right_bg,
-            )
+            f"#[range=window|{tab.index}]"
+            + render_tab(tab, width, colors, neighbor_bg(position, "left"), neighbor_bg(position, "right"))
             + "#[norange]"
         )
         if position != last_index and pair_gaps[position]:
@@ -264,8 +286,7 @@ def main() -> int:
     parts.append(f"#[range=user|new-window]{render_cap(colors)}#[norange]")
     parts.append(f"{style(fg=colors['fg'], bg=colors['crust'])}{' ' * right_pad}")
 
-    output = "".join(parts)
-    output += style(fg=colors["fg"], bg=colors["crust"])
+    output = "".join(parts) + style(fg=colors["fg"], bg=colors["crust"])
     print(output, end="")
     return 0
 
