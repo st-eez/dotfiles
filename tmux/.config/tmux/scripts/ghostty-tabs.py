@@ -274,8 +274,15 @@ def main() -> int:
 
     for position, tab in enumerate(tabs):
         width = base_width + (1 if position < remainder else 0)
+        # range=user|N (not range=window|N): tmux populates `mouse_window`
+        # from the `|N` argument only during its own window-status iteration,
+        # not for ranges emitted via `#()` shell substitution. A
+        # `select-window -t=` (which resolves through `mouse_window`)
+        # silently no-ops for those clicks. `user|<arg>` exposes the
+        # argument via `mouse_status_range`, which the MouseDown1/3Status
+        # bindings read in tmux.conf.
         parts.append(
-            f"#[range=window|{tab.index}]"
+            f"#[range=user|{tab.index}]"
             + render_tab(tab, width, colors, neighbor_bg(position, "left"), neighbor_bg(position, "right"))
             + "#[norange]"
         )
