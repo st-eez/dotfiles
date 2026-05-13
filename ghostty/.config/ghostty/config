@@ -73,6 +73,7 @@ clipboard-paste-protection = false
 # Enable copy on highlight
 copy-on-select = clipboard
 mouse-hide-while-typing = true
+right-click-action = ignore
 
 # Enable desktop notifs
 desktop-notifications = true
