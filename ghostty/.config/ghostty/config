@@ -27,6 +27,7 @@ keybind = super+left=text:\x1bOH
 # tmux owns these chords during normal attached use. After explicit detach,
 # they fall through as raw bytes in the temporary fallback shell.
 keybind = super+t=text:\x02c
+keybind = super+n=text:\x02N
 keybind = super+w=text:\x02x
 keybind = super+alt+w=ignore
 keybind = super+d=text:\x02|

@@ -379,6 +379,7 @@ const GHOSTTY_SECTIONS: ShortcutSection[] = [
     title: "Ghostty - Tab Management",
     entries: [
       { binding: "cmd-t", description: "New tmux window" },
+      { binding: "cmd-n", description: "New Ghostty window from tmux pane cwd" },
       { binding: "cmd-w", description: "Kill tmux pane" },
       { binding: "cmd-alt-w", description: "Ignored" },
       { binding: "cmd-alt-shift-w", description: "Close all windows" },
@@ -425,7 +426,6 @@ const GHOSTTY_SECTIONS: ShortcutSection[] = [
     platform: "Ghostty",
     title: "Ghostty - Window Management",
     entries: [
-      { binding: "cmd-n", description: "New window" },
       { binding: "cmd-q", description: "Quit Ghostty" },
       { binding: "cmd-enter", description: "Toggle fullscreen" },
       { binding: "ctrl-cmd-f", description: "Toggle fullscreen" },
