@@ -10,6 +10,8 @@
 # → Ghostty closes the window. The launcher must NOT exec zsh after tmux — exec
 # would drop the cleanup trap.
 command = zsh -lc 'exec zsh "$HOME/.config/ghostty/launch-tmux.zsh"'
+working-directory = home
+window-inherit-working-directory = false
 
 # Theme colors - managed by theme-set (symlink)
 config-file = ?"~/.config/ghostty/theme.conf"
@@ -21,13 +23,13 @@ keybind = shift+enter=text:\n
 keybind = super+k=text:\x0c
 keybind = super+left=text:\x1bOH
 
-# ── Route Cmd-shortcuts into tmux by emitting its prefix sequence ───────────
+# ── Route most Cmd-shortcuts into tmux by emitting its prefix sequence ──────
 # Ghostty emits `<C-b><key>`; tmux's existing root bindings handle it. `\x02`
 # is Ctrl-B (tmux's prefix2; safer than NUL=C-Space for byte encoding).
 # tmux owns these chords during normal attached use. After explicit detach,
 # they fall through as raw bytes in the temporary fallback shell.
 keybind = super+t=text:\x02c
-keybind = super+n=text:\x02N
+keybind = super+n=new_window
 keybind = super+w=text:\x02x
 keybind = super+alt+w=ignore
 keybind = super+d=text:\x02|
