@@ -7,4 +7,12 @@ if (( $# != 1 )); then
 fi
 
 cwd=$1
-ghostty --window-inherit-working-directory=false --working-directory="$cwd" >/dev/null 2>&1 &!
+osascript - "$cwd" <<'APPLESCRIPT'
+on run argv
+  set cwd to item 1 of argv
+  tell application id "com.mitchellh.ghostty"
+    set cfg to new surface configuration from {initial working directory:cwd}
+    new window with configuration cfg
+  end tell
+end run
+APPLESCRIPT
