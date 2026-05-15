@@ -11,6 +11,7 @@ Before saying "done": `bd close <completed-ids> --reason "..."`.
 - **Memory**: use agent-native memory. **Never `bd remember`** — beads is for issue tracking, not knowledge.
 - **Never `bd edit`** — opens $EDITOR and blocks the agent. Use `bd update ...`.
 - Priority is `P0-P4` or `0-4`, never word form.
+- When creating multiple beads, use one `bd create` per shell command. Create the parent first when child beads need `--parent <id>` or dependencies need `--deps <id>`, then create independent children as parallel shell calls. Do not wrap multiple `bd create` invocations in one heredoc shell script.
 - Parallelize when work is independent; use `bd dep add` only for real dependencies.
 
 ## Creating Beads — Atomic & Self-Contained
