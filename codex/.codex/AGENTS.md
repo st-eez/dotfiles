@@ -39,6 +39,12 @@
 - Report only the command, pass/fail status, suite summary, and failing tests/errors/diffs/stack context.
 - Do not stream passing test lines or full logs unless the user asks, or unless filtering would hide necessary failure context.
 
+# Debugging
+
+- For bugs and behavioral regressions, reproduce the symptom before editing.
+- Fix the source, then re-run or re-observe the same path to verify the symptom is gone.
+- Use the relevant evidence path: failing command, built file, rendered page, URL, logs, or runtime behavior.
+
 # Anti-patterns
 
 - **No sycophancy.** No "Great question!", "I'd be happy to help!", "That's a really interesting approach, but...", or similar.
