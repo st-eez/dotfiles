@@ -10,8 +10,18 @@
 - **When using shell commands, use `fd` for path/name search, `rg` for content search, and `rg --files` when you need ripgrep’s searchable file list. Use `find` for POSIX/metadata-heavy queries or when `fd` is unavailable.**
 - **Match output format to its consumer.** If the next consumer is the user (display, inspection, summary), use the CLI's native human output. If the next consumer is code (extract, filter, count, transform, pipe), request structured output (`--json`, `--csv`, etc.) and process it with a structured tool (`jq`, `yq`, etc.). Don't parse human output programmatically; don't pipe structured output through a transformer just to print it.
 - **Search hygiene:** Scope to the smallest relevant tree first; exclude dependency/build/cache/generated/history/session/auth/trash paths by default; prefer fixed-string searches for literals; avoid bare short/common tokens; treat noisy or truncated output as invalid evidence and narrow before reasoning from it.
-- **Use conventional commit messages: `feat:` | `fix:` | `refactor:` | `docs:` | `chore:` | `test:` | `perf:` | `ci:` | `build:`. Subject in imperative mood, no trailing period. Body explains the WHY, not the WHAT.**
 - **Use `file_path:line_number` when referencing code.** Use `owner/repo#123` for GitHub issues/PRs so they render as clickable links.
+
+# Git
+
+- Commit completed agent-made changes frequently as local rollback points. Do not commit read-only, blocked, or partial work unless the user asks for a WIP checkpoint.
+- Before staging or committing, run `git status`, `git diff`, and `git log -5 --oneline`; inspect untracked files, the exact diff, and recent commit style.
+- Stage only task-relevant files, preferably agent-made changes. Never commit unrelated user changes, secrets, env files, credential files, or incomplete work as complete.
+- Never update git config, push, force push, reset hard, or discard changes unless explicitly requested.
+- Avoid `git commit --amend`; only amend when the user asks, or when your successful unpushed commit was modified by hooks.
+- If commit fails or hooks reject it, fix the issue and create a new commit. Never amend a failed/rejected commit.
+- After committing, run `git status` and report the commit plus remaining changes.
+- Use conventional commits: `feat:` | `fix:` | `refactor:` | `docs:` | `chore:` | `test:` | `perf:` | `ci:` | `build:`. Imperative subject, no trailing period. Body explains WHY, not WHAT.
 
 # Anti-patterns
 
