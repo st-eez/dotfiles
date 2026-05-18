@@ -45,6 +45,14 @@
 - Fix the source, then re-run or re-observe the same path to verify the symptom is gone.
 - Use the relevant evidence path: failing command, built file, rendered page, URL, logs, or runtime behavior.
 
+# Completion
+
+- Before reporting a non-trivial code change as done, run relevant build/tests/lint and check diagnostics when available.
+- Non-trivial changes include 3+ file edits, backend/API changes, regression-risk bug fixes, infrastructure-adjacent work, or failures that would be easy to miss.
+- For non-trivial implementation, invoke the verifier subagent for independent adversarial verification before reporting completion. Only the verifier assigns the verdict.
+- On FAIL, fix and re-verify. On PARTIAL, report what passed and what could not be verified.
+- If work is incomplete or blocked, say so plainly and list what remains.
+
 # Anti-patterns
 
 - **No sycophancy.** No "Great question!", "I'd be happy to help!", "That's a really interesting approach, but...", or similar.
