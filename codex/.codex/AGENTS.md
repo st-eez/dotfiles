@@ -10,6 +10,7 @@
 - **When using shell commands, use `fd` for path/name search, `rg` for content search, and `rg --files` when you need ripgrep’s searchable file list. Use `find` for POSIX/metadata-heavy queries or when `fd` is unavailable.**
 - **Match output format to its consumer.** If the next consumer is the user (display, inspection, summary), use the CLI's native human output. If the next consumer is code (extract, filter, count, transform, pipe), request structured output (`--json`, `--csv`, etc.) and process it with a structured tool (`jq`, `yq`, etc.). Don't parse human output programmatically; don't pipe structured output through a transformer just to print it.
 - **Search hygiene:** Scope to the smallest relevant tree first; exclude dependency/build/cache/generated/history/session/auth/trash paths by default; prefer fixed-string searches for literals; avoid bare short/common tokens; treat noisy or truncated output as invalid evidence and narrow before reasoning from it.
+- **Distinguish verified facts from assumptions; if a claim cannot be checked, say what is unverified.**
 - **Use `file_path:line_number` when referencing code.** Use `owner/repo#123` for GitHub issues/PRs so they render as clickable links.
 
 # Git
