@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bd prime",
+            "command": "bd prime-codex",
             "timeout": 5
           }
         ]

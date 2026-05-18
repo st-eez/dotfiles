@@ -11,15 +11,18 @@
 #   bd <anything else>       # passes through to the real bd
 #
 # After init / reapply, this shim:
-#   1. Writes .beads/PRIME.md from the dotfiles template.
+#   1. Links .beads/PRIME.md to the dotfiles template.
 #   2. Replaces the <!-- BEGIN BEADS INTEGRATION --> block in CLAUDE.md.
 #   3. Replaces the same block in AGENTS.md.
 #   4. Merges bd prime hooks into .claude/settings.json.
-#   5. Writes .codex/hooks.json with a bd prime SessionStart hook.
+#   5. Writes .codex/hooks.json with a conditional bd prime SessionStart hook.
 #
 # Templates live at $HOME/.dotfiles/beads/templates (overridable via
 # BD_DOTFILES_TEMPLATES). This shim is meant to be symlinked into a PATH
 # directory that precedes the real bd's location (e.g., ~/.local/bin/bd).
+# The shim also handles `bd prime` directly so Claude Code hooks and manual
+# prime refreshes read the canonical dotfiles template even in repos that have
+# not yet had their .beads/PRIME.md copy converted to a symlink.
 
 set -uo pipefail
 
@@ -54,6 +57,58 @@ find_real_bd() {
     return 0
   done
   return 1
+}
+
+canonical_template_path() {
+  local template=$1 dir base
+  case "$template" in
+    /*) ;;
+    *) template="$PWD/$template" ;;
+  esac
+
+  dir=$(dirname "$template")
+  base=$(basename "$template")
+  [[ -d "$dir" ]] || return 1
+  printf '%s/%s\n' "$(cd "$dir" && pwd -P)" "$base"
+}
+
+print_prime() {
+  local template
+  template=$(canonical_template_path "$TEMPLATES_DIR/prime.md") || return 1
+  [[ -f "$template" ]] || return 1
+  cat "$template"
+}
+
+print_codex_prime() {
+  local template="$TEMPLATES_DIR/prime-codex.md"
+  if [[ -f "$template" ]]; then
+    cat "$template"
+    return 0
+  fi
+
+  cat <<'EOF'
+# Beads Issue Tracker Available
+
+This repo uses bd for durable issue tracking.
+
+Treat this as reference-only startup context. Do not run bd commands, create/update/close beads, or let Beads workflow steer the task unless the user explicitly asks about Beads or bd.
+
+If the user asks about Beads, run `bd prime` for the full workflow instructions.
+EOF
+}
+
+link_prime_template() {
+  local template link_target
+  template=$(canonical_template_path "$TEMPLATES_DIR/prime.md") || return 1
+  [[ -f "$template" ]] || return 1
+
+  case "$template" in
+    "$PWD"/*) link_target="../${template#"$PWD"/}" ;;
+    *) link_target="$template" ;;
+  esac
+
+  ln -sfn "$link_target" .beads/PRIME.md || return 1
+  echo "bd-shim: linked .beads/PRIME.md -> $link_target"
 }
 
 # Ensure $1 contains a managed Beads integration block sourced from $2.
@@ -212,12 +267,12 @@ else:
 PY
 }
 
-# Project-scoped Codex hook: SessionStart runs `bd prime`.
+# Project-scoped Codex hook: SessionStart injects a conditional Beads notice.
 # Codex treats project-local hooks as trust-gated — you'll be prompted once
 # per new repo to mark it trusted before the hook fires.
 write_codex_hooks() {
   mkdir -p .codex || return 1
-  cat > .codex/hooks.json <<'JSON'
+  if cat > .codex/hooks.json <<'JSON'
 {
   "hooks": {
     "SessionStart": [
@@ -226,7 +281,7 @@ write_codex_hooks() {
         "hooks": [
           {
             "type": "command",
-            "command": "bd prime",
+            "command": "bd prime-codex",
             "timeout": 5
           }
         ]
@@ -235,7 +290,12 @@ write_codex_hooks() {
   }
 }
 JSON
-  echo "bd-shim: wrote .codex/hooks.json"
+  then
+    echo "bd-shim: wrote .codex/hooks.json"
+  else
+    echo "bd-shim: failed to write .codex/hooks.json" >&2
+    return 1
+  fi
 }
 
 post_init() {
@@ -246,8 +306,7 @@ post_init() {
   fi
 
   if [[ -f "$TEMPLATES_DIR/prime.md" ]]; then
-    cp -f "$TEMPLATES_DIR/prime.md" .beads/PRIME.md
-    echo "bd-shim: wrote .beads/PRIME.md"
+    link_prime_template
   fi
 
   replace_block CLAUDE.md "$TEMPLATES_DIR/claude.md"
@@ -256,24 +315,42 @@ post_init() {
   write_codex_hooks
 }
 
-REAL_BD=$(find_real_bd) || {
-  echo "bd-shim: real bd binary not found in PATH (skipped self at $SELF_DIR)" >&2
-  exit 127
-}
-
 case "${1:-}" in
+  prime)
+    shift
+    if [[ $# -eq 0 ]] && print_prime; then
+      exit 0
+    fi
+    REAL_BD=$(find_real_bd) || {
+      echo "bd-shim: real bd binary not found in PATH (skipped self at $SELF_DIR)" >&2
+      exit 127
+    }
+    exec "$REAL_BD" prime "$@"
+    ;;
+  prime-codex)
+    shift
+    if [[ $# -ne 0 ]]; then
+      echo "Usage: bd prime-codex" >&2
+      exit 2
+    fi
+    print_codex_prime
+    ;;
   reapply-integration)
     shift
+    REAL_BD=$(find_real_bd) || {
+      echo "bd-shim: real bd binary not found in PATH (skipped self at $SELF_DIR)" >&2
+      exit 127
+    }
     if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
       cat <<USAGE
 Usage: bd reapply-integration
 
 Reapply the dotfiles-managed Beads integration to an existing bd repo:
-  - .beads/PRIME.md
+  - .beads/PRIME.md symlink to the canonical dotfiles template
   - CLAUDE.md Beads block, inserted or replaced
   - AGENTS.md Beads block, inserted or replaced
   - .claude/settings.json bd prime hooks
-  - .codex/hooks.json bd prime hook
+  - .codex/hooks.json conditional Beads hook
 
 This does not run bd init or modify the Beads database.
 USAGE
@@ -290,6 +367,10 @@ USAGE
     post_init
     ;;
   init)
+    REAL_BD=$(find_real_bd) || {
+      echo "bd-shim: real bd binary not found in PATH (skipped self at $SELF_DIR)" >&2
+      exit 127
+    }
     for arg in "$@"; do
       case "$arg" in
         -h|--help)
@@ -301,6 +382,10 @@ USAGE
     post_init
     ;;
   *)
+    REAL_BD=$(find_real_bd) || {
+      echo "bd-shim: real bd binary not found in PATH (skipped self at $SELF_DIR)" >&2
+      exit 127
+    }
     exec "$REAL_BD" "$@"
     ;;
 esac
