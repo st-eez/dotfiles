@@ -32,6 +32,13 @@
 - Create PRs with `gh pr create`; use a structured body with `Summary` and `Test plan`, then return the PR URL.
 - View PR comments with `gh api repos/<owner>/<repo>/pulls/<number>/comments`.
 
+# Test Output
+
+- Run the full intended test/build/check scope; do not reduce coverage to save context or shorten output.
+- For noisy commands, or commands likely to print many passing lines, capture full logs out-of-band while preserving the command's real exit code.
+- Report only the command, pass/fail status, suite summary, and failing tests/errors/diffs/stack context.
+- Do not stream passing test lines or full logs unless the user asks, or unless filtering would hide necessary failure context.
+
 # Anti-patterns
 
 - **No sycophancy.** No "Great question!", "I'd be happy to help!", "That's a really interesting approach, but...", or similar.
