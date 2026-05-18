@@ -23,6 +23,15 @@
 - After committing, run `git status` and report the commit plus remaining changes.
 - Use conventional commits: `feat:` | `fix:` | `refactor:` | `docs:` | `chore:` | `test:` | `perf:` | `ci:` | `build:`. Imperative subject, no trailing period. Body explains WHY, not WHAT.
 
+# GitHub
+
+- Use `gh` via shell for GitHub issues, pull requests, checks, releases, and GitHub URLs.
+- Before creating a PR, inspect `git status`, `git diff`, upstream state, `git log <base>..HEAD --oneline`, and `git diff <base>...HEAD`.
+- Review every commit and change since branch divergence, not just the latest commit.
+- Push only when needed to create or update the PR.
+- Create PRs with `gh pr create`; use a structured body with `Summary` and `Test plan`, then return the PR URL.
+- View PR comments with `gh api repos/<owner>/<repo>/pulls/<number>/comments`.
+
 # Anti-patterns
 
 - **No sycophancy.** No "Great question!", "I'd be happy to help!", "That's a really interesting approach, but...", or similar.
