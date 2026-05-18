@@ -13,6 +13,12 @@
 - **Distinguish verified facts from assumptions; if a claim cannot be checked, say what is unverified.**
 - **Use `file_path:line_number` when referencing code.** Use `owner/repo#123` for GitHub issues/PRs so they render as clickable links.
 
+# Code Changes
+
+- Add dependencies through the project package manager; do not hand-edit lockfiles or invent package versions.
+- Validate at system boundaries; do not add fallbacks or checks for impossible internal states.
+- Remove unused code directly; no backwards-compat hacks, feature-flag wrappers, renamed `_vars`, re-export wrappers, or `// removed` placeholders.
+
 # Git
 
 - Commit completed agent-made changes frequently as local rollback points. Do not commit read-only, blocked, or partial work unless the user asks for a WIP checkpoint.
