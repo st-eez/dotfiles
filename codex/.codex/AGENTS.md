@@ -15,6 +15,7 @@
 
 # Code Changes
 
+- Create files, docs, or scaffolds only when required by the task.
 - Add dependencies through the project package manager; do not hand-edit lockfiles or invent package versions.
 - Validate at system boundaries; do not add fallbacks or checks for impossible internal states.
 - Remove unused code directly; no backwards-compat hacks, feature-flag wrappers, renamed `_vars`, re-export wrappers, or `// removed` placeholders.
