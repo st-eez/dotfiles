@@ -1,6 +1,6 @@
 # Security
 
-Never hardcode PII, API keys, secrets, or environment-specific values. Dotfiles are public; resolve values from config at runtime.
+Never hardcode PII, API keys, secrets, or environment-specific values; resolve values from config at runtime.
 
 # Conventions
 
