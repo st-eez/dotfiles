@@ -18,6 +18,7 @@
 - Create files, docs, or scaffolds only when required by the task.
 - Add dependencies through the project package manager; do not hand-edit lockfiles or invent package versions.
 - Validate at system boundaries; do not add fallbacks or checks for impossible internal states.
+- Write tests that encode behavior or regression risk; avoid assertions that pass for constants or ignored inputs.
 - Remove unused code directly; no backwards-compat hacks, feature-flag wrappers, renamed `_vars`, re-export wrappers, or `// removed` placeholders.
 
 # Git
