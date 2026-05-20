@@ -1,70 +1,55 @@
 # Security
 
-**Never hardcode PII, API keys, secrets, or env-specific values into files — resolve from config at runtime. Dotfiles are public.**
+Never hardcode PII, API keys, secrets, or environment-specific values. Dotfiles are public; resolve values from config at runtime.
 
 # Conventions
 
-- **Use current year in web searches (from env "Today's date").**
-- **Use absolute paths (`$HOME`, `__dirname`, `__filename`, `pathlib.Path(__file__)`) in scripts and configs — never relative (breaks when cwd changes).**
-- **When the user references a repo/directory by nickname and no explicit path is given, infer it with `zoxide query --list --score -- <name>`. Prefer the top match when it is clearly higher-confidence, then quickly verify the path/listing before editing.**
-- **When using shell commands, use `fd` for path/name search, `rg` for content search, and `rg --files` when you need ripgrep’s searchable file list. Use `find` for POSIX/metadata-heavy queries or when `fd` is unavailable.**
-- **Match output format to its consumer.** If the next consumer is the user (display, inspection, summary), use the CLI's native human output. If the next consumer is code (extract, filter, count, transform, pipe), request structured output (`--json`, `--csv`, etc.) and process it with a structured tool (`jq`, `yq`, etc.). Don't parse human output programmatically; don't pipe structured output through a transformer just to print it.
-- **Search hygiene:** Scope to the smallest relevant tree first; exclude dependency/build/cache/generated/history/session/auth/trash paths by default; prefer fixed-string searches for literals; avoid bare short/common tokens; treat noisy or truncated output as invalid evidence and narrow before reasoning from it.
-- **Distinguish verified facts from assumptions; if a claim cannot be checked, say what is unverified.**
-- **Use `file_path:line_number` when referencing code.** Use `owner/repo#123` for GitHub issues/PRs so they render as clickable links.
+- Use the current year from today's date in web searches.
+- Use absolute paths in scripts/configs: `$HOME`, `__dirname`, `__filename`, or `pathlib.Path(__file__)`.
+- For nickname repo/path references, resolve with `zoxide query --list --score -- <name>`, then verify the target before editing.
+- Use `fd` for path search, `rg` for content search, and `rg --files` for searchable file lists; use `find` only when needed.
+- Match output to the consumer: human output for user inspection, structured output plus `jq`/`yq` for programmatic use.
+- Search narrowly first; exclude dependency/build/cache/generated/history/session/auth/trash paths unless relevant; narrow noisy results before reasoning from them.
+- Distinguish verified facts from assumptions. If something cannot be checked, say so.
+- Reference local code as `file_path:line_number`; reference GitHub issues/PRs as `owner/repo#123`.
 
 # Code Changes
 
 - Create files, docs, or scaffolds only when required by the task.
-- Add dependencies through the project package manager; do not hand-edit lockfiles or invent package versions.
-- Validate at system boundaries; do not add fallbacks or checks for impossible internal states.
-- Write tests that encode behavior or regression risk; avoid assertions that pass for constants or ignored inputs.
-- Remove unused code directly; no backwards-compat hacks, feature-flag wrappers, renamed `_vars`, re-export wrappers, or `// removed` placeholders.
+- Add dependencies through the project package manager; do not hand-edit lockfiles or invent versions.
+- Validate at system boundaries; do not add fallbacks for impossible internal states.
+- Write tests for behavior or regression risk, not constants or ignored inputs.
+- Remove unused code directly; no compatibility shells, renamed unused vars, re-export wrappers, or removal placeholders.
 
 # Git
 
-- Commit completed agent-made changes frequently as local rollback points. Do not commit read-only, blocked, or partial work unless the user asks for a WIP checkpoint.
-- Before staging or committing, run `git status`, `git diff`, and `git log -5 --oneline`; inspect untracked files, the exact diff, and recent commit style.
-- Stage only task-relevant files, preferably agent-made changes. Never commit unrelated user changes, secrets, env files, credential files, or incomplete work as complete.
-- Never update git config, push, force push, reset hard, or discard changes unless explicitly requested.
-- Avoid `git commit --amend`; only amend when the user asks, or when your successful unpushed commit was modified by hooks.
-- If commit fails or hooks reject it, fix the issue and create a new commit. Never amend a failed/rejected commit.
+- Commit completed agent-made changes as rollback points; do not commit read-only, blocked, or partial work unless asked.
+- Before committing, inspect `git status`, `git diff`, and `git log -5 --oneline`; stage only task-relevant files.
+- Never commit unrelated user changes, secrets, env files, credentials, or incomplete work as complete.
+- Do not update git config, push, force push, hard reset, discard changes, or amend unless explicitly asked.
+- If commit hooks reject, fix the issue and create a new commit.
 - After committing, run `git status` and report the commit plus remaining changes.
-- Use conventional commits: `feat:` | `fix:` | `refactor:` | `docs:` | `chore:` | `test:` | `perf:` | `ci:` | `build:`. Imperative subject, no trailing period. Body explains WHY, not WHAT.
+- Use conventional commits with imperative subjects; explain why in the body when useful.
 
 # GitHub
 
-- Use `gh` via shell for GitHub issues, pull requests, checks, releases, and GitHub URLs.
-- Before creating a PR, inspect `git status`, `git diff`, upstream state, `git log <base>..HEAD --oneline`, and `git diff <base>...HEAD`.
-- Review every commit and change since branch divergence, not just the latest commit.
-- Push only when needed to create or update the PR.
-- Create PRs with `gh pr create`; use a structured body with `Summary` and `Test plan`, then return the PR URL.
+- Use `gh` for GitHub issues, PRs, checks, releases, and GitHub URLs.
+- Before creating a PR, inspect status, diff, upstream state, commits since base, and full branch diff; review every branch change.
+- Push only when needed for a PR.
+- Create PRs with `gh pr create`, include `Summary` and `Test plan`, and return the URL.
 - View PR comments with `gh api repos/<owner>/<repo>/pulls/<number>/comments`.
 
-# Test Output
+# Verification
 
 - Run the full intended test/build/check scope; do not reduce coverage to save context or shorten output.
-- For noisy commands, or commands likely to print many passing lines, capture full logs out-of-band while preserving the command's real exit code.
-- Report only the command, pass/fail status, suite summary, and failing tests/errors/diffs/stack context.
-- Do not stream passing test lines or full logs unless the user asks, or unless filtering would hide necessary failure context.
-
-# Debugging
-
-- For bugs and behavioral regressions, reproduce the symptom before editing.
-- Fix the source, then re-run or re-observe the same path to verify the symptom is gone.
-- Use the relevant evidence path: failing command, built file, rendered page, URL, logs, or runtime behavior.
-
-# Completion
-
-- Before reporting a non-trivial code change as done, run relevant build/tests/lint and check diagnostics when available.
-- Non-trivial changes include 3+ file edits, backend/API changes, regression-risk bug fixes, infrastructure-adjacent work, or failures that would be easy to miss.
-- For non-trivial implementation, invoke the verifier subagent for independent adversarial verification before reporting completion. Only the verifier assigns the verdict.
-- On FAIL, fix and re-verify. On PARTIAL, report what passed and what could not be verified.
+- For noisy commands, capture full logs out-of-band while preserving the real exit code.
+- Report only command, pass/fail, suite summary, and failures unless asked for full logs.
+- For bugs, reproduce before editing, fix the source, then verify the same path.
+- Before reporting non-trivial code changes as done, run relevant checks and diagnostics.
+- For non-trivial implementation, invoke the verifier subagent before completion; on FAIL, fix and re-verify; on PARTIAL, report what was and was not verified.
 - If work is incomplete or blocked, say so plainly and list what remains.
 
-# Anti-patterns
+# Response Style
 
-- **No sycophancy.** No "Great question!", "I'd be happy to help!", "That's a really interesting approach, but...", or similar.
-- **No option menus.** Pick one approach and recommend it, explain why in one sentence. Offer alternatives only if the USER explicitly asks.
-- **No emojis** in responses or generated files unless explicitly asked.
-- **No time estimates.** Focus on what needs to be done, not how long it might take.
+- No sycophancy, option menus, emojis, or time estimates.
+- Recommend one approach with a reason; offer alternatives only when asked.
