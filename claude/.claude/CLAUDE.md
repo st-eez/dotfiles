@@ -1,22 +1,46 @@
 # Security
 
-**Never hardcode PII, API keys, secrets, or env-specific values into files — resolve from config at runtime. Dotfiles are public.**
+Never hardcode PII, secrets, API keys, credentials, or environment-specific values; resolve them from runtime config.
 
 # Conventions
 
-- **Use current year in web searches (from env "Today's date").**
-- **Use absolute paths (`$HOME`, `__dirname`, `__filename`, `pathlib.Path(__file__)`) in scripts and configs — never relative (breaks when cwd changes).**
-- **When the user references a repo/directory by nickname and no explicit path is given, infer it with `zoxide query --list --score -- <name>`. Prefer the top match when it is clearly higher-confidence, then quickly verify the path/listing before editing.**
-- **When using shell commands, use `fd` for path/name search, `rg` for content search, and `rg --files` when you need ripgrep’s searchable file list. Use `find` for POSIX/metadata-heavy queries or when `fd` is unavailable.**
-- **Match output format to its consumer.** If the next consumer is the user (display, inspection, summary), use the CLI's native human output. If the next consumer is code (extract, filter, count, transform, pipe), request structured output (`--json`, `--csv`, etc.) and process it with a structured tool (`jq`, `yq`, etc.). Don't parse human output programmatically; don't pipe structured output through a transformer just to print it.
-- **Beads hierarchy creation:** When creating an epic plus child beads or a set of sibling beads, use one `bd create` per shell command. Create the parent first when children need `--parent <id>` or `--deps <id>`, then create independent children as parallel shell calls. Do not wrap multiple `bd create` calls in one heredoc shell script.
-- **Search hygiene:** Scope to the smallest relevant tree first; exclude dependency/build/cache/generated/history/session/auth/trash paths by default; prefer fixed-string searches for literals; avoid bare short/common tokens; treat noisy or truncated output as invalid evidence and narrow before reasoning from it.
-- **Use conventional commit messages: `feat:` | `fix:` | `refactor:` | `docs:` | `chore:` | `test:` | `perf:` | `ci:` | `build:`. Subject in imperative mood, no trailing period. Body explains the WHY, not the WHAT.**
-- **Use `file_path:line_number` when referencing code.** Use `owner/repo#123` for GitHub issues/PRs so they render as clickable links.
+- Use the current year from today's date in web searches.
+- Use absolute paths in scripts/configs via `$HOME`, `__dirname`, `__filename`, or `pathlib.Path(__file__)`.
+- Resolve nickname repo/path references with `zoxide query --list --score -- <name>`, then verify the target before editing.
+- Search narrowly first with `fd` for paths, `rg` for content, and `rg --files` for file lists; use `find` only when needed, and narrow noisy results before reasoning from them.
+- Match output to the consumer: human-readable for inspection, structured plus `jq`/`yq` for programmatic use.
+- Distinguish verified facts from assumptions; if something cannot be checked, say so. Cite local code as `file_path:line_number` and GitHub items as `owner/repo#123`.
 
-# Anti-patterns
+# Code Changes
 
-- **No sycophancy.** No "Great question!", "I'd be happy to help!", "That's a really interesting approach, but...", or similar.
-- **No option menus.** Pick one approach and recommend it, explain why in one sentence. Offer alternatives only if the USER explicitly asks.
-- **No emojis** in responses or generated files unless explicitly asked.
-- **No time estimates.** Focus on what needs to be done, not how long it might take.
+- Create files, docs, scaffolds, or dependencies only when required; add dependencies through the project package manager and do not hand-edit lockfiles or invent versions.
+- Validate at system boundaries; do not add fallbacks for impossible internal states.
+- Write tests for behavior or regression risk, not constants or ignored inputs.
+- Remove unused code directly; no compatibility shells, renamed unused vars, re-export wrappers, or removal placeholders.
+
+# Git
+
+- Commit completed agent-made changes as rollback points; do not commit read-only, blocked, or partial work unless asked, and never commit unrelated user changes, secrets, env files, credentials, or incomplete work as complete.
+- Before committing, inspect `git status`, `git diff`, and `git log -5 --oneline`; stage only task-relevant files.
+- Do not update git config, push, force push, hard reset, discard changes, or amend unless explicitly asked.
+- If hooks reject, fix and create a new commit; after committing, run `git status` and report the commit plus remaining changes.
+- Use conventional imperative commit subjects; explain why in the body when useful.
+
+# GitHub
+
+- Use `gh` for GitHub issues, PRs, checks, releases, URLs, and PR comments.
+- Before creating a PR, inspect status, diff, upstream state, commits since base, and the full branch diff; review every branch change and push only when needed.
+- Create PRs with `gh pr create`, include `Summary` and `Test plan`, and return the URL.
+
+# Verification
+
+- Run the full intended test/build/check scope; do not reduce coverage to save context or shorten output.
+- For bugs, reproduce before editing, fix the source, then verify the same path.
+- For noisy commands, capture full logs out-of-band while preserving exit code; report only command, pass/fail, suite summary, and failures unless asked.
+- Before reporting non-trivial code changes as done, run relevant checks and diagnostics; for non-trivial implementation, invoke the verifier subagent, then fix and re-verify on FAIL or report gaps on PARTIAL.
+- If work is incomplete or blocked, say so plainly and list what remains.
+
+# Response Style
+
+- No sycophancy, option menus, emojis, or time estimates.
+- Recommend one approach with a reason; offer alternatives only when asked.
