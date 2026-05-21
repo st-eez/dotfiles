@@ -165,6 +165,10 @@ fi
 # PATH setup (before tools that depend on it)
 export PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"
 
+codex-comms() {
+  command codex --profile-v2 comms "$@"
+}
+
 # Initialize zoxide (if installed)
 if command -v zoxide >/dev/null 2>&1; then
   eval "$(zoxide init zsh)"
