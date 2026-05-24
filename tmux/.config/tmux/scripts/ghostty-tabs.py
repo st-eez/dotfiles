@@ -91,27 +91,6 @@ def render_cap(colors: dict[str, str]) -> str:
     return f"{style(fg=fg, bg=colors['crust'])}{NF_PLUS_CIRCLE}"
 
 
-def surface_label(session_name: str) -> str:
-    prefix = "ghostty-"
-    if session_name.startswith(prefix) and session_name[len(prefix) :].isdigit():
-        return f"#{session_name[len(prefix) :]}"
-    return f"#{session_name}" if session_name else "#?"
-
-
-def render_surface_badge(label: str, colors: dict[str, str]) -> str:
-    bg = colors["surface_0"]
-    return "".join(
-        [
-            style(fg=bg, bg=colors["crust"]),
-            PILL_LEFT,
-            style(fg=colors["fg"], bg=bg),
-            label,
-            style(fg=bg, bg=colors["crust"]),
-            f"{PILL_RIGHT} ",
-        ]
-    )
-
-
 def render_tab(
     tab: Tab,
     width: int,
@@ -199,11 +178,7 @@ def main() -> int:
     # argv[3] is window_id, passed only to bust tmux's #() cache on window switch.
     # Without it the cache key stays constant across switches and the tab row
     # serves stale output until the next status-interval tick.
-    session_name = sys.argv[4] if len(sys.argv) > 4 else ""
-
     colors = load_thm_colors()
-    badge_label = surface_label(session_name)
-    badge_width = len(badge_label) + 3
 
     rows = tmux(
         "list-windows",
@@ -230,7 +205,7 @@ def main() -> int:
     # border; 1 col reads as "touching", 2 reads as proper inset.
     right_pad = edge_pad + 1
     right_reserve = cap_gap + CAP_WIDTH + right_pad
-    reserved = left_pad + badge_width + right_reserve
+    reserved = left_pad + right_reserve
     available = max(1, client_width - reserved)
 
     # Inter-tab gap rule (matches ghostty native):
@@ -249,13 +224,6 @@ def main() -> int:
 
     parts: list[str] = []
     parts.append(f"{style(fg=colors['fg'], bg=colors['crust'])}{' ' * left_pad}")
-    parts.append(render_surface_badge(badge_label, colors))
-
-    if len(tabs) == 1:
-        parts.append(f"{style(fg=colors['fg'], bg=colors['crust'])}{' ' * right_pad}")
-        output = "".join(parts) + style(fg=colors["fg"], bg=colors["crust"])
-        print(output, end="")
-        return 0
 
     def neighbor_bg(position: int, side: str) -> str:
         # Blend a tab's cap into the adjacent pill when they share a flat

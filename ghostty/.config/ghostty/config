@@ -1,17 +1,5 @@
-# The session is the surface. Anything that ends the surface ends the session;
-# detach is internal to the surface — window and session both stay.
-#
-# Each Ghostty surface launches its own numbered tmux session. The launcher
-# allocates the first free ghostty-N name under a lock so concurrent windows
-# never attach to the same session. A trap kills the session whenever the
-# launcher exits (clean end, SIGHUP from window-close, SIGTERM). After tmux
-# exits, `has-session` decides: alive (= user did prefix+d) → fall to
-# interactive zsh in this surface; dead (= last pane killed) → launcher exits
-# → Ghostty closes the window. The launcher must NOT exec zsh after tmux — exec
-# would drop the cleanup trap.
-command = zsh -lc 'exec zsh "$HOME/.config/ghostty/launch-tmux.zsh"'
-working-directory = home
-window-inherit-working-directory = false
+# Use zsh regardless of system default shell
+command = zsh
 
 # Theme colors - managed by theme-set (symlink)
 config-file = ?"~/.config/ghostty/theme.conf"
@@ -23,49 +11,10 @@ keybind = shift+enter=text:\n
 keybind = super+k=text:\x0c
 keybind = super+left=text:\x1bOH
 
-# ── Route most Cmd-shortcuts into tmux by emitting its prefix sequence ──────
-# Ghostty emits `<C-b><key>`; tmux's existing root bindings handle it. `\x02`
-# is Ctrl-B (tmux's prefix2; safer than NUL=C-Space for byte encoding).
-# tmux owns these chords during normal attached use. After explicit detach,
-# they fall through as raw bytes in the temporary fallback shell.
-keybind = super+t=text:\x02c
-keybind = super+n=new_window
-keybind = super+w=text:\x02x
-keybind = super+alt+w=ignore
-keybind = super+d=text:\x02|
-keybind = super+shift+d=text:\x02-
-keybind = super+1=text:\x021
-keybind = super+digit_1=text:\x021
-keybind = super+2=text:\x022
-keybind = super+digit_2=text:\x022
-keybind = super+3=text:\x023
-keybind = super+digit_3=text:\x023
-keybind = super+4=text:\x024
-keybind = super+digit_4=text:\x024
-keybind = super+5=text:\x025
-keybind = super+digit_5=text:\x025
-keybind = super+6=text:\x026
-keybind = super+digit_6=text:\x026
-keybind = super+7=text:\x027
-keybind = super+digit_7=text:\x027
-keybind = super+8=text:\x028
-keybind = super+digit_8=text:\x028
-keybind = super+9=text:\x02l
-keybind = super+digit_9=text:\x02l
-keybind = super+shift+[=text:\x02p
-keybind = super+shift+]=text:\x02n
-keybind = super+shift+enter=text:\x02z
-keybind = super+alt+up=text:\x1b[1;3A
-keybind = super+alt+down=text:\x1b[1;3B
-keybind = super+alt+right=text:\x1b[1;3C
-keybind = super+alt+left=text:\x1b[1;3D
-keybind = super+]=text:\x02o
-keybind = super+[=text:\x02O
-
 # Split appearance
 unfocused-split-opacity = 0.5
 
-# Hide macOS title bar (tmux status bar makes it redundant)
+# Hide macOS title bar
 macos-titlebar-style = hidden
 window-padding-x = 4
 window-padding-y = 4
@@ -80,4 +29,3 @@ right-click-action = ignore
 
 # Enable desktop notifs
 desktop-notifications = true
-
