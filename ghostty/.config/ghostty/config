@@ -14,8 +14,6 @@ keybind = super+left=text:\x1bOH
 # Split appearance
 unfocused-split-opacity = 0.5
 
-# Hide macOS title bar
-macos-titlebar-style = hidden
 window-padding-x = 4
 window-padding-y = 4
 
