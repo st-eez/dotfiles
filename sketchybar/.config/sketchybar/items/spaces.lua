@@ -34,17 +34,25 @@ local inactive_color = colors.grey
 local highlight_tint = colors.highlight
 local transparent = colors.transparent
 
+local function should_show_window_icon(app, window_id, title)
+  if app == "cmux" and (window_id == "0" or title == "Item-0" or title == "Settings") then
+    return false
+  end
+
+  return true
+end
+
 -- Update window icons for every known space with a single aerospace call.
 -- Batching beats per-space forks (was up to N shells per event).
 local function update_all_windows()
-  sbar.exec("aerospace list-windows --all --format '%{workspace} %{app-name}'", function(out)
+  sbar.exec("aerospace list-windows --all --format '%{workspace}|||%{window-id}|||%{app-name}|||%{window-title}'", function(out)
     local icons_by_space = {}
     for sid, _ in pairs(spaces) do icons_by_space[sid] = "" end
 
     if out then
       for line in out:gmatch("[^\r\n]+") do
-        local sid, app = line:match("^(%S+)%s+(.*)$")
-        if sid and app and icons_by_space[sid] ~= nil then
+        local sid, window_id, app, title = line:match("^(.-)%|%|%|(.-)%|%|%|(.-)%|%|%|(.*)$")
+        if sid and app and icons_by_space[sid] ~= nil and should_show_window_icon(app, window_id, title) then
           local icon = app_icons[app] or app_icons["Default"] or icons.activity
           icons_by_space[sid] = icons_by_space[sid] .. " " .. icon
         end

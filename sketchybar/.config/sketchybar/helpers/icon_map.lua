@@ -35,6 +35,7 @@ return {
 	["Contacts"] = ":contacts:",
 	["CotEditor"] = ":coteditor:",
 	["Codex"] = ":openai:",
+	["cmux"] = ":terminal:",
 	["Cursor"] = ":cursor:",
 	["DataSpell"] = ":dataspell:",
 	["Default"] = ":default:",
