@@ -35,7 +35,7 @@ local highlight_tint = colors.highlight
 local transparent = colors.transparent
 
 local function should_show_window_icon(app, window_id, title)
-  if app == "cmux" and (window_id == "0" or title == "Item-0" or title == "Settings") then
+  if app == "cmux" and (window_id == "0" or title == "Item-0") then
     return false
   end
 
