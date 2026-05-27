@@ -4,10 +4,6 @@
 #
 # Bootstrap chain: ~/.zshenv sets ZDOTDIR=~/.config/zsh then sources this file.
 
-# Codex and terminal UI themes should control their own colors. A stale parent
-# environment can leak this into every shell and disable TUI color rendering.
-unset NO_COLOR
-
 # Preferred editor for local and remote sessions. Must live here (not .zshrc)
 # so non-interactive subshells — `zsh -lc '...'`, scripts, the tmux launcher in
 # ghostty/.config/ghostty/launch-tmux.zsh — also see it. Without this, tmux's
