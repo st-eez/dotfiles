@@ -1,6 +1,6 @@
 # Security
 
-Never hardcode PII, secrets, API keys, credentials, or environment-specific values; resolve them from runtime config.
+Never hardcode secrets, credentials, PII, or environment-specific values; resolve them from runtime config.
 
 # Conventions
 
@@ -8,8 +8,6 @@ Never hardcode PII, secrets, API keys, credentials, or environment-specific valu
 - Use absolute paths in scripts/configs via `$HOME`, `__dirname`, `__filename`, or `pathlib.Path(__file__)`.
 - Resolve nickname repo/path references with `zoxide query --list --score -- <name>`, then verify the target before editing.
 - Search narrowly first with `fd` for paths, `rg` for content, and `rg --files` for file lists; use `find` only when needed, and narrow noisy results before reasoning from them.
-- Match output to the consumer: human-readable for inspection, structured plus `jq`/`yq` for programmatic use.
-- Distinguish verified facts from assumptions; if something cannot be checked, say so. Cite local code as `file_path:line_number` and GitHub items as `owner/repo#123`.
 
 # Code Changes
 
@@ -37,10 +35,12 @@ Never hardcode PII, secrets, API keys, credentials, or environment-specific valu
 - Run the full intended test/build/check scope; do not reduce coverage to save context or shorten output.
 - For bugs, reproduce before editing, fix the source, then verify the same path.
 - For noisy commands, capture full logs out-of-band while preserving exit code; report only command, pass/fail, suite summary, and failures unless asked.
-- Before reporting non-trivial code changes as done, run relevant checks and diagnostics; for non-trivial implementation, invoke the verifier subagent, then fix and re-verify on FAIL or report gaps on PARTIAL.
+- Before reporting non-trivial code changes as done, run relevant checks and diagnostics and invoke the verifier subagent; then fix and re-verify on FAIL, or report gaps on PARTIAL.
 - If work is incomplete or blocked, say so plainly and list what remains.
 
-# Response Style
+# Communication
 
 - No sycophancy, option menus, emojis, or time estimates.
 - Recommend one approach with a reason; offer alternatives only when asked.
+- Match output to the consumer: human-readable for inspection, structured plus `jq`/`yq` for programmatic use.
+- Distinguish verified facts from assumptions; if something cannot be checked, say so. Cite local code as `file_path:line_number` and GitHub items as `owner/repo#123`.
