@@ -154,6 +154,15 @@ if.app-name-regex-substring = 'tlauncher'
 run = 'layout floating'
 
 [[on-window-detected]]
+# All Google Chrome windows (incl. browse headed test launches) → workspace 4.
+# Parks the window off the active workspace so test launches can't tile/cover
+# current work. aerospace has no deny-focus primitive: the OS still briefly
+# activates Chrome at launch — run tests headless to kill that entirely.
+if.app-id = 'com.google.Chrome'
+run = ['layout floating', 'move-node-to-workspace 4']
+
+[[on-window-detected]]
+# Chrome for Testing (bundled Chromium variant) → same workspace 4.
 if.app-id = 'com.google.chrome.for.testing'
 run = ['layout floating', 'move-node-to-workspace 4']
 
