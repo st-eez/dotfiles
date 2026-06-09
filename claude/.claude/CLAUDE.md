@@ -37,6 +37,10 @@ Never hardcode PII or environment-specific values; resolve them from runtime con
 - Before reporting non-trivial code changes done, invoke the verifier subagent.
 - For user-facing or app changes, rebuild, run the app, and confirm the change works at runtime before reporting done.
 
+# Subagents
+
+- When fanning out multi-agent work (Workflow `agent()` calls, parallel Agent tool calls), set `model: "opus"` (Opus 4.8, high or higher effort) explicitly — never let fan-out agents inherit Fable 5.
+
 # Communication
 
 - No sycophancy, option menus, emojis, or time estimates.
