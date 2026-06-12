@@ -241,6 +241,3 @@ if [[ "$STEEZ_THEME" == "vantarouge" ]]; then
 else
   zstyle ':completion:*' list-colors 'di=34'
 fi
-
-# pnpm env (auto-added by pnpm)
-[[ -f "$HOME/.local/share/../bin/env" ]] && . "$HOME/.local/share/../bin/env"
