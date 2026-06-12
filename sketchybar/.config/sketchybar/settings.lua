@@ -6,9 +6,6 @@ local settings = {
 		style_map = {
 			regular = "Regular",
 			bold = "Bold",
-			semibold = "Semibold",
-			heavy = "Heavy",
-			black = "Black",
 		},
 		size = {
 			icon = 14.0,
@@ -32,10 +29,6 @@ local settings = {
 			corner_radius = 9,
 			border_width = 2,
 		},
-		padding = {
-			left = 1,
-			right = 1,
-		},
 	},
 	popup = {
 		blur_radius = 20,
@@ -49,7 +42,7 @@ local settings = {
 		laptop_display = 1,
 		default_profile = "home",
 		profiles = {
-			work = {
+			office = {
 				match = "LG ULTRAWIDE",
 				map = { [1] = 1, [2] = 3, [3] = 2 },
 			},

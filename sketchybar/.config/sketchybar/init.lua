@@ -68,7 +68,6 @@ require("items.spaces")
 require("items.calendar")
 require("items.timer")
 require("items.status_icons")
-require("items.agent_status")
 
 -- Hotload configuration
 sbar.exec("sketchybar --hotload true")

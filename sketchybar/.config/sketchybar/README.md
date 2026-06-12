@@ -2,9 +2,8 @@
 
 - SketchyBar (runtime) – install via `brew install --cask sketchybar` → https://felixkratz.github.io/SketchyBar/setup/installation
 - AeroSpace (workspace metadata) – `brew install --cask nikitabobko/tap/aerospace` → https://nikitabobko.github.io/AeroSpace/installation
-- SwitchAudioSource (`switchaudio-osx`, audio picker) – `brew install switchaudio-osx` → https://github.com/deweller/switchaudio-osx
 
-**Permissions:** give SketchyBar Automation + Accessibility access under System Settings ▸ Privacy & Security ▸ Automation/Accessibility so the Control Center scripts and AeroSpace hooks work.
+**Permissions:** give SketchyBar Automation + Accessibility access under System Settings ▸ Privacy & Security ▸ Automation/Accessibility so the AeroSpace hooks work.
 
 ## Keyboard repeat tweaks
 

@@ -20,10 +20,6 @@ local function active_profile()
   return (s:gsub("%s+", ""))
 end
 
-local function is_laptop_profile_active()
-  return active_profile() == "laptop"
-end
-
 local spaces = {}
 local current_workspace = nil
 local window_cache = {} -- Cache icon strings to skip redundant item:set() calls
@@ -128,10 +124,14 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
   if not monitor_output or monitor_output == "" then
     if attempt < 5 then
       sbar.exec("sleep 1", function() bootstrap(attempt + 1) end)
+      return
     end
-    return
+    -- aerospace never answered: proceed with an empty monitor list anyway so
+    -- items and event subscriptions exist (display assignment degrades to the
+    -- defaults); the profile-watcher's next reload corrects it. Bailing here
+    -- left a bar with no workspace items and no subscriber to ever fix that.
+    monitor_output = ""
   end
-  local is_laptop_only = false
   local monitor_list = {}
   for line in monitor_output:gmatch("[^\r\n]+") do
     table.insert(monitor_list, line)
@@ -147,13 +147,13 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
     end
   end
   
-  if #monitor_list == 1 and monitor_output:find("Built%-in") then
-    is_laptop_only = true
-  end
-
-  -- Render 5 workspaces whenever the laptop profile is active OR only the
-  -- built-in display is connected; full 1-0 set otherwise.
-  local show_five = is_laptop_profile_active() or is_laptop_only
+  -- The profile sentinel is authoritative — the profile-watcher rewrites it on
+  -- every monitor hotplug and reloads this bar. The live monitor sniff only
+  -- decides when the sentinel is missing (first boot before any profile apply).
+  local is_laptop_only = #monitor_list == 1 and monitor_output:find("Built%-in") ~= nil
+  local profile = active_profile()
+  if profile == "" then profile = nil end
+  local laptop = profile == "laptop" or (profile == nil and is_laptop_only)
 
   -- 2. Map Workspaces to Monitors (Async chain)
   -- We need to know which monitor each workspace is on to assign display_id correctly.
@@ -162,7 +162,7 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
   local workspace_monitors = {} -- [sid] = monitor_id (1, 2, 3)
   
   local function setup_spaces()
-    local workspaces = show_five
+    local workspaces = laptop
       and { "1", "2", "3", "4", "5" }
       or { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0" }
 
@@ -170,7 +170,7 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
       local monitor_id = workspace_monitors[sid] or 1
       local display_id = laptop_display
 
-      if not is_laptop_only then
+      if not laptop then
         local map = (monitor_profile and monitor_profile.map) or {}
         display_id = map[monitor_id] or laptop_display
       end
@@ -264,7 +264,7 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
       end
     end)
     -- Controller / Observer
-    local spacer_observer = sbar.add("item", "spaces_observer", { drawing = false, updates = true })
+    local spaces_observer = sbar.add("item", "spaces_observer", { drawing = false, updates = true })
     
     -- Initial window population (one fork, all spaces).
     update_all_windows()
@@ -286,7 +286,7 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
       end)
     end
 
-    spacer_observer:subscribe("aerospace_workspace_change", function(env)
+    spaces_observer:subscribe("aerospace_workspace_change", function(env)
       local focused_workspace = env.FOCUSED_WORKSPACE
 
       if not focused_workspace or focused_workspace == "" then
@@ -298,13 +298,13 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
     end)
 
     -- Refresh when windows are created/destroyed.
-    spacer_observer:subscribe("space_windows_change", function(env)
+    spaces_observer:subscribe("space_windows_change", function(env)
       update_all_windows()
     end)
 
     -- After wake, cached strings may be stale if apps were quit while asleep.
     -- Invalidate and re-fetch in one call.
-    spacer_observer:subscribe("system_woke", function(env)
+    spaces_observer:subscribe("system_woke", function(env)
       for sid, _ in pairs(spaces) do window_cache[sid] = nil end
       update_all_windows()
     end)

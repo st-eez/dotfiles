@@ -6,8 +6,7 @@ local sbar = require("sketchybar")
 -- State
 local state = {
   status = "idle", -- idle | running | paused | done
-  duration_secs = 0,
-  remaining_secs = 0,
+  remaining_secs = 0, -- written on pause, read on resume
   target_epoch = 0,
   hover = false,
   close_pending = false, -- dedupes schedule_popup_close forks
@@ -16,8 +15,12 @@ local state = {
 
 -- Helper Functions (declared early for use in callbacks)
 local function format_time(secs)
-  local m = math.floor(secs / 60)
+  local h = math.floor(secs / 3600)
+  local m = math.floor((secs % 3600) / 60)
   local s = secs % 60
+  if h > 0 then
+    return string.format("%d:%02d:%02d", h, m, s)
+  end
   return string.format("%02d:%02d", m, s)
 end
 
@@ -43,7 +46,6 @@ end
 
 local function reset_to_idle()
   state.status = "idle"
-  state.duration_secs = 0
   state.remaining_secs = 0
   state.target_epoch = 0
   state.done_clear_epoch = 0
@@ -72,8 +74,6 @@ end
 
 local function start_timer(duration_secs)
   state.status = "running"
-  state.duration_secs = duration_secs
-  state.remaining_secs = duration_secs
   state.target_epoch = os.time() + duration_secs
   timer:set({
     popup = { drawing = false },
@@ -99,7 +99,7 @@ timer = sbar.add("item", "timer", {
     string = "",
     padding_left = 4,
     padding_right = 4,
-    width = 50,
+    width = 62, -- fits H:MM:SS
     align = "center",
   },
   padding_left = 0,
@@ -214,7 +214,6 @@ local function tick(woke)
     if remaining <= 0 then
       timer_complete()
     else
-      state.remaining_secs = remaining
       update_label(remaining)
     end
   elseif state.status == "done" then

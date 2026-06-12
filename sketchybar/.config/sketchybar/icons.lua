@@ -1,10 +1,7 @@
 local icons = {
-	loading = "􀖇",
 	apple = "􀣺",
-	preferences = "􀺽",
 	activity = "􀒓",
 	timer = "󱑃",
-	agent_bell = utf8.char(0xf06a9),
 	battery = "􀛨",
 	battery_charging = "􀢋",
 	separator = "􀆊",
