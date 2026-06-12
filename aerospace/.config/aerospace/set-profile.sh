@@ -19,5 +19,9 @@ fi
 
 cp "$target" "$conf/aerospace.toml"
 printf '%s' "$profile" > "$conf/.active-profile"
-aerospace reload-config
-sketchybar --reload
+# Decoupled on purpose: aerospace may be crashed/restarting (hotplug bug
+# nikitabobko/AeroSpace#506), and under `set -eu` a failed reload-config would
+# abort before sketchybar ever picks up the new sentinel. The profile-watcher
+# reconciler retries aerospace via its convergence check.
+aerospace reload-config || true
+sketchybar --reload || true
