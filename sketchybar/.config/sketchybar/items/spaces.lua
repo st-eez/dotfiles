@@ -34,6 +34,15 @@ local inactive_color = colors.grey
 local highlight_tint = colors.highlight
 local transparent = colors.transparent
 
+-- Single source of truth for item spacing. Creation and restyle MUST agree:
+-- items used to be created with narrower padding and only corrected by a
+-- post-bootstrap restyle, so the bar rendered squished whenever that restyle
+-- lost the race against aerospace settling after a display change.
+local icon_padding_left = 12
+local icon_padding_right = 2
+local label_padding_left = 4
+local label_padding_right = 18
+
 local function should_show_window_icon(app, window_id, title)
   -- cmux keeps helper/settings dialogs in the AX window list after they are hidden.
   if app == "cmux" and (window_id == "0" or title == "Item-0" or title == "Settings") then
@@ -70,8 +79,8 @@ local function update_all_windows()
 end
 
 -- Function to update highlighting (Focus/Unfocus)
--- Optimized: only updates the 2 items that changed (prev unfocused, new focused)
--- Exception: on first call (init), styles all items to set proper padding
+-- Only touches the items whose selection state changed; layout/padding is
+-- fully established at creation and never depends on this running.
 local function update_highlight(focused_sid)
   local prev_workspace = current_workspace
   current_workspace = focused_sid
@@ -88,14 +97,14 @@ local function update_highlight(focused_sid)
       icon = {
         highlight = is_selected,
         font = icon_font,
-        padding_left = 12,
-        padding_right = 2,
+        padding_left = icon_padding_left,
+        padding_right = icon_padding_right,
       },
       label = {
         highlight = is_selected,
         color = is_selected and active_color or inactive_color,
-        padding_left = 4,
-        padding_right = 18,
+        padding_left = label_padding_left,
+        padding_right = label_padding_right,
       },
       background = {
         border_color = transparent,
@@ -104,16 +113,7 @@ local function update_highlight(focused_sid)
     })
   end
 
-  -- First call (init): style ALL items to establish proper padding
-  if not prev_workspace then
-    for sid, _ in pairs(spaces) do
-      apply_style(sid, tostring(sid) == tostring(focused_sid))
-    end
-    return
-  end
-
-  -- Subsequent calls: only update the 2 items that changed
-  if prev_workspace ~= focused_sid then
+  if prev_workspace and prev_workspace ~= focused_sid then
     apply_style(prev_workspace, false)
   end
   apply_style(focused_sid, true)
@@ -175,14 +175,16 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
         display_id = map[monitor_id] or laptop_display
       end
 
-      -- Create the Space Item
+      -- Create the Space Item, fully styled — rendering must be correct even
+      -- if no aerospace event ever arrives (e.g. right after a display change
+      -- while aerospace is still settling).
       spaces[sid] = sbar.add("item", "space." .. sid, {
         icon = {
           string = sid,
           color = inactive_color,
           highlight_color = active_color,
-          padding_left = 6,
-          padding_right = 0,
+          padding_left = icon_padding_left,
+          padding_right = icon_padding_right,
           font = { family = settings.font.family, style = settings.font.style_map.regular, size = settings.font.size.icon },
         },
         label = {
@@ -191,7 +193,8 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
           highlight_color = colors.white,
           font = { family = "sketchybar-app-font", style = "Regular", size = settings.font.size.icon },
           y_offset = -1,
-          padding_right = 10,
+          padding_left = label_padding_left,
+          padding_right = label_padding_right,
         },
         background = {
           color = transparent,
@@ -266,16 +269,28 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
     -- Initial window population (one fork, all spaces).
     update_all_windows()
 
+    -- aerospace can still be re-adopting monitors when the bar reloads right
+    -- after a display change; retry briefly instead of dropping the initial
+    -- highlight (mirrors the bootstrap retry for list-monitors above).
+    local function query_focused_and_update(try)
+      sbar.exec("aerospace list-workspaces --focused", function(f)
+        local clean_f = f and f:gsub("%s+", "") or ""
+        if clean_f == "" then
+          if try < 5 then
+            sbar.exec("sleep 1", function() query_focused_and_update(try + 1) end)
+          end
+          return
+        end
+        update_highlight(clean_f)
+        update_all_windows()
+      end)
+    end
+
     spacer_observer:subscribe("aerospace_workspace_change", function(env)
       local focused_workspace = env.FOCUSED_WORKSPACE
 
       if not focused_workspace or focused_workspace == "" then
-        sbar.exec("aerospace list-workspaces --focused", function(f)
-          local clean_f = f and f:gsub("%s+", "") or ""
-          if clean_f == "" then return end
-          update_highlight(clean_f)
-          update_all_windows()
-        end)
+        query_focused_and_update(1)
       else
         update_highlight(focused_workspace)
         update_all_windows()
