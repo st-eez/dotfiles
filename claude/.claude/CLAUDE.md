@@ -39,7 +39,8 @@ Never hardcode PII or environment-specific values; resolve them from runtime con
 
 # Subagents
 
-- When fanning out multi-agent work (Workflow `agent()` calls, parallel Agent tool calls), set `model: "opus"` (Opus 4.8, high or higher effort) explicitly — never let fan-out agents inherit Fable 5.
+- For volume fan-outs (Workflow `agent()` calls, large fleets of parallel Agent calls), set `model: "opus"` (Opus 4.8, high or higher effort) explicitly — a big fleet inheriting Fable 5 burns tokens/context for no quality gain.
+- For a small number of targeted, quality-sensitive subagents (deep audits, hard searches, adversarial verification), prefer Fable 5; it does better targeted work. Judgment call: scale → opus, depth → fable.
 
 # Communication
 
