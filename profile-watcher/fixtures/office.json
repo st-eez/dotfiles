@@ -1,0 +1,23 @@
+{
+  "SPDisplaysDataType": [
+    {
+      "spdisplays_ndrvs": [
+        {
+          "_name": "LG ULTRAWIDE",
+          "spdisplays_online": "spdisplays_yes",
+          "spdisplays_connection_type": null
+        },
+        {
+          "_name": "Color LCD",
+          "spdisplays_online": "spdisplays_yes",
+          "spdisplays_connection_type": "spdisplays_internal"
+        },
+        {
+          "_name": "ASUS VA24E",
+          "spdisplays_online": "spdisplays_yes",
+          "spdisplays_connection_type": null
+        }
+      ]
+    }
+  ]
+}

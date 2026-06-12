@@ -15,6 +15,14 @@ aerospace list-monitors
 # - aerospace/.config/aerospace/aerospace-home.toml
 # - sketchybar/.config/sketchybar/settings.lua
 aerospace reload-config && sketchybar --reload
+# Note: at HOME the twin-ASUS arrangement is auto-enforced by serial
+# (apply-profile.sh home_arrangement table), so drift there self-heals.
+
+# Profile-watcher (auto profile switch on monitor plug/unplug)
+./profile-watcher/install.sh                          # rebuild + reinstall LaunchAgent
+./profile-watcher/test-detect.sh                      # display-set -> profile mapping tests
+~/.config/aerospace/apply-profile.sh --detect-only    # what the displays imply right now
+tail -20 ~/Library/Logs/AeroSpace/profile-watcher.log # reconciler activity
 ```
 
 ## Rules

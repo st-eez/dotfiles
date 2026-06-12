@@ -49,6 +49,9 @@ raycast/extensions/*/package-lock.json
 # Aerospace (generated from profile configs)
 aerospace/.config/aerospace/aerospace.toml
 
+# Profile-watcher binary (built by profile-watcher/Makefile)
+aerospace/.local/bin/profile-watcher
+
 # Theme-managed files (theme-set creates symlinks to themes/configs/)
 borders/.config/borders/bordersrc
 ghostty/.config/ghostty/theme.conf
