@@ -78,6 +78,13 @@ end
 -- Only touches the items whose selection state changed; layout/padding is
 -- fully established at creation and never depends on this running.
 local function update_highlight(focused_sid)
+  -- A transient focus on an item-less workspace (laptop mode only has items
+  -- 1-5; during a profile transition aerospace can report focus on 6-0 before
+  -- windows migrate) must not tear down the last valid highlight. Freeze: bail
+  -- before un-highlighting prev and before updating current_workspace, so the
+  -- next focus event on a real workspace corrects everything.
+  if not spaces[focused_sid] then return end
+
   local prev_workspace = current_workspace
   current_workspace = focused_sid
 
@@ -137,23 +144,30 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
     table.insert(monitor_list, line)
   end
 
-  -- Renamed from `active_profile` to avoid shadowing the outer function of
-  -- the same name (sentinel reader, line 13).
-  local monitor_profile = monitor_profiles[default_monitor_profile]
-  for _, profile in pairs(monitor_profiles) do
-    if profile.match and monitor_output:find(profile.match) then
-      monitor_profile = profile
-      break
-    end
-  end
-  
-  -- The profile sentinel is authoritative — the profile-watcher rewrites it on
-  -- every monitor hotplug and reloads this bar. The live monitor sniff only
-  -- decides when the sentinel is missing (first boot before any profile apply).
-  local is_laptop_only = #monitor_list == 1 and monitor_output:find("Built%-in") ~= nil
+  -- The profile sentinel is authoritative for BOTH the laptop decision and the
+  -- display-map choice: the profile-watcher rewrites it on every monitor
+  -- hotplug and reloads this bar. The live monitor sniff only decides when the
+  -- sentinel is missing/empty or names a profile this bar doesn't know about
+  -- (first boot before any profile apply, or a vocabulary mismatch).
   local profile = active_profile()
   if profile == "" then profile = nil end
+
+  local is_laptop_only = #monitor_list == 1 and monitor_output:find("Built%-in") ~= nil
   local laptop = profile == "laptop" or (profile == nil and is_laptop_only)
+
+  -- `profile` may be a monitor-profile key (home/office) when the sentinel is
+  -- authoritative; otherwise sniff the live monitor names, then fall back to
+  -- the default. `monitor_profile` is unused in laptop mode.
+  local monitor_profile = (profile and monitor_profiles[profile])
+  if not monitor_profile then
+    monitor_profile = monitor_profiles[default_monitor_profile]
+    for _, candidate in pairs(monitor_profiles) do
+      if candidate.match and monitor_output:find(candidate.match) then
+        monitor_profile = candidate
+        break
+      end
+    end
+  end
 
   -- 2. Map Workspaces to Monitors (Async chain)
   -- We need to know which monitor each workspace is on to assign display_id correctly.
@@ -185,7 +199,7 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
           highlight_color = active_color,
           padding_left = icon_padding_left,
           padding_right = icon_padding_right,
-          font = { family = settings.font.family, style = settings.font.style_map.regular, size = settings.font.size.icon },
+          font = { family = settings.font.family, style = settings.font.style_map.regular, size = settings.font.size.glyph },
         },
         label = {
           string = "",

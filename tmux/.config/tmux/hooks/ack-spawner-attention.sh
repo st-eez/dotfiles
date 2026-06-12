@@ -8,9 +8,10 @@
 # resolved against tmux's environment and come back empty), which
 # breaks any while/read loop we try to write inline.
 #
-# PATH prefix matches sketchybar/helpers/agent_attention.sh: tmux's
-# run-shell inherits whatever env tmux was started in, which on fresh
-# logins omits ~/.steez/bin.
+# PATH is prefixed below because tmux's run-shell inherits whatever env
+# tmux was started in, which on fresh logins omits ~/.steez/bin (where
+# agent-eventsd lives) and ~/.local/bin; without it the command -v
+# guards below would fail and the hook would silently no-op.
 set -eu
 
 win="${1:-}"
