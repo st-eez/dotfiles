@@ -1,0 +1,28 @@
+# Vantagold
+# Managed by theme-set - do not edit manually
+background = 050505
+foreground = eadfca
+cursor-color = c8a24a
+cursor-text = 050505
+selection-background = 332a18
+selection-foreground = eadfca
+
+# Normal colors (palette 0-7)
+palette = 0=#050505
+palette = 1=#c8a24a
+palette = 2=#8fa477
+palette = 3=#d6b85c
+palette = 4=#8f9ebc
+palette = 5=#ad8fa8
+palette = 6=#7f9f9a
+palette = 7=#eadfca
+
+# Bright colors (palette 8-15)
+palette = 8=#5f5748
+palette = 9=#c8a24a
+palette = 10=#8fa477
+palette = 11=#d6b85c
+palette = 12=#8f9ebc
+palette = 13=#ad8fa8
+palette = 14=#7f9f9a
+palette = 15=#fff7e6

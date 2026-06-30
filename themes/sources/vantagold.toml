@@ -1,0 +1,89 @@
+schema_version = 1
+
+[theme]
+id = "vantagold"
+name = "Vantagold"
+variant = "royal-gold"
+source = "https://github.com/basecamp/omarchy"
+
+[identifiers]
+ghostty = "Vantagold"
+nvim_colorscheme = "vantablack"
+nvim_plugin = "bjarneo/vantablack.nvim"
+antigravity = "Vantablack"
+opencode = "vantagold"
+obsidian = "Vantablack"
+
+[palette]
+bg0 = "#050505"
+bg1 = "#101010"
+bg2 = "#201b12"
+fg = "#eadfca"
+grey = "#8f8778"
+red = "#c8a24a"
+orange = "#b9853d"
+yellow = "#d6b85c"
+green = "#8fa477"
+cyan = "#7f9f9a"
+blue = "#8f9ebc"
+magenta = "#ad8fa8"
+
+[overrides.sketchybar]
+highlight = "#c8a24a"
+bar_border = "#8f7130"
+popup_border = "#c8a24a"
+
+[overrides.borders]
+active_color = "#c8a24a"
+inactive_color = "#3a3323"
+
+[overrides.starship]
+directory_style = "bold #c8a24a"
+repo_root_style = "bold #d6b85c"
+git_branch_style = "#eadfca"
+git_status_ahead_style = "#8fa477"
+git_status_warning_style = "#d6b85c"
+git_status_conflicted_style = "bold #b35a4a"
+character_success_style = "bold #c8a24a"
+character_error_style = "bold #b35a4a"
+
+[overrides.eza]
+directory = "38;2;200;162;74;1"
+executable = "38;2;234;223;202"
+symlink = "38;2;214;184;92"
+source_code = "37"
+git_modified = "38;2;214;184;92"
+git_new = "38;2;143;164;119"
+git_deleted = "38;2;179;90;74"
+git_renamed = "38;2;127;159;154"
+git_conflicted = "38;2;179;90;74;1"
+permission_read = "90"
+permission_write = "90"
+permission_execute = "38;2;214;184;92"
+permission_execute_other = "38;2;214;184;92"
+permission_group_read = "90"
+permission_group_write = "90"
+permission_group_execute = "38;2;214;184;92"
+permission_other_read = "90"
+permission_other_write = "90"
+permission_other_execute = "38;2;214;184;92"
+permission_special = "38;2;200;162;74;1"
+permission_special_other = "38;2;200;162;74;1"
+permission_attribute = "90"
+size_number = "90"
+size_unit = "90"
+
+[overrides.ghostty]
+split_divider_color = "#8f8778"
+
+[overrides.ghostty_theme]
+file = "vantagold.ghostty"
+background = "#050505"
+foreground = "#eadfca"
+cursor_color = "#c8a24a"
+cursor_text = "#050505"
+selection_background = "#332a18"
+selection_foreground = "#eadfca"
+color0 = "#050505"
+color8 = "#5f5748"
+color15 = "#fff7e6"

@@ -1,0 +1,51 @@
+# Vantagold Starship theme
+# Managed by theme-set - do not edit manually
+add_newline = true
+command_timeout = 200
+format = "$os$hostname[$directory$git_branch$git_status]($style)$character"
+
+[os]
+disabled = false
+style = "#eadfca"
+
+[os.symbols]
+Macos = "󰀵 "
+Arch = "󰣇 "
+Ubuntu = " "
+Mint = "󰣭 "
+Linux = " "
+
+[hostname]
+ssh_only = true
+format = "[$hostname](#eadfca):"
+
+[character]
+error_symbol = "[✘](bold #b35a4a)"
+success_symbol = "[❯](bold #c8a24a)"
+
+[directory]
+truncation_length = 3
+truncation_symbol = "…/"
+style = "bold #c8a24a"
+before_repo_root_style = "bold #c8a24a"
+repo_root_style = "bold #d6b85c"
+repo_root_format = "[$before_root_path]($before_repo_root_style)[$repo_root]($repo_root_style)[$path]($style)[$read_only]($read_only_style) "
+
+[git_branch]
+format = "[$symbol$branch]($style) "
+symbol = " "
+style = "#eadfca"
+
+[git_status]
+format = '$all_status$ahead_behind'
+ahead = "[⇡${count}](#8fa477) "
+diverged = "[⇕⇡${ahead_count}⇣${behind_count}](#d6b85c) "
+behind = "[⇣${count}](#d6b85c) "
+conflicted = "[](bold #b35a4a) "
+up_to_date = ""
+untracked = "[?](#d6b85c) "
+modified = "[](#d6b85c) "
+stashed = ""
+staged = ""
+renamed = ""
+deleted = ""

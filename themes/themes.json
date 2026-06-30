@@ -91,6 +91,24 @@
       }
     },
     {
+      "id": "vantagold",
+      "name": "Vantagold",
+      "colors": {
+        "bg0": "#050505",
+        "bg1": "#101010",
+        "bg2": "#201b12",
+        "fg": "#eadfca",
+        "grey": "#8f8778",
+        "red": "#c8a24a",
+        "green": "#8fa477",
+        "yellow": "#d6b85c",
+        "blue": "#8f9ebc",
+        "magenta": "#ad8fa8",
+        "cyan": "#7f9f9a",
+        "orange": "#b9853d"
+      }
+    },
+    {
       "id": "vantarouge",
       "name": "Vantarouge",
       "colors": {
