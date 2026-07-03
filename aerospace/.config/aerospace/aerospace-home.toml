@@ -4,9 +4,13 @@ config-version = 2
 # Must cover every workspace used in bindings and monitor force-assignment.
 persistent-workspaces = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']
 
-# Native focus-follows-mouse (AeroSpace >= 0.21) replaces AutoRaise:
-# it raises + activates the hovered window. Toggle with ctrl-alt-a.
-focus-follows-mouse.enabled = true
+# Native FFM (0.21) is DISABLED: it hit-tests the aerospace tree, not the
+# visible Space, so during macOS-native fullscreen video it raises a
+# background window and macOS drops out of fullscreen (reproduced 2026-07-03
+# with the YouTube Safari web app; upstream gap — the 0.21.1 #2142 fix only
+# covers aerospace-fullscreen). AutoRaise stays the hover-raise engine until
+# this is fixed upstream. ctrl-alt-a swaps engines (FFM <-> AutoRaise).
+focus-follows-mouse.enabled = false
 
 # Mouse lazily follows every focus change (keybindings, cmd-tab, FFM),
 # replacing the `&& move-mouse window-lazy-center` tail previously chained
