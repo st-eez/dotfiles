@@ -333,7 +333,7 @@ const AEROSPACE_SECTIONS: ShortcutSection[] = [
       { binding: "ctrl-alt-h", description: "Switch to home setup" },
       { binding: "ctrl-alt-w", description: "Switch to work/office setup" },
       { binding: "ctrl-alt-l", description: "Switch to laptop-only setup (auto-migrates windows from 6-0 to 1-5)" },
-      { binding: "ctrl-alt-a", description: "Toggle AutoRaise on/off" },
+      { binding: "ctrl-alt-a", description: "Toggle focus-follows-mouse on/off" },
       { binding: "ctrl-alt-c", description: "Reload aerospace config" },
 
       { binding: "ctrl-alt-j", description: "Toggle split direction (horizontal/vertical)" },

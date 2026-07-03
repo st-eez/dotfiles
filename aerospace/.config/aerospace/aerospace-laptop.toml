@@ -1,3 +1,21 @@
+config-version = 2
+
+# Explicit since config-version = 2 (v1 inferred this from keybinding RHS).
+# Must cover every workspace used in bindings and monitor force-assignment.
+persistent-workspaces = ['1', '2', '3', '4', '5']
+
+# Native focus-follows-mouse (AeroSpace >= 0.21) replaces AutoRaise:
+# it raises + activates the hovered window. Toggle with ctrl-alt-a.
+focus-follows-mouse.enabled = true
+
+# Mouse lazily follows every focus change (keybindings, cmd-tab, FFM),
+# replacing the `&& move-mouse window-lazy-center` tail previously chained
+# onto every binding, and AutoRaise's warp-on-app-switch.
+# Exception: in-monitor swaps keep an explicit tail — they don't change
+# focus, so no callback fires and FFM would refocus the swapped-in neighbor.
+on-focus-changed = ['move-mouse window-lazy-center']
+on-focused-monitor-changed = ['move-mouse monitor-lazy-center']
+
 # Enable normalizations for BSP-like behavior (like yabai)
 # This makes windows automatically tile side-by-side similar to yabai's BSP layout
 start-at-login = true
@@ -45,55 +63,55 @@ outer.right = 12
 
 [mode.main.binding]
 # Window focus (CAPS + arrows)
-alt-left = 'exec-and-forget bash -c "(aerospace focus left --boundaries-action fail || aerospace focus-monitor left) && aerospace move-mouse window-lazy-center"'
-alt-right = 'exec-and-forget bash -c "(aerospace focus right --boundaries-action fail || aerospace focus-monitor right) && aerospace move-mouse window-lazy-center"'
-alt-up = 'exec-and-forget bash -c "(aerospace focus up --boundaries-action fail || aerospace focus-monitor up) && aerospace move-mouse window-lazy-center"'
-alt-down = 'exec-and-forget bash -c "(aerospace focus down --boundaries-action fail || aerospace focus-monitor down) && aerospace move-mouse window-lazy-center"'
+alt-left = 'focus left --boundaries-action fail || focus-monitor left'
+alt-right = 'focus right --boundaries-action fail || focus-monitor right'
+alt-up = 'focus up --boundaries-action fail || focus-monitor up'
+alt-down = 'focus down --boundaries-action fail || focus-monitor down'
 
 # Swap windows with wrap-around (CAPS + SHIFT + arrows)
 # Moves within monitor, then wraps to adjacent monitor at boundaries
-alt-shift-left = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail left || aerospace move-node-to-monitor --wrap-around --focus-follows-window left) && aerospace move-mouse window-lazy-center"'
-alt-shift-right = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail right || aerospace move-node-to-monitor --wrap-around --focus-follows-window right) && aerospace move-mouse window-lazy-center"'
-alt-shift-up = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail up || aerospace move-node-to-monitor --wrap-around --focus-follows-window up) && aerospace move-mouse window-lazy-center"'
-alt-shift-down = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail down || aerospace move-node-to-monitor --wrap-around --focus-follows-window down) && aerospace move-mouse window-lazy-center"'
+alt-shift-left = '(move --boundaries-action fail left || move-node-to-monitor --wrap-around --focus-follows-window left) && move-mouse window-lazy-center'
+alt-shift-right = '(move --boundaries-action fail right || move-node-to-monitor --wrap-around --focus-follows-window right) && move-mouse window-lazy-center'
+alt-shift-up = '(move --boundaries-action fail up || move-node-to-monitor --wrap-around --focus-follows-window up) && move-mouse window-lazy-center'
+alt-shift-down = '(move --boundaries-action fail down || move-node-to-monitor --wrap-around --focus-follows-window down) && move-mouse window-lazy-center'
 
 # Jump to workspace (CAPS + number) — laptop profile only exposes 1-5
-alt-1 = 'exec-and-forget bash -c "aerospace workspace 1 && aerospace move-mouse window-lazy-center"'
-alt-2 = 'exec-and-forget bash -c "aerospace workspace 2 && aerospace move-mouse window-lazy-center"'
-alt-3 = 'exec-and-forget bash -c "aerospace workspace 3 && aerospace move-mouse window-lazy-center"'
-alt-4 = 'exec-and-forget bash -c "aerospace workspace 4 && aerospace move-mouse window-lazy-center"'
-alt-5 = 'exec-and-forget bash -c "aerospace workspace 5 && aerospace move-mouse window-lazy-center"'
+alt-1 = 'workspace 1'
+alt-2 = 'workspace 2'
+alt-3 = 'workspace 3'
+alt-4 = 'workspace 4'
+alt-5 = 'workspace 5'
 
 
 # Move window to workspace and follow (CAPS + SHIFT + number) — laptop profile only exposes 1-5
-alt-shift-1 = 'exec-and-forget bash -c "aerospace move-node-to-workspace --focus-follows-window 1 && aerospace workspace 1 && aerospace move-mouse window-lazy-center"'
-alt-shift-2 = 'exec-and-forget bash -c "aerospace move-node-to-workspace --focus-follows-window 2 && aerospace workspace 2 && aerospace move-mouse window-lazy-center"'
-alt-shift-3 = 'exec-and-forget bash -c "aerospace move-node-to-workspace --focus-follows-window 3 && aerospace workspace 3 && aerospace move-mouse window-lazy-center"'
-alt-shift-4 = 'exec-and-forget bash -c "aerospace move-node-to-workspace --focus-follows-window 4 && aerospace workspace 4 && aerospace move-mouse window-lazy-center"'
-alt-shift-5 = 'exec-and-forget bash -c "aerospace move-node-to-workspace --focus-follows-window 5 && aerospace workspace 5 && aerospace move-mouse window-lazy-center"'
+alt-shift-1 = 'move-node-to-workspace --focus-follows-window 1 && workspace 1'
+alt-shift-2 = 'move-node-to-workspace --focus-follows-window 2 && workspace 2'
+alt-shift-3 = 'move-node-to-workspace --focus-follows-window 3 && workspace 3'
+alt-shift-4 = 'move-node-to-workspace --focus-follows-window 4 && workspace 4'
+alt-shift-5 = 'move-node-to-workspace --focus-follows-window 5 && workspace 5'
 
 
 # Move window to workspace without following (Custom binding: Ctrl+Shift+Alt+1-9)
 
 # Workspace cycling (CAPS + Tab / CAPS + SHIFT + Tab)
-alt-tab = 'exec-and-forget bash -c "aerospace workspace --no-stdin --wrap-around next && aerospace move-mouse window-lazy-center"'
-alt-shift-tab = 'exec-and-forget bash -c "aerospace workspace --no-stdin --wrap-around prev && aerospace move-mouse window-lazy-center"'
+alt-tab = 'workspace --wrap-around next'
+alt-shift-tab = 'workspace --wrap-around prev'
 
 # Workspace back-and-forth (CTRL + ALT + Tab)
-ctrl-alt-tab = 'exec-and-forget bash -c "aerospace workspace-back-and-forth && aerospace move-mouse window-lazy-center"'
+ctrl-alt-tab = 'workspace-back-and-forth'
 
 # Window focus (CAPS + vim keys)
-alt-h = 'exec-and-forget bash -c "(aerospace focus left --boundaries-action fail || aerospace focus-monitor left) && aerospace move-mouse window-lazy-center"'
-alt-l = 'exec-and-forget bash -c "(aerospace focus right --boundaries-action fail || aerospace focus-monitor right) && aerospace move-mouse window-lazy-center"'
-alt-k = 'exec-and-forget bash -c "(aerospace focus up --boundaries-action fail || aerospace focus-monitor up) && aerospace move-mouse window-lazy-center"'
-alt-j = 'exec-and-forget bash -c "(aerospace focus down --boundaries-action fail || aerospace focus-monitor down) && aerospace move-mouse window-lazy-center"'
+alt-h = 'focus left --boundaries-action fail || focus-monitor left'
+alt-l = 'focus right --boundaries-action fail || focus-monitor right'
+alt-k = 'focus up --boundaries-action fail || focus-monitor up'
+alt-j = 'focus down --boundaries-action fail || focus-monitor down'
 
 # Swap windows with wrap-around (CAPS + SHIFT + vim keys)
 # Moves within monitor, then wraps to adjacent monitor at boundaries
-alt-shift-h = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail left || aerospace move-node-to-monitor --wrap-around --focus-follows-window left) && aerospace move-mouse window-lazy-center"'
-alt-shift-l = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail right || aerospace move-node-to-monitor --wrap-around --focus-follows-window right) && aerospace move-mouse window-lazy-center"'
-alt-shift-k = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail up || aerospace move-node-to-monitor --wrap-around --focus-follows-window up) && aerospace move-mouse window-lazy-center"'
-alt-shift-j = 'exec-and-forget bash -c "(aerospace move --boundaries-action fail down || aerospace move-node-to-monitor --wrap-around --focus-follows-window down) && aerospace move-mouse window-lazy-center"'
+alt-shift-h = '(move --boundaries-action fail left || move-node-to-monitor --wrap-around --focus-follows-window left) && move-mouse window-lazy-center'
+alt-shift-l = '(move --boundaries-action fail right || move-node-to-monitor --wrap-around --focus-follows-window right) && move-mouse window-lazy-center'
+alt-shift-k = '(move --boundaries-action fail up || move-node-to-monitor --wrap-around --focus-follows-window up) && move-mouse window-lazy-center'
+alt-shift-j = '(move --boundaries-action fail down || move-node-to-monitor --wrap-around --focus-follows-window down) && move-mouse window-lazy-center'
 
 # Window controls (CAPS + letter)
 alt-t = 'layout floating tiling' # Super+T → Ctrl+T
@@ -112,16 +130,16 @@ ctrl-alt-up = 'join-with up'
 ctrl-alt-down = 'join-with down'
 
 # Workspace cycling on current monitor (CTRL + ALT + SHIFT + left/right)
-ctrl-alt-shift-left = 'exec-and-forget bash -c "aerospace list-workspaces --monitor focused | aerospace move-node-to-workspace --stdin --wrap-around --focus-follows-window prev && aerospace move-mouse window-lazy-center"'
-ctrl-alt-shift-right = 'exec-and-forget bash -c "aerospace list-workspaces --monitor focused | aerospace move-node-to-workspace --stdin --wrap-around --focus-follows-window next && aerospace move-mouse window-lazy-center"'
+ctrl-alt-shift-left = 'list-workspaces --monitor focused | move-node-to-workspace --stdin --wrap-around --focus-follows-window prev'
+ctrl-alt-shift-right = 'list-workspaces --monitor focused | move-node-to-workspace --stdin --wrap-around --focus-follows-window next'
 # Move window to different monitor (CTRL + ALT + SHIFT + up/down)
-ctrl-alt-shift-up = 'exec-and-forget bash -c "aerospace move-node-to-monitor --wrap-around --focus-follows-window up && aerospace move-mouse window-lazy-center"'
-ctrl-alt-shift-down = 'exec-and-forget bash -c "aerospace move-node-to-monitor --wrap-around --focus-follows-window down && aerospace move-mouse window-lazy-center"'
+ctrl-alt-shift-up = 'move-node-to-monitor --wrap-around --focus-follows-window up'
+ctrl-alt-shift-down = 'move-node-to-monitor --wrap-around --focus-follows-window down'
 
 # Move window to specific monitor by number (CTRL + ALT + SHIFT + number)
-ctrl-alt-shift-1 = 'exec-and-forget bash -c "aerospace move-node-to-monitor --focus-follows-window 1 && aerospace move-mouse window-lazy-center"'
-ctrl-alt-shift-2 = 'exec-and-forget bash -c "aerospace move-node-to-monitor --focus-follows-window 2 && aerospace move-mouse window-lazy-center"'
-ctrl-alt-shift-3 = 'exec-and-forget bash -c "aerospace move-node-to-monitor --focus-follows-window 3 && aerospace move-mouse window-lazy-center"'
+ctrl-alt-shift-1 = 'move-node-to-monitor --focus-follows-window 1'
+ctrl-alt-shift-2 = 'move-node-to-monitor --focus-follows-window 2'
+ctrl-alt-shift-3 = 'move-node-to-monitor --focus-follows-window 3'
 
 # Configuration management (Custom bindings kept)
 ctrl-alt-j = 'layout tiles horizontal vertical'
@@ -131,7 +149,7 @@ ctrl-alt-r = 'flatten-workspace-tree'
 ctrl-alt-h = 'exec-and-forget ~/.config/aerospace/set-profile.sh home'
 ctrl-alt-w = 'exec-and-forget ~/.config/aerospace/set-profile.sh office'
 ctrl-alt-l = 'exec-and-forget ~/.config/aerospace/set-profile.sh laptop'
-ctrl-alt-a = 'exec-and-forget /bin/bash ~/.config/AutoRaise/toggle_autoraise.sh'
+ctrl-alt-a = 'exec-and-forget ~/.config/aerospace/toggle-ffm.sh'
 
 [[on-window-detected]]
 if.app-name-regex-substring = 'finder'
@@ -183,7 +201,7 @@ if.app-name-regex-substring = 'App Store'
 run = 'layout floating'
 
 [[on-window-detected]]
-if.app-name-regex-substring = 'Facetime'
+if.app-name-regex-substring = 'facetime'
 run = 'layout floating'
 
 [[on-window-detected]]
