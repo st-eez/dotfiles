@@ -30,7 +30,7 @@ focus-follows-mouse.enabled = false
 # onto a not-yet-parked window makes AutoRaise raise it (a warp counts as
 # mouse movement) and flip the workspace right back.
 on-focus-changed = ['exec-and-forget /bin/bash -c "/bin/sleep 0.1; /opt/homebrew/bin/aerospace move-mouse window-lazy-center"']
-on-focused-monitor-changed = ['move-mouse monitor-lazy-center']
+on-focused-monitor-changed = ['exec-and-forget /bin/bash -c "/bin/sleep 0.1; /opt/homebrew/bin/aerospace move-mouse monitor-lazy-center"']
 
 # Enable normalizations for BSP-like behavior (like yabai)
 # This makes windows automatically tile side-by-side similar to yabai's BSP layout
