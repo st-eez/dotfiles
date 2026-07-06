@@ -15,8 +15,11 @@ focus-follows-mouse.enabled = false
 # Mouse lazily follows every focus change (keybindings, cmd-tab, FFM),
 # replacing the `&& move-mouse window-lazy-center` tail previously chained
 # onto every binding, and AutoRaise's warp-on-app-switch.
-# Exception: in-monitor swaps keep an explicit tail — they don't change
-# focus, so no callback fires and FFM would refocus the swapped-in neighbor.
+# Exception: in-monitor swaps don't change focus, so no callback fires and
+# FFM would refocus the swapped-in neighbor. Swap bindings are therefore
+# fully round-tripped through bash: an in-session move-mouse tail reads the
+# pre-swap rect and no-ops, and exec-and-forget can't follow '&&' in the
+# native shell, so the move itself goes through the CLI too.
 # Round-tripped through the CLI: in-process move-mouse runs BEFORE
 # layoutWorkspaces, so on a workspace switch it evaluates the focused
 # window's still-parked hide-corner rect and lazy-center no-ops, stranding
@@ -98,16 +101,16 @@ alt-j = 'focus down --boundaries-action fail || focus-monitor down'
 
 # Swap windows with wrap-around (CAPS + SHIFT + arrows)
 # Moves within monitor, then wraps to adjacent monitor at boundaries
-alt-shift-left = '(move --boundaries-action fail left || move-node-to-monitor --wrap-around --focus-follows-window left) && move-mouse window-lazy-center'
-alt-shift-right = '(move --boundaries-action fail right || move-node-to-monitor --wrap-around --focus-follows-window right) && move-mouse window-lazy-center'
-alt-shift-up = '(move --boundaries-action fail up || move-node-to-monitor --wrap-around --focus-follows-window up) && move-mouse window-lazy-center'
-alt-shift-down = '(move --boundaries-action fail down || move-node-to-monitor --wrap-around --focus-follows-window down) && move-mouse window-lazy-center'
+alt-shift-left = 'exec-and-forget /bin/bash -c "(/opt/homebrew/bin/aerospace move --boundaries-action fail left || /opt/homebrew/bin/aerospace move-node-to-monitor --wrap-around --focus-follows-window left) && /bin/sleep 0.1 && /opt/homebrew/bin/aerospace move-mouse window-lazy-center"'
+alt-shift-right = 'exec-and-forget /bin/bash -c "(/opt/homebrew/bin/aerospace move --boundaries-action fail right || /opt/homebrew/bin/aerospace move-node-to-monitor --wrap-around --focus-follows-window right) && /bin/sleep 0.1 && /opt/homebrew/bin/aerospace move-mouse window-lazy-center"'
+alt-shift-up = 'exec-and-forget /bin/bash -c "(/opt/homebrew/bin/aerospace move --boundaries-action fail up || /opt/homebrew/bin/aerospace move-node-to-monitor --wrap-around --focus-follows-window up) && /bin/sleep 0.1 && /opt/homebrew/bin/aerospace move-mouse window-lazy-center"'
+alt-shift-down = 'exec-and-forget /bin/bash -c "(/opt/homebrew/bin/aerospace move --boundaries-action fail down || /opt/homebrew/bin/aerospace move-node-to-monitor --wrap-around --focus-follows-window down) && /bin/sleep 0.1 && /opt/homebrew/bin/aerospace move-mouse window-lazy-center"'
 
 # Swap windows with wrap-around (CAPS + SHIFT + vim keys)
-alt-shift-h = '(move --boundaries-action fail left || move-node-to-monitor --wrap-around --focus-follows-window left) && move-mouse window-lazy-center'
-alt-shift-l = '(move --boundaries-action fail right || move-node-to-monitor --wrap-around --focus-follows-window right) && move-mouse window-lazy-center'
-alt-shift-k = '(move --boundaries-action fail up || move-node-to-monitor --wrap-around --focus-follows-window up) && move-mouse window-lazy-center'
-alt-shift-j = '(move --boundaries-action fail down || move-node-to-monitor --wrap-around --focus-follows-window down) && move-mouse window-lazy-center'
+alt-shift-h = 'exec-and-forget /bin/bash -c "(/opt/homebrew/bin/aerospace move --boundaries-action fail left || /opt/homebrew/bin/aerospace move-node-to-monitor --wrap-around --focus-follows-window left) && /bin/sleep 0.1 && /opt/homebrew/bin/aerospace move-mouse window-lazy-center"'
+alt-shift-l = 'exec-and-forget /bin/bash -c "(/opt/homebrew/bin/aerospace move --boundaries-action fail right || /opt/homebrew/bin/aerospace move-node-to-monitor --wrap-around --focus-follows-window right) && /bin/sleep 0.1 && /opt/homebrew/bin/aerospace move-mouse window-lazy-center"'
+alt-shift-k = 'exec-and-forget /bin/bash -c "(/opt/homebrew/bin/aerospace move --boundaries-action fail up || /opt/homebrew/bin/aerospace move-node-to-monitor --wrap-around --focus-follows-window up) && /bin/sleep 0.1 && /opt/homebrew/bin/aerospace move-mouse window-lazy-center"'
+alt-shift-j = 'exec-and-forget /bin/bash -c "(/opt/homebrew/bin/aerospace move --boundaries-action fail down || /opt/homebrew/bin/aerospace move-node-to-monitor --wrap-around --focus-follows-window down) && /bin/sleep 0.1 && /opt/homebrew/bin/aerospace move-mouse window-lazy-center"'
 
 # Jump to workspace (CAPS + number)
 alt-1 = 'workspace 1'
