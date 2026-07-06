@@ -26,11 +26,11 @@ focus-follows-mouse.enabled = false
 # the cursor on the corner slivers for hover-raise to flip the switch back.
 # A CLI call is a new session serialized after layout. Must stay LAZY:
 # force-center would teleport the cursor on hover-initiated focus changes.
-# The 100ms settle lets the WindowServer finish swapping frames — warping
+# The 50ms settle lets the WindowServer finish swapping frames — warping
 # onto a not-yet-parked window makes AutoRaise raise it (a warp counts as
 # mouse movement) and flip the workspace right back.
-on-focus-changed = ['exec-and-forget /bin/bash -c "/bin/sleep 0.1; /opt/homebrew/bin/aerospace move-mouse window-lazy-center"']
-on-focused-monitor-changed = ['exec-and-forget /bin/bash -c "/bin/sleep 0.1; /opt/homebrew/bin/aerospace move-mouse monitor-lazy-center"']
+on-focus-changed = ['exec-and-forget /bin/bash -c "/bin/sleep 0.05; /opt/homebrew/bin/aerospace move-mouse window-lazy-center"']
+on-focused-monitor-changed = ['exec-and-forget /bin/bash -c "/bin/sleep 0.05; /opt/homebrew/bin/aerospace move-mouse monitor-lazy-center"']
 
 # Enable normalizations for BSP-like behavior (like yabai)
 # This makes windows automatically tile side-by-side similar to yabai's BSP layout
@@ -52,14 +52,14 @@ after-startup-command = [
   'exec-and-forget /opt/homebrew/opt/borders/bin/borders',
 ]
 
-# Sketchybar first for instant highlight; the cursor rescue waits 100ms for
+# Sketchybar first for instant highlight; the cursor rescue waits 50ms for
 # frame swapping to settle (see on-focus-changed). window-lazy-center covers
 # populated workspaces; the monitor-force-center fallback covers empty ones,
 # where nothing else pulls the cursor off the hide-corner slivers.
 exec-on-workspace-change = [
   '/bin/bash',
   '-c',
-  '/opt/homebrew/opt/sketchybar/bin/sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE; /bin/sleep 0.1; /opt/homebrew/bin/aerospace move-mouse window-lazy-center || /opt/homebrew/bin/aerospace move-mouse monitor-force-center',
+  '/opt/homebrew/opt/sketchybar/bin/sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE; /bin/sleep 0.05; /opt/homebrew/bin/aerospace move-mouse window-lazy-center || /opt/homebrew/bin/aerospace move-mouse monitor-force-center',
 ]
 
 [gaps]
@@ -90,10 +90,10 @@ alt-down = 'focus down --boundaries-action fail || focus-monitor down'
 
 # Swap windows with wrap-around (CAPS + SHIFT + arrows)
 # Moves within monitor, then wraps to adjacent monitor at boundaries
-alt-shift-left = 'exec-and-forget /bin/bash -c "(/opt/homebrew/bin/aerospace move --boundaries-action fail left || /opt/homebrew/bin/aerospace move-node-to-monitor --wrap-around --focus-follows-window left) && /bin/sleep 0.1 && /opt/homebrew/bin/aerospace move-mouse window-lazy-center"'
-alt-shift-right = 'exec-and-forget /bin/bash -c "(/opt/homebrew/bin/aerospace move --boundaries-action fail right || /opt/homebrew/bin/aerospace move-node-to-monitor --wrap-around --focus-follows-window right) && /bin/sleep 0.1 && /opt/homebrew/bin/aerospace move-mouse window-lazy-center"'
-alt-shift-up = 'exec-and-forget /bin/bash -c "(/opt/homebrew/bin/aerospace move --boundaries-action fail up || /opt/homebrew/bin/aerospace move-node-to-monitor --wrap-around --focus-follows-window up) && /bin/sleep 0.1 && /opt/homebrew/bin/aerospace move-mouse window-lazy-center"'
-alt-shift-down = 'exec-and-forget /bin/bash -c "(/opt/homebrew/bin/aerospace move --boundaries-action fail down || /opt/homebrew/bin/aerospace move-node-to-monitor --wrap-around --focus-follows-window down) && /bin/sleep 0.1 && /opt/homebrew/bin/aerospace move-mouse window-lazy-center"'
+alt-shift-left = 'exec-and-forget /bin/bash -c "(/opt/homebrew/bin/aerospace move --boundaries-action fail left || /opt/homebrew/bin/aerospace move-node-to-monitor --wrap-around --focus-follows-window left) && /bin/sleep 0.05 && /opt/homebrew/bin/aerospace move-mouse window-lazy-center"'
+alt-shift-right = 'exec-and-forget /bin/bash -c "(/opt/homebrew/bin/aerospace move --boundaries-action fail right || /opt/homebrew/bin/aerospace move-node-to-monitor --wrap-around --focus-follows-window right) && /bin/sleep 0.05 && /opt/homebrew/bin/aerospace move-mouse window-lazy-center"'
+alt-shift-up = 'exec-and-forget /bin/bash -c "(/opt/homebrew/bin/aerospace move --boundaries-action fail up || /opt/homebrew/bin/aerospace move-node-to-monitor --wrap-around --focus-follows-window up) && /bin/sleep 0.05 && /opt/homebrew/bin/aerospace move-mouse window-lazy-center"'
+alt-shift-down = 'exec-and-forget /bin/bash -c "(/opt/homebrew/bin/aerospace move --boundaries-action fail down || /opt/homebrew/bin/aerospace move-node-to-monitor --wrap-around --focus-follows-window down) && /bin/sleep 0.05 && /opt/homebrew/bin/aerospace move-mouse window-lazy-center"'
 
 # Jump to workspace (CAPS + number) — laptop profile only exposes 1-5
 alt-1 = 'workspace 1'
@@ -128,10 +128,10 @@ alt-j = 'focus down --boundaries-action fail || focus-monitor down'
 
 # Swap windows with wrap-around (CAPS + SHIFT + vim keys)
 # Moves within monitor, then wraps to adjacent monitor at boundaries
-alt-shift-h = 'exec-and-forget /bin/bash -c "(/opt/homebrew/bin/aerospace move --boundaries-action fail left || /opt/homebrew/bin/aerospace move-node-to-monitor --wrap-around --focus-follows-window left) && /bin/sleep 0.1 && /opt/homebrew/bin/aerospace move-mouse window-lazy-center"'
-alt-shift-l = 'exec-and-forget /bin/bash -c "(/opt/homebrew/bin/aerospace move --boundaries-action fail right || /opt/homebrew/bin/aerospace move-node-to-monitor --wrap-around --focus-follows-window right) && /bin/sleep 0.1 && /opt/homebrew/bin/aerospace move-mouse window-lazy-center"'
-alt-shift-k = 'exec-and-forget /bin/bash -c "(/opt/homebrew/bin/aerospace move --boundaries-action fail up || /opt/homebrew/bin/aerospace move-node-to-monitor --wrap-around --focus-follows-window up) && /bin/sleep 0.1 && /opt/homebrew/bin/aerospace move-mouse window-lazy-center"'
-alt-shift-j = 'exec-and-forget /bin/bash -c "(/opt/homebrew/bin/aerospace move --boundaries-action fail down || /opt/homebrew/bin/aerospace move-node-to-monitor --wrap-around --focus-follows-window down) && /bin/sleep 0.1 && /opt/homebrew/bin/aerospace move-mouse window-lazy-center"'
+alt-shift-h = 'exec-and-forget /bin/bash -c "(/opt/homebrew/bin/aerospace move --boundaries-action fail left || /opt/homebrew/bin/aerospace move-node-to-monitor --wrap-around --focus-follows-window left) && /bin/sleep 0.05 && /opt/homebrew/bin/aerospace move-mouse window-lazy-center"'
+alt-shift-l = 'exec-and-forget /bin/bash -c "(/opt/homebrew/bin/aerospace move --boundaries-action fail right || /opt/homebrew/bin/aerospace move-node-to-monitor --wrap-around --focus-follows-window right) && /bin/sleep 0.05 && /opt/homebrew/bin/aerospace move-mouse window-lazy-center"'
+alt-shift-k = 'exec-and-forget /bin/bash -c "(/opt/homebrew/bin/aerospace move --boundaries-action fail up || /opt/homebrew/bin/aerospace move-node-to-monitor --wrap-around --focus-follows-window up) && /bin/sleep 0.05 && /opt/homebrew/bin/aerospace move-mouse window-lazy-center"'
+alt-shift-j = 'exec-and-forget /bin/bash -c "(/opt/homebrew/bin/aerospace move --boundaries-action fail down || /opt/homebrew/bin/aerospace move-node-to-monitor --wrap-around --focus-follows-window down) && /bin/sleep 0.05 && /opt/homebrew/bin/aerospace move-mouse window-lazy-center"'
 
 # Window controls (CAPS + letter)
 alt-t = 'layout floating tiling' # Super+T → Ctrl+T
