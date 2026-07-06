@@ -31,10 +31,13 @@ brew "telnet"
 brew "wireguard-tools"
 brew "sketchybar"
 brew "felixkratz/formulae/borders"
+# CLI build, not the autoraiseapp cask: brew services runs it with no args,
+# which is the only mode where AutoRaise reads ~/.config/AutoRaise/config
+# (any CLI arg makes it ignore config files entirely).
+brew "dimentium/autoraise/autoraise"
 brew "gemini-cli"
 
 cask "aerospace"
-cask "dimentium/autoraise/autoraiseapp"
 cask "bitwarden"
 cask "claude-code"
 cask "codex"

@@ -17,7 +17,8 @@ tmp=$(mktemp)
 if grep -q '^focus-follows-mouse.enabled = true' "$conf"; then
     sed 's/^focus-follows-mouse.enabled = true/focus-follows-mouse.enabled = false/' "$conf" > "$tmp"
     engine="AutoRaise"
-    pgrep -q "AutoRaise" || /Applications/AutoRaise.app/Contents/MacOS/AutoRaise &
+    # brew formula binary; no args so it reads ~/.config/AutoRaise/config
+    pgrep -q "AutoRaise" || /opt/homebrew/opt/autoraise/bin/AutoRaise &
 else
     sed 's/^focus-follows-mouse.enabled = false/focus-follows-mouse.enabled = true/' "$conf" > "$tmp"
     engine="focus-follows-mouse"

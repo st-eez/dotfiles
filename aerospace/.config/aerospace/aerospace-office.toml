@@ -17,7 +17,16 @@ focus-follows-mouse.enabled = false
 # onto every binding, and AutoRaise's warp-on-app-switch.
 # Exception: in-monitor swaps keep an explicit tail — they don't change
 # focus, so no callback fires and FFM would refocus the swapped-in neighbor.
-on-focus-changed = ['move-mouse window-lazy-center']
+# Round-tripped through the CLI: in-process move-mouse runs BEFORE
+# layoutWorkspaces, so on a workspace switch it evaluates the focused
+# window's still-parked hide-corner rect and lazy-center no-ops, stranding
+# the cursor on the corner slivers for hover-raise to flip the switch back.
+# A CLI call is a new session serialized after layout. Must stay LAZY:
+# force-center would teleport the cursor on hover-initiated focus changes.
+# The 100ms settle lets the WindowServer finish swapping frames — warping
+# onto a not-yet-parked window makes AutoRaise raise it (a warp counts as
+# mouse movement) and flip the workspace right back.
+on-focus-changed = ['exec-and-forget /bin/bash -c "/bin/sleep 0.1; /opt/homebrew/bin/aerospace move-mouse window-lazy-center"']
 on-focused-monitor-changed = ['move-mouse monitor-lazy-center']
 
 # Enable normalizations for BSP-like behavior (like yabai)
@@ -40,10 +49,14 @@ after-startup-command = [
   'exec-and-forget /opt/homebrew/opt/borders/bin/borders',
 ]
 
+# Sketchybar first for instant highlight; the cursor rescue waits 100ms for
+# frame swapping to settle (see on-focus-changed). window-lazy-center covers
+# populated workspaces; the monitor-force-center fallback covers empty ones,
+# where nothing else pulls the cursor off the hide-corner slivers.
 exec-on-workspace-change = [
   '/bin/bash',
   '-c',
-  '/opt/homebrew/opt/sketchybar/bin/sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE',
+  '/opt/homebrew/opt/sketchybar/bin/sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE; /bin/sleep 0.1; /opt/homebrew/bin/aerospace move-mouse window-lazy-center || /opt/homebrew/bin/aerospace move-mouse monitor-force-center',
 ]
 
 [gaps]

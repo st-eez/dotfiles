@@ -7,5 +7,6 @@ scale=1.0
 altTaskSwitcher=true
 ignoreSpaceChanged=false
 invertIgnoreApps=false
+ignoreApps="Google Chrome for Testing"
 disableKey="control"
-mouseDelta=0
+mouseDelta=2
