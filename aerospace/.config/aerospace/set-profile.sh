@@ -19,9 +19,13 @@ fi
 
 cp "$target" "$conf/aerospace.toml"
 printf '%s' "$profile" > "$conf/.active-profile"
-# Decoupled on purpose: aerospace may be crashed/restarting (hotplug bug
-# nikitabobko/AeroSpace#506), and under `set -eu` a failed reload-config would
-# abort before sketchybar ever picks up the new sentinel. The profile-watcher
-# reconciler retries aerospace via its convergence check.
-aerospace reload-config || true
+# Reload both consumers even when one fails: sketchybar must pick up the new
+# sentinel while aerospace is crashed/restarting (hotplug bug
+# nikitabobko/AeroSpace#506), but a failed reload-config must surface in the
+# exit code so apply-profile.sh withholds convergence and its poll retries —
+# otherwise aerospace keeps running the old profile while sentinel, converged,
+# and aerospace.toml all claim the new one.
+rc=0
+aerospace reload-config || rc=$?
 sketchybar --reload || true
+exit "$rc"

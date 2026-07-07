@@ -15,8 +15,10 @@
 # never reaches the repo):
 #   lock/       atomic-mkdir mutex (flock does not exist on this Mac)
 #   converged   last profile confirmed applied while aerospace was responsive
-#   lastset     last online display-name topology, to skip churn on spurious
-#               display notifications (dock visibility etc.)
+#   lastset     last topology whose implications were fully applied (see
+#               note_topo); a mismatch vs the live topology marks a pending
+#               repair, retried on any tick — spurious display notifications
+#               with an unchanged topology stay no-ops
 #   unknown     last unrecognized display set, to suppress repeat logging
 
 set -u
@@ -139,7 +141,7 @@ arrangement_fixed=0
 
 enforce_home_arrangement() {
   [ -x "$bdcli" ] || { say "BetterDisplay CLI missing — cannot enforce twin-panel arrangement"; return; }
-  local serial want cur out
+  local serial want cur out back
   while IFS=: read -r serial want; do
     [ -n "$serial" ] || continue
     cur=$("$bdcli" get --alphanumericSerial="$serial" --placement 2>/dev/null) || cur=""
@@ -148,11 +150,23 @@ enforce_home_arrangement() {
         say "arrangement: panel $serial not addressable — skipped" ;;
       "$want") ;; # guard-before-write: correct already, generate no event churn
       *)
-        if out=$("$bdcli" set --alphanumericSerial="$serial" --placement="$want" 2>&1); then
+        out=$("$bdcli" set --alphanumericSerial="$serial" --placement="$want" 2>&1) || true
+        # BetterDisplay exits 0 even when the placement does not stick
+        # (Jun 27–Jul 1: 1067 false "corrected" logs drove an aerospace
+        # reload every poll for days) — trust only the readback.
+        back=$("$bdcli" get --alphanumericSerial="$serial" --placement 2>/dev/null) || back=""
+        if [ "$back" != "$want" ]; then
+          # One settle retry: a placement that lands just after set returns
+          # must still count as moved, or the config re-apply never fires
+          # (topology names do not change on a placement move).
+          sleep 0.5
+          back=$("$bdcli" get --alphanumericSerial="$serial" --placement 2>/dev/null) || back=""
+        fi
+        if [ "$back" = "$want" ]; then
           say "arrangement: moved panel $serial $cur -> $want"
           arrangement_fixed=1
         else
-          say "arrangement: FAILED moving panel $serial -> $want: $out"
+          say "arrangement: set for panel $serial did not stick (want $want, readback ${back:-none})${out:+: $out}"
         fi ;;
     esac
   done <<<"$home_arrangement"
@@ -160,21 +174,40 @@ enforce_home_arrangement() {
 
 aerospace_ok() { aerospace list-workspaces --all >/dev/null 2>&1; }
 
+# Record the observed topology as handled. Called only once a tick's outcome
+# is settled, so a change observed while aerospace is down (or a failed
+# re-apply) stays pending in lastset and a later tick retries it.
+note_topo() {
+  [ -n "$topo" ] || return 0
+  printf '%s' "$topo" >"$state/lastset"
+}
+
+# Re-run the full swap rather than a bare reload-config: reload-config
+# repairs aerospace's force-assignment (#520), but sketchybar pins workspace
+# items to displays exactly once per reload, so only set-profile.sh's
+# sketchybar --reload can heal a bar that bootstrapped off a partial monitor
+# set (the late-enumerating-display race, 2026-07-06/07 incidents).
+resync() {
+  if "$conf/set-profile.sh" "$want" >>"$log" 2>&1 && aerospace_ok; then
+    note_topo
+    say "tick($reason): '$want' $1 — full swap re-applied"
+  else
+    rm -f "$state/converged"
+    say "tick($reason): '$want' $1 — re-apply incomplete, left unconverged for retry"
+  fi
+}
+
 # ---- reconcile ---------------------------------------------------------------
 
 main() {
   acquire
-  local want cur conv sig topo prev_topo
+  local want cur conv sig topo prev_topo swap_rc
   want=$(detect_profile)
   cur=$(cat "$sentinel" 2>/dev/null || true)
   conv=$(cat "$state/converged" 2>/dev/null || true)
 
-  # Track topology on every tick — including the unknown path — so an
-  # unrecognized display attaching and detaching still registers as a change
-  # and the #520 reload below fires on the detach.
   topo=$(topology || true)
   prev_topo=$(cat "$state/lastset" 2>/dev/null || true)
-  [ -n "$topo" ] && printf '%s' "$topo" >"$state/lastset"
 
   case "$want" in
     "")
@@ -182,6 +215,10 @@ main() {
       exit 0
       ;;
     unknown)
+      # Record the topology even though the profile is kept: the
+      # unrecognized display detaching must still read as a change so the
+      # resync below fires on the detach.
+      note_topo
       sig=$(online_externals | sort | paste -sd, -)
       if [ "$sig" != "$(cat "$state/unknown" 2>/dev/null || true)" ]; then
         printf '%s' "$sig" >"$state/unknown"
@@ -197,17 +234,16 @@ main() {
   if [ "$want" = "$cur" ] && [ "$want" = "$conv" ]; then
     if [ "$arrangement_fixed" = 1 ]; then
       # Monitor IDs follow arrangement order; re-apply so force-assignment
-      # lands on the corrected layout.
-      aerospace reload-config >/dev/null 2>&1 || true
-      say "tick($reason): '$want' arrangement corrected — aerospace config re-applied"
-    elif [ "$reason" = display-event ] && [ "$topo" != "$prev_topo" ] && aerospace_ok; then
-      # Same profile but the display set changed (lid open/close, monitor
-      # power cycle): reconnects can leave force-assigned workspaces stuck on
-      # the main display (nikitabobko/AeroSpace#520); a cheap reload re-applies
-      # the assignment. Spurious notifications with an unchanged topology, and
-      # polls/startup, stay strict no-ops.
-      aerospace reload-config >/dev/null 2>&1 || true
-      say "tick($reason): '$want' topology now [$topo] — force-assignment re-applied"
+      # and the bar's display map land on the corrected layout.
+      resync "arrangement corrected"
+    elif [ "$topo" != "$prev_topo" ] && aerospace_ok; then
+      # Same profile but the display set changed (late-enumerating panel,
+      # lid open/close, monitor power cycle) — whichever tick notices it,
+      # display-event or poll: reconnects can leave force-assigned
+      # workspaces stuck on the main display (nikitabobko/AeroSpace#520)
+      # and the bar pinned to a stale display map. Spurious notifications
+      # with an unchanged topology stay strict no-ops.
+      resync "topology now [$topo]"
     else
       say "tick($reason): '$want' converged — no-op"
     fi
@@ -223,15 +259,16 @@ main() {
   # idempotent and also re-runs migrate-to-laptop.sh, which repairs windows
   # stranded on workspaces 6-0 if the first attempt ran while aerospace was
   # down.
-  "$conf/set-profile.sh" "$want" >>"$log" 2>&1 \
-    || say "set-profile.sh failed rc=$? — poll will retry"
+  swap_rc=0
+  "$conf/set-profile.sh" "$want" >>"$log" 2>&1 || swap_rc=$?
 
-  if aerospace_ok; then
+  if [ "$swap_rc" -eq 0 ] && aerospace_ok; then
+    note_topo
     printf '%s' "$want" >"$state/converged"
     say "converged on '$want' (aerospace responsive)"
   else
     rm -f "$state/converged"
-    say "aerospace unresponsive after applying '$want' — left unconverged for retry"
+    say "swap to '$want' incomplete (set-profile rc=$swap_rc) — left unconverged for retry"
   fi
 }
 
