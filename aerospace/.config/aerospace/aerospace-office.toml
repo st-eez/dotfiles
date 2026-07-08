@@ -12,25 +12,32 @@ persistent-workspaces = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']
 # this is fixed upstream. ctrl-alt-a swaps engines (FFM <-> AutoRaise).
 focus-follows-mouse.enabled = false
 
-# Mouse lazily follows every focus change (keybindings, cmd-tab, FFM),
-# replacing the `&& move-mouse window-lazy-center` tail previously chained
-# onto every binding, and AutoRaise's warp-on-app-switch.
+# Mouse lazily follows every KEYBOARD-driven focus change (alt-hjkl, alt-N,
+# cmd-tab), replacing the `&& move-mouse window-lazy-center` tail previously
+# chained onto every binding, and AutoRaise's warp-on-app-switch.
+# All three movers (here + exec-on-workspace-change) go through
+# mouse-follows-focus.sh, which owns the shared invariants (details there):
+# - never warp while the hand is on the mouse: hover-raising one window of
+#   a two-window app (Discord on two monitors) makes macOS front the app's
+#   OTHER remembered window, and warping the cursor to it made that steal
+#   permanent (reproduced 2026-07-08); unwarped, AutoRaise's retry loop
+#   re-raises the hovered window in ~150ms. Our own warps post .mouseMoved
+#   events, so the script timestamps executed warps to keep rapid keyboard
+#   chains (alt-l alt-l) warping.
+# - scrub AEROSPACE_WINDOW_ID/AEROSPACE_WORKSPACE before move-mouse so it
+#   resolves LIVE focus — exec-and-forget pins the event's window into the
+#   env and the CLI prefers it, which used to warp to the stale window.
+# - 50ms settle for WindowServer frame swapping; move-mouse round-tripped
+#   through the CLI (in-process it runs BEFORE layoutWorkspaces and reads
+#   parked hide-corner rects); moves stay LAZY (force-center would teleport
+#   the cursor on click-initiated focus changes older than the guard).
 # Exception: in-monitor swaps don't change focus, so no callback fires and
 # FFM would refocus the swapped-in neighbor. Swap bindings are therefore
 # fully round-tripped through bash: an in-session move-mouse tail reads the
 # pre-swap rect and no-ops, and exec-and-forget can't follow '&&' in the
 # native shell, so the move itself goes through the CLI too.
-# Round-tripped through the CLI: in-process move-mouse runs BEFORE
-# layoutWorkspaces, so on a workspace switch it evaluates the focused
-# window's still-parked hide-corner rect and lazy-center no-ops, stranding
-# the cursor on the corner slivers for hover-raise to flip the switch back.
-# A CLI call is a new session serialized after layout. Must stay LAZY:
-# force-center would teleport the cursor on hover-initiated focus changes.
-# The 50ms settle lets the WindowServer finish swapping frames — warping
-# onto a not-yet-parked window makes AutoRaise raise it (a warp counts as
-# mouse movement) and flip the workspace right back.
-on-focus-changed = ['exec-and-forget /bin/bash -c "/bin/sleep 0.05; /opt/homebrew/bin/aerospace move-mouse window-lazy-center"']
-on-focused-monitor-changed = ['exec-and-forget /bin/bash -c "/bin/sleep 0.05; /opt/homebrew/bin/aerospace move-mouse monitor-lazy-center"']
+on-focus-changed = ['exec-and-forget ~/.config/aerospace/mouse-follows-focus.sh window']
+on-focused-monitor-changed = ['exec-and-forget ~/.config/aerospace/mouse-follows-focus.sh monitor']
 
 # Enable normalizations for BSP-like behavior (like yabai)
 # This makes windows automatically tile side-by-side similar to yabai's BSP layout
@@ -52,14 +59,13 @@ after-startup-command = [
   'exec-and-forget /opt/homebrew/opt/borders/bin/borders',
 ]
 
-# Sketchybar first for instant highlight; the cursor rescue waits 50ms for
-# frame swapping to settle (see on-focus-changed). window-lazy-center covers
-# populated workspaces; the monitor-force-center fallback covers empty ones,
-# where nothing else pulls the cursor off the hide-corner slivers.
+# Sketchybar first for instant highlight; then the cursor rescue via
+# mouse-follows-focus.sh (settle + mouse-driven-change guard + empty-
+# workspace force-center fallback — see on-focus-changed comment).
 exec-on-workspace-change = [
   '/bin/bash',
   '-c',
-  '/opt/homebrew/opt/sketchybar/bin/sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE; /bin/sleep 0.05; /opt/homebrew/bin/aerospace move-mouse window-lazy-center || /opt/homebrew/bin/aerospace move-mouse monitor-force-center',
+  '/opt/homebrew/opt/sketchybar/bin/sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE; $HOME/.config/aerospace/mouse-follows-focus.sh workspace',
 ]
 
 [gaps]
