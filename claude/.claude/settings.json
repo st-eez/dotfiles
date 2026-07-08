@@ -50,26 +50,6 @@
           }
         ],
         "matcher": "*"
-      },
-      {
-        "hooks": [
-          {
-            "command": "/Users/stevedimakos/Projects/Personal/ren/hooks/plan-mode-gate.sh",
-            "timeout": 5,
-            "type": "command"
-          }
-        ],
-        "matcher": "EnterPlanMode"
-      },
-      {
-        "hooks": [
-          {
-            "command": "/Users/stevedimakos/Projects/Personal/ren/hooks/decompose-gate.sh",
-            "timeout": 5,
-            "type": "command"
-          }
-        ],
-        "matcher": "ExitPlanMode"
       }
     ],
     "PostToolUseFailure": [
@@ -113,10 +93,6 @@
         "hooks": [
           {
             "command": "$HOME/.claude/hooks/steez-session-start.sh",
-            "type": "command"
-          },
-          {
-            "command": "/Users/stevedimakos/Projects/Personal/ren/hooks/wake.sh",
             "type": "command"
           }
         ],
