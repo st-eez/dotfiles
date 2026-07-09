@@ -19,6 +19,13 @@ fi
 
 cp "$target" "$conf/aerospace.toml"
 printf '%s' "$profile" > "$conf/.active-profile"
+
+# Every profile defaults to FFM off, but nothing else revives AutoRaise after
+# toggle-ffm.sh killed it (the brew LaunchAgent has no KeepAlive) — without
+# this, switching profiles out of FFM mode leaves NO hover engine running.
+if grep -q '^focus-follows-mouse.enabled = false' "$conf/aerospace.toml"; then
+  pgrep -q "AutoRaise" || /opt/homebrew/opt/autoraise/bin/AutoRaise &
+fi
 # Reload both consumers even when one fails: sketchybar must pick up the new
 # sentinel while aerospace is crashed/restarting (hotplug bug
 # nikitabobko/AeroSpace#506), but a failed reload-config must surface in the

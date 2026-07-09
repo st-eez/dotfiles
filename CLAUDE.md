@@ -14,7 +14,9 @@ aerospace list-monitors
 # Update monitor IDs in:
 # - aerospace/.config/aerospace/aerospace-home.toml
 # - sketchybar/.config/sketchybar/settings.lua
-aerospace reload-config && sketchybar --reload
+# then re-apply the profile (aerospace reload-config alone reads the live
+# gitignored aerospace.toml copy, NOT the profile file you just edited):
+~/.config/aerospace/set-profile.sh home
 # Note: at HOME the twin-ASUS arrangement is auto-enforced by serial
 # (apply-profile.sh home_arrangement table), so drift there self-heals.
 
