@@ -8,7 +8,7 @@ Before saying "done": `bd close <completed-ids> --reason "..."`.
 - **Beads default**: durable work — issues, follow-ups, blockers — goes in beads (`bd create`, `bd ready`, `bd close`).
 - **TodoWrite/TaskCreate fine** for ephemeral in-session lists. Don't promote them to durable storage.
 - **Create bead before code** for non-trivial work; mark in-progress with `bd update <id> --claim` when starting.
-- **Memory**: use agent-native memory. **Never `bd remember`** — beads is for issue tracking, not knowledge.
+- **Memory**: use agent-native memory for personal/user facts (your notebook). If the repo has a canonical knowledge store, world facts go there instead — see the repo's instructions. **Never `bd remember`** — beads is for issue tracking, not knowledge.
 - **Never `bd edit`** — opens $EDITOR and blocks the agent. Use `bd update ...`.
 - Priority is `P0-P4` or `0-4`, never word form.
 - When creating multiple beads, use one `bd create` per shell command. Create the parent first when child beads need `--parent <id>` or dependencies need `--deps <id>`, then create independent children as parallel shell calls. Do not wrap multiple `bd create` invocations in one heredoc shell script.
