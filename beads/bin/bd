@@ -310,7 +310,11 @@ post_init() {
   fi
 
   replace_block CLAUDE.md "$TEMPLATES_DIR/claude.md"
-  replace_block AGENTS.md "$TEMPLATES_DIR/agents.md"
+  if [[ -L AGENTS.md ]]; then
+    echo "bd-shim: AGENTS.md is a symlink to a shared constitution — skipping separate block (CLAUDE.md block covers it)"
+  else
+    replace_block AGENTS.md "$TEMPLATES_DIR/agents.md"
+  fi
   write_claude_hooks
   write_codex_hooks
 }
