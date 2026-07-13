@@ -13,9 +13,11 @@
 # After init / reapply, this shim:
 #   1. Links .beads/PRIME.md to the dotfiles template.
 #   2. Replaces the <!-- BEGIN BEADS INTEGRATION --> block in CLAUDE.md.
-#   3. Replaces the same block in AGENTS.md.
+#   3. Replaces the same block in AGENTS.md (skipped when AGENTS.md is a
+#      symlink to CLAUDE.md — shared-constitution repos).
 #   4. Merges bd prime hooks into .claude/settings.json.
-#   5. Writes .codex/hooks.json with a conditional bd prime SessionStart hook.
+#   5. Merges a bd prime SessionStart hook (startup|resume|compact) into
+#      .codex/hooks.json, preserving repo-specific hooks.
 #
 # Templates live at $HOME/.dotfiles/beads/templates (overridable via
 # BD_DOTFILES_TEMPLATES). This shim is meant to be symlinked into a PATH
@@ -79,24 +81,6 @@ print_prime() {
   cat "$template"
 }
 
-print_codex_prime() {
-  local template="$TEMPLATES_DIR/prime-codex.md"
-  if [[ -f "$template" ]]; then
-    cat "$template"
-    return 0
-  fi
-
-  cat <<'EOF'
-# Beads Issue Tracker Available
-
-This repo uses bd for durable issue tracking.
-
-Treat this as reference-only startup context. Do not run bd commands, create/update/close beads, or let Beads workflow steer the task unless the user explicitly asks about Beads or bd.
-
-If the user asks about Beads, run `bd prime` for the full workflow instructions.
-EOF
-}
-
 link_prime_template() {
   local template link_target
   template=$(canonical_template_path "$TEMPLATES_DIR/prime.md") || return 1
@@ -135,13 +119,13 @@ replace_block() {
   end_marker="<!-- END BEADS INTEGRATION -->"
 
   if [[ "$has_begin" -eq 1 ]]; then
-    awk -v tf="$template" '
+    awk -v tf="$template" -v begin_marker="$begin_marker" '
       BEGIN {
         while ((getline line < tf) > 0) content = content line "\n"
         close(tf)
         sub(/\n$/, "", content)
       }
-      /^<!-- BEGIN BEADS INTEGRATION/ { print; print content; in_block=1; next }
+      /^<!-- BEGIN BEADS INTEGRATION/ { print begin_marker; print content; in_block=1; next }
       /^<!-- END BEADS INTEGRATION/   { print; in_block=0; next }
       in_block                         { next }
       { print }
@@ -267,21 +251,32 @@ else:
 PY
 }
 
-# Project-scoped Codex hook: SessionStart injects a conditional Beads notice.
+# Project-scoped Codex hook: SessionStart injects bd prime on startup, resume,
+# and post-compaction (so long sessions re-load the rules). Merge-based like
+# the Claude hooks: existing repo-specific hooks (e.g. knowledge-prime
+# commands) are preserved; legacy `bd prime-codex` commands are migrated to
+# `bd prime`; the matcher is upgraded to include `compact`.
 # Codex treats project-local hooks as trust-gated — you'll be prompted once
 # per new repo to mark it trusted before the hook fires.
 write_codex_hooks() {
   mkdir -p .codex || return 1
-  if cat > .codex/hooks.json <<'JSON'
+  local hooks=.codex/hooks.json
+
+  if ! command -v python3 >/dev/null 2>&1; then
+    if [[ -f "$hooks" ]]; then
+      echo "bd-shim: python3 missing; leaving existing $hooks unchanged" >&2
+      return 0
+    fi
+    cat > "$hooks" <<'JSON'
 {
   "hooks": {
     "SessionStart": [
       {
-        "matcher": "startup|resume",
+        "matcher": "startup|resume|compact",
         "hooks": [
           {
             "type": "command",
-            "command": "bd prime-codex",
+            "command": "bd prime",
             "timeout": 5
           }
         ]
@@ -290,12 +285,63 @@ write_codex_hooks() {
   }
 }
 JSON
-  then
-    echo "bd-shim: wrote .codex/hooks.json"
-  else
-    echo "bd-shim: failed to write .codex/hooks.json" >&2
-    return 1
+    echo "bd-shim: wrote $hooks"
+    return 0
   fi
+
+  python3 - "$hooks" <<'PY'
+import json
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+try:
+    data = json.loads(path.read_text())
+except FileNotFoundError:
+    data = {}
+except json.JSONDecodeError as exc:
+    print(f"bd-shim: invalid {path}: {exc}", file=sys.stderr)
+    sys.exit(1)
+
+MATCHER = "startup|resume|compact"
+hooks = data.setdefault("hooks", {})
+groups = hooks.setdefault("SessionStart", [])
+changed = False
+found = False
+
+for group in groups:
+    if "startup" not in group.get("matcher", ""):
+        continue
+    if group.get("matcher") != MATCHER:
+        group["matcher"] = MATCHER
+        changed = True
+    for hook in group.setdefault("hooks", []):
+        if hook.get("type") != "command":
+            continue
+        if hook.get("command") == "bd prime-codex":
+            hook["command"] = "bd prime"
+            changed = True
+        if hook.get("command") == "bd prime":
+            found = True
+    if not found:
+        group["hooks"].insert(0, {"type": "command", "command": "bd prime", "timeout": 5})
+        changed = True
+        found = True
+    break
+
+if not found:
+    groups.append({
+        "matcher": MATCHER,
+        "hooks": [{"type": "command", "command": "bd prime", "timeout": 5}],
+    })
+    changed = True
+
+if changed:
+    path.write_text(json.dumps(data, indent=2) + "\n")
+    print(f"bd-shim: updated {path}")
+else:
+    print(f"bd-shim: {path} already wired")
+PY
 }
 
 post_init() {
@@ -332,12 +378,14 @@ case "${1:-}" in
     exec "$REAL_BD" prime "$@"
     ;;
   prime-codex)
+    # Deprecated alias (2026-07-10): engines share one prime now. Kept so
+    # repos whose .codex/hooks.json still calls prime-codex keep working.
     shift
     if [[ $# -ne 0 ]]; then
       echo "Usage: bd prime-codex" >&2
       exit 2
     fi
-    print_codex_prime
+    print_prime
     ;;
   reapply-integration)
     shift
