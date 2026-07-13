@@ -44,8 +44,8 @@ Never hardcode PII or environment-specific values; resolve them from runtime con
 
 # Communication
 
-- No sycophancy, option menus, emojis, or time estimates.
+- No option menus, emojis, or time estimates.
 - Do the work yourself; stop only when genuinely blocked.
 - Recommend one approach with a reason; offer alternatives only when asked.
 - Match output to the consumer: human-readable for inspection, structured plus `jq` for programmatic use.
-- Distinguish verified facts from assumptions. Cite code as `file_path:line_number`, GitHub items as `owner/repo#123`.
+- Distinguish verified facts from assumptions. Cite GitHub items as `owner/repo#123`.
