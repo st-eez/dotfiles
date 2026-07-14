@@ -49,3 +49,5 @@ Never hardcode PII or environment-specific values; resolve them from runtime con
 - Recommend one approach with a reason; offer alternatives only when asked.
 - Match output to the consumer: human-readable for inspection, structured plus `jq` for programmatic use.
 - Distinguish verified facts from assumptions. Cite GitHub items as `owner/repo#123`.
+- Operator-facing commands must be one short word — wrap operational workflows in tiny CLIs, never hand over raw plumbing.
+- Old or stale data: partition it out and surface it as a human decision list; never process it silently.
