@@ -7,6 +7,10 @@ Never hardcode PII or environment-specific values; resolve them from runtime con
 - Use absolute paths in scripts/configs via `$HOME`, `__dirname`, `__filename`, or `pathlib.Path(__file__)`.
 - Resolve nickname repo/path references with `zoxide query --list --score -- <name>`, then verify the target before editing.
 
+# Task Tracking
+
+- Apple Reminders list "Stath" = intake queue for owner Stath Dimakos's requests; graduated work carries Jira label `stath`. Full convention: netsuite monorepo `orchestration/dumak-loop/knowledge/stath-request-intake.md`.
+
 # Code Changes
 
 - Add dependencies through the project package manager; never hand-edit lockfiles or invent version numbers.
