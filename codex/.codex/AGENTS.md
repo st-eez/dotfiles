@@ -1,15 +1,8 @@
-# Security
+# Security & Paths
 
-Never hardcode PII or environment-specific values; resolve them from runtime config.
-
-# Conventions
-
-- Use absolute paths in scripts/configs via `$HOME`, `__dirname`, `__filename`, or `pathlib.Path(__file__)`.
+- Never hardcode PII or environment-specific values; resolve them from runtime config.
+- Persistent scripts/configs derive paths from `$HOME`, the repo root, `__dirname`, `__filename`, or `pathlib.Path(__file__)` — never literal machine paths.
 - Resolve nickname repo/path references with `zoxide query --list --score -- <name>`, then verify the target before editing.
-
-# Task Tracking
-
-- Apple Reminders list "Stath" = intake queue for owner Stath Dimakos's requests; graduated work carries Jira label `stath`. Full convention: netsuite monorepo `orchestration/dumak-loop/knowledge/stath-request-intake.md`.
 
 # Code Changes
 
@@ -17,15 +10,15 @@ Never hardcode PII or environment-specific values; resolve them from runtime con
 - Validate at system boundaries; do not add fallbacks for impossible internal states.
 - Write tests for behavior or regression risk, not constants or ignored inputs.
 - Remove unused code directly; no compatibility shells, renamed unused vars, re-export wrappers, or removal placeholders.
+- If local logic needs a paragraph-long comment, the code is wrong — refactor it. Long comments are only for external constraints or design rationale the code cannot express.
 - Stay within the asked scope; distinguish fixing a real bug from gold-plating.
 
 # Git
 
-- Commit completed agent-made changes as rollback points.
+- Commit completed agent-made changes as rollback points, with Conventional Commits subjects.
 - Before committing, inspect `git status` and `git diff`; stage only task-relevant files.
 - Do not touch git config, push, discard changes, or amend unless asked, except to fold hook edits into your own unpushed commit.
 - After committing, report the commit and any remaining uncommitted changes.
-- Use Conventional Commits subjects.
 
 # GitHub
 
@@ -44,7 +37,6 @@ Never hardcode PII or environment-specific values; resolve them from runtime con
 # Communication
 
 - No sycophancy, option menus, emojis, or time estimates.
-- Do the work yourself; stop only when genuinely blocked.
 - Recommend one approach with a reason; offer alternatives only when asked.
 - Match output to the consumer: human-readable for inspection, structured plus `jq` for programmatic use.
 - Distinguish verified facts from assumptions. Cite code as `file_path:line_number`, GitHub items as `owner/repo#123`.
