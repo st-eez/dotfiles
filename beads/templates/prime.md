@@ -5,7 +5,7 @@
 Before saying "done": `bd close <completed-ids> --reason "..."`.
 
 ## Core Rules
-- **Beads default**: durable work — issues, follow-ups, blockers — goes in beads (`bd create`, `bd ready`, `bd close`).
+- **Beads default**: durable work — issues, follow-ups, blockers — goes in beads (`bd create`, `bd ready`, `bd close`). Check the repo's beads policy for lifecycle rules (e.g. zero-backlog: complete now or close with a RE-TRIGGER; no parked backlog).
 - **TodoWrite/TaskCreate fine** for ephemeral in-session lists. Don't promote them to durable storage.
 - **Create bead before code** for non-trivial work; mark in-progress with `bd update <id> --claim` when starting.
 - **Memory**: use agent-native memory for personal/user facts (your notebook). Durable world facts follow the repo's own routing instructions (CLAUDE.md/AGENTS.md). **Never `bd remember`** — beads is for issue tracking, not knowledge.
@@ -53,5 +53,3 @@ Every bead must be pickup-ready for a junior engineer who has only this bead's c
 - `bd close <id> --reason "..." --suggest-next` to close.
 - `bd dep add <issue> <depends-on>` / `bd dep tree <id>` for edges.
 - `bd help` / `bd <subcommand> --help` — anything not listed above.
-
-Start: check `bd ready` for available work.
