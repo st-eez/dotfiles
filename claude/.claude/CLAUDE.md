@@ -8,6 +8,7 @@
 
 - Add dependencies through the project package manager; never hand-edit lockfiles or invent version numbers.
 - Validate at system boundaries; do not add fallbacks for impossible internal states.
+- When a correction embodies a principle, sweep sibling instances of the class in scope and route the principle to its durable home (tooling > skill > project docs) — never repair only the named instance.
 - Write tests for behavior or regression risk, not constants or ignored inputs.
 - Remove unused code directly; no compatibility shells, renamed unused vars, re-export wrappers, or removal placeholders.
 - If local logic needs a paragraph-long comment, the code is wrong — refactor it. Long comments are only for external constraints or design rationale the code cannot express.
