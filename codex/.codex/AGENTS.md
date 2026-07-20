@@ -9,6 +9,7 @@
 - Add dependencies through the project package manager; never hand-edit lockfiles or invent version numbers.
 - Validate at system boundaries; do not add fallbacks for impossible internal states.
 - When a correction embodies a principle, sweep sibling instances of the class in scope and route the principle to its durable home (tooling > skill > project docs) — never repair only the named instance.
+- Size agent fleets to the task: for fan-outs beyond ~10 agents, state the agent count and rough token cost and get a go before launching. On re-entry, resume from the last completed stage — never re-run a whole batch. Validate against a small sample (20–100 records) before any full-dataset run.
 - Write tests for behavior or regression risk, not constants or ignored inputs.
 - Remove unused code directly; no compatibility shells, renamed unused vars, re-export wrappers, or removal placeholders.
 - If local logic needs a paragraph-long comment, the code is wrong — refactor it. Long comments are only for external constraints or design rationale the code cannot express.

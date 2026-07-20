@@ -39,6 +39,7 @@
 
 - For volume fan-outs (Workflow `agent()` calls, large fleets of parallel Agent calls), set `model: "opus"` (Opus 4.8, high or higher effort) explicitly — a big fleet inheriting Fable 5 burns tokens/context for no quality gain.
 - For a small number of targeted, quality-sensitive subagents (deep audits, hard searches, adversarial verification), prefer Fable 5; it does better targeted work. Judgment call: scale → opus, depth → fable.
+- Size fleets to the task: for fan-outs beyond ~10 agents, state the agent count and rough token cost and get a go before launching. On re-entry, resume from the last completed stage — never re-run a whole workflow. Validate against a small sample (20–100 records) before any full-dataset run.
 
 # Communication
 
