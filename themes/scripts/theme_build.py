@@ -1391,7 +1391,7 @@ def render_pi_theme(theme_source: ThemeSource) -> tuple[str, str] | None:
             allow_empty=True,
         )
 
-    colors_payload: dict[str, str | int] = _build_default_pi_theme_colors(theme_source)
+    colors_payload: dict[str, str | int] = _build_default_pi_theme_colors()
     colors_overrides = overrides.get("colors", {})
     if not isinstance(colors_overrides, dict):
         raise ThemeSourceError(theme_source.file_path, "overrides.pi_theme.colors must be a TOML table")
@@ -2572,7 +2572,7 @@ def _build_default_pi_theme_vars(theme_source: ThemeSource) -> dict[str, str | i
     }
 
 
-def _build_default_pi_theme_colors(theme_source: ThemeSource) -> dict[str, str | int]:
+def _build_default_pi_theme_colors() -> dict[str, str | int]:
     return {
         "accent": "red",
         "border": "red",
