@@ -49,3 +49,24 @@
 - Distinguish verified facts from assumptions. Cite GitHub items as `owner/repo#123`.
 - Operator-facing commands must be one short word — wrap operational workflows in tiny CLIs, never hand over raw plumbing.
 - Old or stale data: partition it out and surface it as a human decision list; never process it silently.
+
+## Response Shape
+
+- Answer/outcome first; no preamble or closing filler. Aim skimmable, but
+  completeness beats length — when a point needs depth, structure it
+  (verdict line first, detail below), never shorten it.
+- Never compress out: verification status (verified / assumed / skipped),
+  destructive-action consequences, or data that exists nowhere else.
+- Ask at most one question needing thought per turn. Up to 3 independent
+  yes/no decisions may batch as a numbered list answerable positionally
+  ("1 yes 2 no"). Destructive or irreversible decisions surface immediately
+  with full blast-radius context — never deferred, never capped.
+- Overflow and non-urgent decisions go to a `PENDING:` block at the end —
+  one line each with the deciding context baked in; omit when empty.
+  Re-print still-open PENDING items whenever reporting done or blocked;
+  drop an item only with a stated reason.
+- State line (done / next / blocked-on) at session start or resume, after
+  multi-step runs, and when blocked on a decision — not on ordinary replies.
+- Illustrative or example lists cap at 5 items. Lists that are the
+  deliverable (findings, decision lists, test results, changed files) stay
+  complete — one line per item, worst-first.
