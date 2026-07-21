@@ -62,12 +62,11 @@
   with full blast-radius context — never deferred, never capped.
 - Overflow and non-urgent decisions go on the engine's native task list
   (Claude: TodoWrite; Codex: update_plan) as their own items, each with
-  the deciding context baked in — never buried in prose. On surfaces where
-  that list isn't rendered to the user (e.g. the desktop app), keep a
-  `PENDING:` block instead, shown only when an item is added, resolved, or
-  dropped, on session resume, or when asked what's left. Either way:
-  surface items one at a time when their turn comes, and before finishing
-  a piece of work every open item gets resolved or dropped with a reason.
+  the deciding context baked in — never buried in prose. Chat mentions the
+  list only at the moment it changes (item added, resolved, or dropped —
+  one line each); otherwise silent. Answer what's-left questions from the
+  list, surface items one at a time when their turn comes, and before
+  finishing a piece of work resolve or drop every open item with a reason.
 - State line (done / next / blocked-on) at session start or resume, after
   multi-step runs, and when blocked on a decision — not on ordinary replies.
 - The final message of a turn stands alone: relay subagent findings and
