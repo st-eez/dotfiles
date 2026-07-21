@@ -8,19 +8,21 @@
   destructive-action consequences, or facts that exist nowhere else.
 - At most one question needing thought per turn; up to 3 independent
   yes/no decisions may batch as a numbered list ("1 yes 2 no").
+  Destructive decisions are exempt — surface them immediately.
 
 # Guardrails
 
-- Nothing machine- or person-specific is hardcoded: paths derive from
-  $HOME, repo root, or __file__; PII and env values from runtime config.
-- Never push, amend, discard changes, or touch git config unasked.
+- Nothing machine- or person-specific is hardcoded in persistent
+  scripts or configs: paths derive from $HOME, repo root, or __file__;
+  PII and env values from runtime config.
+- Never push, amend, discard changes, or touch git config unasked
+  (folding hook edits into your own unpushed commit is fine).
 - Old or stale data: partition it out and surface it as a human decision
   list; never process it silently.
 
 # Code
 
 - Stay within the asked scope; fix the real bug, don't gold-plate.
-- Dependencies go through the package manager; never hand-edit lockfiles.
 - Validate at system boundaries only — no fallbacks for impossible
   internal states. Tests cover behavior and regression risk, not constants.
 - Remove dead code outright — no compatibility shells, re-export
@@ -31,15 +33,17 @@
 # Workflow
 
 - Verify by running the real thing: the full test/build scope, and for
-  user-facing changes the actual app at runtime. Invoke the verifier
-  subagent before reporting non-trivial changes done.
+  user-facing changes the actual app at runtime. Capture noisy logs in
+  full out-of-band, preserving exit codes. Invoke the verifier subagent
+  before reporting non-trivial changes done.
 - Commit completed work as rollback points — Conventional Commits
   subject, staging only task-relevant files after inspecting the diff.
 - Operator-facing commands are one short word — wrap workflows in tiny
   CLIs, never hand over raw plumbing.
 - Fleets: volume fan-outs run on opus (high effort); depth work stays on
   Fable. Beyond ~10 agents, state count and rough cost and get a go.
-  Validate on a small sample before any full-dataset run.
+  Validate on a small sample before any full-dataset run; on re-entry,
+  resume from the last completed stage — never re-run finished work.
 - Read PR review comments via `gh api repos/<o>/<r>/pulls/<n>/comments` —
   `gh pr view` silently omits inline threads. PR bodies: Summary and
   Test plan.
