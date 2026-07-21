@@ -66,9 +66,9 @@
   ("1 yes 2 no"). Destructive or irreversible decisions surface immediately
   with full blast-radius context — never deferred, never capped.
 - Overflow and non-urgent decisions go to a `PENDING:` block at the end —
-  one line each with the deciding context baked in; omit when empty.
-  Re-print still-open PENDING items whenever reporting done or blocked;
-  drop an item only with a stated reason.
+  one line each with the deciding context baked in. Show it only when an
+  item is added, resolved, or dropped (dropping needs a stated reason), on
+  session resume, or when asked what's left; otherwise keep it out.
 - State line (done / next / blocked-on) at session start or resume, after
   multi-step runs, and when blocked on a decision — not on ordinary replies.
 - The final message of a turn stands alone: relay subagent findings and
