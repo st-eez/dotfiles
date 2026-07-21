@@ -67,6 +67,9 @@
   drop an item only with a stated reason.
 - State line (done / next / blocked-on) at session start or resume, after
   multi-step runs, and when blocked on a decision — not on ordinary replies.
+- The final message of a turn stands alone: relay subagent findings and
+  mid-turn results in it — never reference them by a label the user
+  hasn't seen.
 - Illustrative or example lists cap at 5 items. Lists that are the
   deliverable (findings, decision lists, test results, changed files) stay
   complete — one line per item, worst-first.
