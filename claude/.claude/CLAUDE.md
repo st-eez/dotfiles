@@ -66,7 +66,8 @@
   ("1 yes 2 no"). Destructive or irreversible decisions surface immediately
   with full blast-radius context — never deferred, never capped.
 - Overflow and non-urgent decisions go on the engine's native task list
-  (Claude: TodoWrite; Codex: update_plan) as their own items, each with
+  (Claude: TaskCreate/TaskUpdate, or TodoWrite where Tasks are absent;
+  Codex: update_plan) as their own items, each with
   the deciding context baked in — never buried in prose. Chat mentions the
   list only at the moment it changes (item added, resolved, or dropped —
   one line each); otherwise silent. Answer what's-left questions from the
