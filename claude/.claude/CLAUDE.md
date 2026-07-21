@@ -65,10 +65,12 @@
   yes/no decisions may batch as a numbered list answerable positionally
   ("1 yes 2 no"). Destructive or irreversible decisions surface immediately
   with full blast-radius context — never deferred, never capped.
-- Overflow and non-urgent decisions go to a `PENDING:` block at the end —
-  one line each with the deciding context baked in. Show it only when an
-  item is added, resolved, or dropped (dropping needs a stated reason), on
-  session resume, or when asked what's left; otherwise keep it out.
+- Overflow and non-urgent decisions go on the engine's native task list
+  (Claude: TodoWrite; Codex: the plan tool) as their own items, each with
+  the deciding context baked in — never buried in prose. Surface them one
+  at a time when their turn comes; when asked what's left, answer from the
+  list. Before finishing a piece of work, every open item gets resolved or
+  dropped with a stated reason.
 - State line (done / next / blocked-on) at session start or resume, after
   multi-step runs, and when blocked on a decision — not on ordinary replies.
 - The final message of a turn stands alone: relay subagent findings and
