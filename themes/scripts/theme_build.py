@@ -1510,7 +1510,7 @@ def render_starship_config(theme_source: ThemeSource) -> str:
         "# Managed by theme-set - do not edit manually",
         "add_newline = true",
         "command_timeout = 200",
-        'format = "$os$hostname[$directory$git_branch$git_status]($style)$character"',
+        'format = "$os$hostname$directory$git_branch$git_status$character"',
         "",
         "[os]",
         "disabled = false",
@@ -1554,9 +1554,9 @@ def render_starship_config(theme_source: ThemeSource) -> str:
         f'untracked = "[?]({git_status_warning_style}) "',
         f'modified = "[]({git_status_warning_style}) "',
         'stashed = ""',
-        'staged = ""',
-        'renamed = ""',
-        'deleted = ""',
+        f'staged = "[]({git_status_warning_style}) "',
+        f'renamed = "[]({git_status_warning_style}) "',
+        f'deleted = "[]({git_status_warning_style}) "',
     ]
     return "\n".join(lines) + "\n"
 

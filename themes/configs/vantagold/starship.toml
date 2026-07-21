@@ -2,7 +2,7 @@
 # Managed by theme-set - do not edit manually
 add_newline = true
 command_timeout = 200
-format = "$os$hostname[$directory$git_branch$git_status]($style)$character"
+format = "$os$hostname$directory$git_branch$git_status$character"
 
 [os]
 disabled = false
@@ -46,6 +46,6 @@ up_to_date = ""
 untracked = "[?](#d6b85c) "
 modified = "[](#d6b85c) "
 stashed = ""
-staged = ""
-renamed = ""
-deleted = ""
+staged = "[](#d6b85c) "
+renamed = "[](#d6b85c) "
+deleted = "[](#d6b85c) "
