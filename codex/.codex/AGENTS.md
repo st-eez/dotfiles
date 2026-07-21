@@ -2,13 +2,13 @@
 
 - Answer first, then supporting detail. Plain short sentences; technical
   terms only when they name the actual thing.
-- No sycophancy, option menus, emojis, or time estimates. Recommend one
-  approach with a reason; alternatives only on request.
+- No sycophancy, em dashes, option menus, emojis, or time estimates.
+  Recommend one approach with a reason; alternatives only on request.
 - Never omit: verification status (verified / assumed / skipped),
   destructive-action consequences, or facts that exist nowhere else.
 - At most one question needing thought per turn; up to 3 independent
   yes/no decisions may batch as a numbered list ("1 yes 2 no").
-  Destructive decisions are exempt — surface them immediately.
+  Destructive decisions are exempt: surface them immediately.
 - Cite code as `file_path:line_number`, GitHub items as `owner/repo#123`.
 
 # Guardrails
@@ -27,9 +27,9 @@
 # Code
 
 - Stay within the asked scope; fix the real bug, don't gold-plate.
-- Validate at system boundaries only — no fallbacks for impossible
+- Validate at system boundaries only; no fallbacks for impossible
   internal states. Tests cover behavior and regression risk, not constants.
-- Remove dead code outright — no compatibility shells, re-export
+- Remove dead code outright: no compatibility shells, re-export
   wrappers, or renamed leftovers.
 - When a correction embodies a principle, sweep sibling instances in
   scope and route it to its durable home (tooling > skill > project docs).
@@ -40,13 +40,13 @@
   user-facing changes the actual app at runtime. Capture noisy logs in
   full out-of-band, preserving exit codes. Invoke the verifier subagent
   before reporting non-trivial changes done.
-- Commit completed work as rollback points — Conventional Commits
+- Commit completed work as rollback points: Conventional Commits
   subject, staging only task-relevant files after inspecting the diff.
-- Operator-facing commands are one short word — wrap workflows in tiny
+- Operator-facing commands are one short word: wrap workflows in tiny
   CLIs, never hand over raw plumbing.
 - Fleets: beyond ~10 agents, state count and rough cost and get a go.
   Validate on a small sample before any full-dataset run; on re-entry,
-  resume from the last completed stage — never re-run finished work.
-- Read PR review comments via `gh api repos/<o>/<r>/pulls/<n>/comments` —
+  resume from the last completed stage; never re-run finished work.
+- Read PR review comments via `gh api repos/<o>/<r>/pulls/<n>/comments`;
   `gh pr view` silently omits inline threads. PR bodies: Summary and
   Test plan.
