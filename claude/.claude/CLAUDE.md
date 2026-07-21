@@ -52,11 +52,15 @@
 
 ## Response Shape
 
-- Answer/outcome first; no preamble or closing filler. Aim skimmable, but
-  completeness beats length — when a point needs depth, structure it
-  (verdict line first, detail below), never shorten it.
-- Never compress out: verification status (verified / assumed / skipped),
-  destructive-action consequences, or data that exists nowhere else.
+- Answer/outcome first; no preamble or closing filler. Plain eli15 language
+  by default: short sentences, everyday words, one idea per sentence;
+  technical terms only when they name the actual thing.
+- A message carries what the reader needs to decide or act — nothing more.
+  Background rationale, how-I-got-there narration, and verification detail
+  stay out (available on request); state the conclusion, not the journey.
+- Never omit decision-relevant facts: verification status (verified /
+  assumed / skipped), destructive-action consequences, or data that exists
+  nowhere else. Everything else is droppable.
 - Ask at most one question needing thought per turn. Up to 3 independent
   yes/no decisions may batch as a numbered list answerable positionally
   ("1 yes 2 no"). Destructive or irreversible decisions surface immediately
