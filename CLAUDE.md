@@ -20,6 +20,10 @@ aerospace list-monitors
 # Note: at HOME the twin-ASUS arrangement is auto-enforced by serial
 # (apply-profile.sh home_arrangement table), so drift there self-heals.
 
+# Beads triage (weekly backlog sweep in a cmux workspace)
+triage                    # spawn the triage session now (Mon 09:00 via LaunchAgent)
+./triage/install.sh       # reinstall CLI symlink + LaunchAgent
+
 # Profile-watcher (auto profile switch on monitor plug/unplug)
 ./profile-watcher/install.sh                          # rebuild + reinstall LaunchAgent
 ./profile-watcher/test-detect.sh                      # display-set -> profile mapping tests

@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# triage — weekly beads backlog triage in a cmux workspace.
+#
+#   triage        spawn a "Beads Triage" cmux workspace running an
+#                 interactive claude session on the triage prompt
+#   triage run    exec that claude session in the current terminal
+#                 (used as the workspace command; also fine standalone)
+#
+# Scheduled Mondays 09:00 by the com.steez.beads-triage LaunchAgent
+# (falls back to next wake if the machine is asleep).
+
+set -euo pipefail
+
+# launchd starts with a minimal PATH; cmux and claude live in user dirs.
+export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+
+here=$(cd "$(dirname "$(readlink "$0" || echo "$0")")" && pwd)
+prompt_file="$here/../prompt.md"
+
+case "${1:-}" in
+  run)
+    [[ -f "$prompt_file" ]] || { echo "triage: prompt missing: $prompt_file" >&2; exit 1; }
+    exec claude "$(cat "$prompt_file")"
+    ;;
+  "")
+    if ! cmux ping >/dev/null 2>&1; then
+      open -a cmux || { echo "triage: cmux not installed" >&2; exit 1; }
+      for _ in $(seq 1 30); do
+        cmux ping >/dev/null 2>&1 && break
+        sleep 1
+      done
+      cmux ping >/dev/null 2>&1 || { echo "triage: cmux socket not responding" >&2; exit 1; }
+    fi
+    cmux new-workspace \
+      --name "Beads Triage $(date +%F)" \
+      --description "Weekly beads backlog triage" \
+      --cwd "$HOME/Projects" \
+      --command "triage run" \
+      --focus false
+    ;;
+  *)
+    echo "Usage: triage [run]" >&2
+    exit 2
+    ;;
+esac
