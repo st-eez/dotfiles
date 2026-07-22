@@ -28,6 +28,11 @@ keeps by touching notes (`bd update <id> --append-notes "triage
 $(date +%F): kept"`) so age tracking resets, and skip write-blocked
 repos — list those at the end as needing schema reconciliation.
 
+After decisions are applied, run `bd gc --dry-run` in each writable
+repo and include the reclaimable summary (decayable closed issues,
+purgeable wisps) in your wrap-up; run the real `bd gc` only if I
+approve it.
+
 Finish with `cmux notify --title "Beads triage applied" --body "<n
 closed, n kept, n repos write-blocked>"`.
 
