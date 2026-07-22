@@ -17,6 +17,12 @@ or repo archival. Apply removal only on my explicit approval. New
 repos with beads are picked up automatically; never maintain a repo
 allowlist.
 
+Age is measured from real activity, not the DB's `updated_at`: triage
+runs themselves bump `updated_at` (closes, verification reads), so
+cross-check suspicious same-day bumps against `.beads/issues.jsonl`
+snapshots or interaction history, and trust the older date unless a
+"kept" note explains the touch.
+
 Partition open beads by last-touched age:
 - **do-now** — actionable and fresh (touched < 14 days ago), worth
   considering this week.
