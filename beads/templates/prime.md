@@ -7,6 +7,9 @@ ephemeral task list (or a plain checklist) — never promote it to
 beads. Before saying "done", `bd close <ids> --reason "..."` with
 what shipped and what was discovered; `bd update <id> --claim` when
 picking a bead up. Honor the repo's beads policy for lifecycle rules.
+Parked beads are legitimate: a scheduled triage session sweeps every
+backlog and owns stale-bead decisions — never close, resurrect, or
+nag about beads you aren't working on.
 
 Sharp edges:
 - Never `bd edit` — it blocks on $EDITOR; use `bd update`.
