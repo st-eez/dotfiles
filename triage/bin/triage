@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 # triage — weekly beads backlog triage in a cmux workspace.
 #
-#   triage        spawn a "Beads Triage" cmux workspace running an
-#                 interactive claude session on the triage prompt
-#   triage run    exec that claude session in the current terminal
-#                 (used as the workspace command; also fine standalone)
+#   triage [codex]      spawn a "Beads Triage" cmux workspace running an
+#                       interactive session on the triage prompt
+#                       (claude/opus by default; codex/5.6-sol variant)
+#   triage run [codex]  exec that session in the current terminal
+#                       (used as the workspace command; also fine standalone)
+#
+# Models are pinned here, not inherited from engine config: opus 4.8
+# high (usage conservation vs Fable) and gpt-5.6-sol high respectively.
 #
 # Scheduled Mondays 09:00 by the com.steez.beads-triage LaunchAgent
 # (falls back to next wake if the machine is asleep).
@@ -17,12 +21,26 @@ export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
 here=$(cd "$(dirname "$(readlink "$0" || echo "$0")")" && pwd)
 prompt_file="$here/../prompt.md"
 
-case "${1:-}" in
+spawn() {
+  local engine=${1:-}
+  cmux new-workspace \
+    --name "Beads Triage${engine:+ $engine} $(date +%F)" \
+    --description "Weekly beads backlog triage" \
+    --cwd "$HOME/Projects" \
+    --command "triage run${engine:+ $engine}" \
+    --focus false
+}
+
+case "${1:-}${2:+ $2}" in
   run)
     [[ -f "$prompt_file" ]] || { echo "triage: prompt missing: $prompt_file" >&2; exit 1; }
-    exec claude --model claude-opus-4-8 "$(cat "$prompt_file")"
+    exec claude --model claude-opus-4-8 --effort high "$(cat "$prompt_file")"
     ;;
-  "")
+  "run codex")
+    [[ -f "$prompt_file" ]] || { echo "triage: prompt missing: $prompt_file" >&2; exit 1; }
+    exec codex -m gpt-5.6-sol -c model_reasoning_effort=high "$(cat "$prompt_file")"
+    ;;
+  ""|codex)
     if ! cmux ping >/dev/null 2>&1; then
       open -a cmux || { echo "triage: cmux not installed" >&2; exit 1; }
       for _ in $(seq 1 30); do
@@ -31,15 +49,10 @@ case "${1:-}" in
       done
       cmux ping >/dev/null 2>&1 || { echo "triage: cmux socket not responding" >&2; exit 1; }
     fi
-    cmux new-workspace \
-      --name "Beads Triage $(date +%F)" \
-      --description "Weekly beads backlog triage" \
-      --cwd "$HOME/Projects" \
-      --command "triage run" \
-      --focus false
+    spawn "${1:-}"
     ;;
   *)
-    echo "Usage: triage [run]" >&2
+    echo "Usage: triage [codex] | triage run [codex]" >&2
     exit 2
     ;;
 esac
