@@ -20,7 +20,7 @@ prompt_file="$here/../prompt.md"
 case "${1:-}" in
   run)
     [[ -f "$prompt_file" ]] || { echo "triage: prompt missing: $prompt_file" >&2; exit 1; }
-    exec claude "$(cat "$prompt_file")"
+    exec claude --model claude-opus-4-8 "$(cat "$prompt_file")"
     ;;
   "")
     if ! cmux ping >/dev/null 2>&1; then
