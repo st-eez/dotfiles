@@ -5,7 +5,17 @@ decisions I give you. Do not close or modify anything before I answer.
 Sweep: `find ~/Projects -maxdepth 4 -name .beads -type d`, then read
 each repo's backlog with `bd list` (run from the repo root). Reads are
 fine even when bd warns about pending schema migrations; note any repo
-where writes are blocked instead of attempting them.
+where writes are blocked instead of attempting them. Git worktrees
+share their parent repo's backlog — dedupe them.
+
+Dormancy gate: a repo with no git commit AND no bead touched in the
+last 60 days is dormant. Do not triage its beads item-by-item;
+instead list it once in a "Dormant repos" section with bead count and
+last-activity date, proposing either full beads removal (delete
+`.beads/`, prime hooks, and the managed CLAUDE.md/AGENTS.md blocks)
+or repo archival. Apply removal only on my explicit approval. New
+repos with beads are picked up automatically; never maintain a repo
+allowlist.
 
 Partition open beads by last-touched age:
 - **do-now** — actionable and fresh (touched < 14 days ago), worth
