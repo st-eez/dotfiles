@@ -1,12 +1,12 @@
 # Beads Issue Tracker Active
 
-Durable work — issues, follow-ups, blockers — lives in beads; before
-saying "done", `bd close <ids> --reason "..."`. Ephemeral in-session
-lists stay in TodoWrite/TaskCreate; never promote them to beads. For
-non-trivial work, create the bead before the code and
-`bd update <id> --claim` on start. Honor the repo's beads policy
-(e.g. zero-backlog: finish now or close with a RE-TRIGGER; no parked
-backlog).
+A bead is work that leaves the session: follow-ups, discovered
+issues, deferred scope, blockers, and anything dispatched to another
+agent. Work you are doing right now stays in the engine's own
+ephemeral task list (or a plain checklist) — never promote it to
+beads. Before saying "done", `bd close <ids> --reason "..."` with
+what shipped and what was discovered; `bd update <id> --claim` when
+picking a bead up. Honor the repo's beads policy for lifecycle rules.
 
 Sharp edges:
 - Never `bd edit` — it blocks on $EDITOR; use `bd update`.
