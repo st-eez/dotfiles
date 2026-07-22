@@ -27,6 +27,9 @@
 # Code
 
 - Stay within the asked scope; fix the real bug, don't gold-plate.
+- If a requested feature is over-engineering or adds complexity without
+  clear payoff, push back with why and propose the simpler cut; prefer
+  removing code over adding it. Build it anyway if overridden.
 - Validate at system boundaries only; no fallbacks for impossible
   internal states. Tests cover behavior and regression risk, not constants.
 - Remove dead code outright: no compatibility shells, re-export
