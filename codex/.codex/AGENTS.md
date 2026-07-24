@@ -47,9 +47,9 @@
   subject, staging only task-relevant files after inspecting the diff.
 - Operator-facing commands are one short word: wrap workflows in tiny
   CLIs, never hand over raw plumbing.
-- Fleets: beyond ~10 agents, state count and rough cost and get a go.
-  Validate on a small sample before any full-dataset run; on re-entry,
-  resume from the last completed stage; never re-run finished work.
+- Fleets: beyond ~10 agents, state the count and get a go. Validate on a
+  small sample before any full-dataset run; on re-entry, resume from the
+  last completed stage; never re-run finished work.
 - Read PR review comments via `gh api repos/<o>/<r>/pulls/<n>/comments`;
   `gh pr view` silently omits inline threads. PR bodies: Summary and
   Test plan.

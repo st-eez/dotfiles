@@ -47,10 +47,11 @@
   subject, staging only task-relevant files after inspecting the diff.
 - Operator-facing commands are one short word: wrap workflows in tiny
   CLIs, never hand over raw plumbing.
-- Fleets: volume fan-outs run on opus (high effort); depth work stays on
-  Fable. Beyond ~10 agents, state count and rough cost and get a go.
-  Validate on a small sample before any full-dataset run; on re-entry,
-  resume from the last completed stage; never re-run finished work.
+- Models: Opus 5 is the default for everything, fleets included. Escalate
+  to Fable 5 only when work stalls or needs deeper reasoning.
+- Fleets: beyond ~10 agents, state the count and get a go. Validate on a
+  small sample before any full-dataset run; on re-entry, resume from the
+  last completed stage; never re-run finished work.
 - Read PR review comments via `gh api repos/<o>/<r>/pulls/<n>/comments`;
   `gh pr view` silently omits inline threads. PR bodies: Summary and
   Test plan.
