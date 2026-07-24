@@ -47,6 +47,11 @@
   subject, staging only task-relevant files after inspecting the diff.
 - Operator-facing commands are one short word: wrap workflows in tiny
   CLIs, never hand over raw plumbing.
+- Use native subagents proactively, with judgment, when a task is large,
+  complex, or naturally divisible. Keep the primary session focused on
+  coordination and ownership of the final integrated result. Give
+  subagents narrow, self-contained scopes. Do simple or tightly bounded
+  work directly, and do not create unnecessary delegation layers.
 - Fleets: beyond ~10 agents, state the count and get a go. Validate on a
   small sample before any full-dataset run; on re-entry, resume from the
   last completed stage; never re-run finished work.

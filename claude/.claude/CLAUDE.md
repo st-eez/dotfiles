@@ -49,6 +49,11 @@
   CLIs, never hand over raw plumbing.
 - Models: Opus 5 is the default for everything, fleets included. Escalate
   to Fable 5 only when work stalls or needs deeper reasoning.
+- Use native subagents proactively, with judgment, when a task is large,
+  complex, or naturally divisible. Keep the primary session focused on
+  coordination and ownership of the final integrated result. Give
+  subagents narrow, self-contained scopes. Do simple or tightly bounded
+  work directly, and do not create unnecessary delegation layers.
 - Fleets: beyond ~10 agents, state the count and get a go. Validate on a
   small sample before any full-dataset run; on re-entry, resume from the
   last completed stage; never re-run finished work.
