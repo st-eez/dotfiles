@@ -40,9 +40,11 @@ local label_padding_left = 4
 local label_padding_right = 18
 
 local function should_show_window_icon(app, title)
-  -- cmux keeps helper/settings dialogs in the AX window list after they are hidden.
+  -- cmux keeps helper dialogs in the AX window list after they are hidden.
   -- Zero-id phantoms are filtered upstream since AeroSpace 0.21.3-Beta (#2169).
-  if app == "cmux" and (title == "Item-0" or title == "Settings") then
+  -- Settings is deliberately NOT filtered: a genuinely open Settings window
+  -- should show an icon. Restore the clause if stale entries reappear.
+  if app == "cmux" and title == "Item-0" then
     return false
   end
 
