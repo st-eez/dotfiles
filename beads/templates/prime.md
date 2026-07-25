@@ -2,12 +2,15 @@
 
 Beads is the task tracker, at two tiers. Durable work — follow-ups,
 discovered issues, deferred scope, blockers, anything dispatched to
-another agent — is a permanent bead. In-session execution steps are
-ephemeral beads (`bd create --ephemeral`, "wisps"): create and close
-them as you work so the run leaves an auditable trace without
-becoming backlog (TTL compaction and `bd gc`/`bd purge` reclaim
-them); `bd promote <wisp-id>` if one outlives the session. Do not
-keep separate markdown TODO lists. Before saying "done",
+another agent — is a permanent bead. Ordinary in-session execution
+steps stay in the worker's native todo list — do not mirror them into
+Beads. Create an ephemeral bead (`bd create --ephemeral`, "wisp") only
+when temporary subwork must be visible or recoverable outside the
+worker's session: another worker or the coordinator gates on it, waits
+on it, or must resume it after a crash or handoff. Close wisps as the
+work completes; promote one with `bd promote <wisp-id>` if it outlives
+the session or becomes a durable follow-up. Do not keep separate
+markdown TODO lists. Before saying "done",
 `bd close <ids> --reason "..."` with
 what shipped and what was discovered; `bd update <id> --claim` when
 picking a bead up. Honor the repo's beads policy for lifecycle rules.
