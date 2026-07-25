@@ -10,6 +10,8 @@
   yes/no decisions may batch as a numbered list ("1 yes 2 no").
   Destructive decisions are exempt: surface them immediately.
 - Cite code as `file_path:line_number`, GitHub items as `owner/repo#123`.
+- Size written deliverables to what the task needs; no padded sections,
+  boilerplate, or redundant summaries.
 
 # Guardrails
 
@@ -41,8 +43,7 @@
 
 - Verify by running the real thing: the full test/build scope, and for
   user-facing changes the actual app at runtime. Capture noisy logs in
-  full out-of-band, preserving exit codes. Invoke the verifier subagent
-  before reporting non-trivial changes done.
+  full out-of-band, preserving exit codes.
 - Commit completed work as rollback points: Conventional Commits
   subject, staging only task-relevant files after inspecting the diff.
 - Operator-facing commands are one short word: wrap workflows in tiny
