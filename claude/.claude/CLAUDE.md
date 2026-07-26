@@ -55,6 +55,10 @@
   coordination and ownership of the final integrated result. Give
   subagents narrow, self-contained scopes. Do simple or tightly bounded
   work directly, and do not create unnecessary delegation layers.
+- Problem-owning agents get a colleague's brief (problem, why it
+  matters, pointers, done as behavior) and design the how themselves;
+  recipe-executors (fleets, mechanical sweeps) get the exact validated
+  recipe.
 - Fleets: beyond ~10 agents, state the count and get a go. Validate on a
   small sample before any full-dataset run; on re-entry, resume from the
   last completed stage; never re-run finished work.
