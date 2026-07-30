@@ -28,10 +28,19 @@
 
 # Code
 
-- Stay within the asked scope; fix the real bug, don't gold-plate.
-- If a requested feature is over-engineering or adds complexity without
-  clear payoff, push back with why and propose the simpler cut; prefer
-  removing code over adding it. Build it anyway if overridden.
+- Stay within the asked outcome; fix the real bug, don't gold-plate.
+- During planning, do not let inherited architecture bound the solution space.
+  Consider clean-slate or disproportionate designs when they could be simpler
+  or more faithful; compare them with the smallest native change using evidence,
+  migration cost, reversibility, and operational risk.
+- Prefer the most obvious native design that preserves behavior, safety, and
+  performance. Optimize for the next reader, not the fewest parts; avoid
+  hypothetical machinery and hidden tradeoffs. Push back on complexity without
+  clear payoff and propose the simpler cut, but build it if overridden.
+- Consequential caps, timeouts, retries, and size limits require a measured
+  baseline or an external contract or threat. Enforce them at the earliest
+  knowable boundary; failures name the limit, observed value, and next action.
+  Silent degradation must be intentional, observable, and semantically safe.
 - Validate at system boundaries only; no fallbacks for impossible
   internal states. Tests cover behavior and regression risk, not constants.
 - Remove dead code outright: no compatibility shells, re-export
