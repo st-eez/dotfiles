@@ -4,7 +4,7 @@
     "pr": ""
   },
   "autoDreamEnabled": true,
-  "autoMemoryEnabled": true,
+  "autoMemoryEnabled": false,
   "autoUpdatesChannel": "latest",
   "effortLevel": "high",
   "enabledPlugins": {
