@@ -57,3 +57,18 @@ require("vantablack").setup({
   end,
 })
 """
+
+[overrides.ghostty]
+split_divider_color = "#71717a"
+
+[overrides.ghostty_theme]
+file = "captain.ghostty"
+background = "#050506"
+foreground = "#f4f4f5"
+cursor_color = "#f4f4f5"
+cursor_text = "#050506"
+selection_background = "#222226"
+selection_foreground = "#f4f4f5"
+color0 = "#050506"
+color8 = "#52525b"
+color15 = "#ffffff"
