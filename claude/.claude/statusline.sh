@@ -149,7 +149,7 @@ if git_status=$(git -C "$dir" status --porcelain=v2 --branch 2>/dev/null); then
 fi
 
 # Context pressure: theme green, behind-yellow >=70, conflict-red >=90
-ctx_color=$DIM
+ctx_color=$C_OS
 used=${used_pct%%.*}
 [ "$used" -ge 70 ] 2>/dev/null && ctx_color=$C_BEHIND
 [ "$used" -ge 90 ] 2>/dev/null && ctx_color=$C_CONFLICT
@@ -182,8 +182,8 @@ format_tokens() {
 # BUILD SINGLE LINE (captain footer grammar):
 # Model · effort · …/dir branch <git flags>            <right: 183k (67%)>
 line="${C_OS}${model}${RESET}"
-[ -n "$effort" ] && [ "$effort" != "-" ] && line+="${DIM} · ${effort}${RESET}"
-line+="${DIM} · ${RESET}${C_DIR}…/${C_ROOT}${dir_name}${RESET}"
+[ -n "$effort" ] && [ "$effort" != "-" ] && line+="${C_OS} · ${effort}${RESET}"
+line+="${C_OS} · ${RESET}${C_DIR}…/${C_ROOT}${dir_name}${RESET}"
 [ -n "$branch" ] && line+=" ${C_BRANCH}${branch}${RESET}"
 [ -n "$conflict" ] && line+=" ${C_CONFLICT}${conflict}${RESET}"
 [ -n "$modified" ] && line+=" ${C_MODIFIED}${modified}${RESET}"
