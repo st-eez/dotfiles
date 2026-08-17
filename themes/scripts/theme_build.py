@@ -69,7 +69,7 @@ MANAGED_THEME_CONFIG_FILENAMES = (
 MANAGED_OPTIONAL_THEME_CONFIG_EXTENSIONS = (".json", ".ghostty")
 OPENCODE_THEME_SCHEMA_URL = "https://opencode.ai/theme.json"
 OPENCODE_THEME_DEF_KEY_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9]*$")
-GHOSTTY_THEME_COLOR_KEYS = tuple(f"color{i}" for i in range(16))
+GHOSTTY_THEME_COLOR_KEYS = tuple(f"color{i}" for i in range(256))
 MANAGED_WALLPAPER_FILENAME = "1-solid.png"
 DEFAULT_WALLPAPER_WIDTH = 5120
 DEFAULT_WALLPAPER_HEIGHT = 2880
@@ -1891,6 +1891,19 @@ def render_ghostty_theme(theme_source: ThemeSource) -> tuple[str, str] | None:
     lines.extend(f"palette = {index}={resolved_palette[f'color{index}']}" for index in range(8))
     lines.extend(["", "# Bright colors (palette 8-15)"])
     lines.extend(f"palette = {index}={resolved_palette[f'color{index}']}" for index in range(8, 16))
+
+    extended = sorted(
+        int(key[5:])
+        for key in overrides
+        if key.startswith("color") and key[5:].isdigit() and 16 <= int(key[5:]) <= 255
+    )
+    if extended:
+        lines.extend(["", "# Extended palette (explicit overrides only)"])
+        lines.extend(
+            f"palette = {index}="
+            f"{_resolve_hex_override(theme_source, 'ghostty_theme', overrides, f'color{index}', palette.bg0)}"
+            for index in extended
+        )
 
     return output_filename, "\n".join(lines) + "\n"
 

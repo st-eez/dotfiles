@@ -26,3 +26,6 @@ palette = 12=#38bdf8
 palette = 13=#7c6faf
 palette = 14=#8ba888
 palette = 15=#ffffff
+
+# Extended palette (explicit overrides only)
+palette = 59=#1a1a1f
