@@ -180,7 +180,7 @@ format_tokens() {
 }
 
 # BUILD SINGLE LINE (captain footer grammar):
-# Model · effort · …/dir branch <git flags> · ↻ 183k (67%)
+# Model · effort · …/dir branch <git flags>            <right: 183k (67%)>
 line="${C_OS}${model}${RESET}"
 [ -n "$effort" ] && [ "$effort" != "-" ] && line+="${DIM} · ${effort}${RESET}"
 line+="${DIM} · ${RESET}${C_DIR}…/${C_ROOT}${dir_name}${RESET}"
@@ -195,11 +195,26 @@ else
   [ -n "$behind" ] && line+=" ${C_BEHIND}${behind}${RESET}"
 fi
 
+# Right block: 183k (67%), right-aligned when the terminal width is knowable
+right=""
 if [ -n "$ctx_tokens" ] && [ "$ctx_tokens" != "0" ] && [ "$ctx_tokens" != "null" ]; then
-  line+="${DIM} · ↻ ${RESET}${C_OS}$(format_tokens "$ctx_tokens")${RESET}"
-  [ "$used" -gt 0 ] 2>/dev/null && line+=" ${ctx_color}(${used}%)${RESET}"
+  right="${C_OS}$(format_tokens "$ctx_tokens")${RESET}"
+  [ "$used" -gt 0 ] 2>/dev/null && right+=" ${ctx_color}(${used}%)${RESET}"
 elif [ "$used" -gt 0 ] 2>/dev/null; then
-  line+="${DIM} · ${RESET}${ctx_color}${used}%${RESET}"
+  right="${ctx_color}${used}%${RESET}"
+fi
+
+if [ -n "$right" ]; then
+  cols=${COLUMNS:-$(tput cols 2>/dev/null)}
+  strip() { printf '%s' "$1" | sed -e $'s/\x1b\[[0-9;]*m//g' -e 's/\\033\[[0-9;]*m//g'; }
+  lv=$(strip "$line"); rv=$(strip "$right")
+  pad=0
+  [ -n "$cols" ] && pad=$((cols - ${#lv} - ${#rv} - 2))
+  if [ "$pad" -gt 0 ] 2>/dev/null; then
+    line+="$(printf '%*s' "$pad" '')${right}"
+  else
+    line+="${DIM} · ${RESET}${right}"
+  fi
 fi
 
 # Output one line (CLEAR ensures no leftover characters from previous renders)
