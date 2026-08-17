@@ -18,6 +18,16 @@
     "permissionShimmer": "#8d7fc0",
     "promptBorder": "#222226",
     "promptBorderShimmer": "#52525b",
-    "suggestion": "#7c6faf"
+    "suggestion": "#7c6faf",
+    "userMessageBackground": "#1a1a1f",
+    "userMessageBackgroundHover": "#222226",
+    "bashMessageBackgroundColor": "#151518",
+    "selectionBg": "#222226",
+    "diffAdded": "#14291a",
+    "diffRemoved": "#2a1418",
+    "diffAddedDimmed": "#0e1510",
+    "diffRemovedDimmed": "#1a0d12",
+    "diffAddedWord": "#1e4227",
+    "diffRemovedWord": "#46202a"
   }
 }
