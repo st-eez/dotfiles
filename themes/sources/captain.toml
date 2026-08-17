@@ -77,6 +77,7 @@ color15 = "#ffffff"
 character_success_style = "bold #7c6faf"
 repo_root_style = "bold #f4f4f5"
 git_branch_style = "#a1a1aa"
+git_status_warning_style = "#7c6faf"
 
 [overrides.eza]
 directory = "35;1"
