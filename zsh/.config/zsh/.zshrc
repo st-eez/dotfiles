@@ -251,6 +251,8 @@ fi
 # Apple zsh and Arch zsh have different compiled defaults when list-colors is empty.
 if [[ "$STEEZ_THEME" == "vantarouge" ]]; then
   zstyle ':completion:*' list-colors 'di=31;1'
+elif [[ "$STEEZ_THEME" == "captain" ]]; then
+  zstyle ':completion:*' list-colors 'di=35;1'
 else
   zstyle ':completion:*' list-colors 'di=34'
 fi

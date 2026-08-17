@@ -63,6 +63,7 @@ class ThemeBuildTests(unittest.TestCase):
         self.assertEqual(
             ids,
             [
+                "captain",
                 "everforest",
                 "gruvbox",
                 "osaka-jade",
