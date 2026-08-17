@@ -136,6 +136,19 @@ if (( ${+ZSH_HIGHLIGHT_STYLES} )) && [[ "$STEEZ_THEME" == "vantarouge" ]]; then
   ZSH_HIGHLIGHT_STYLES[alias]="fg=red,bold"
 fi
 
+# Captain: monochrome typing — color only where it means something.
+if (( ${+ZSH_HIGHLIGHT_STYLES} )) && [[ "$STEEZ_THEME" == "captain" ]]; then
+  ZSH_HIGHLIGHT_STYLES[command]="fg=white"
+  ZSH_HIGHLIGHT_STYLES[precommand]="fg=white"
+  ZSH_HIGHLIGHT_STYLES[hashed-command]="fg=white"
+  ZSH_HIGHLIGHT_STYLES[builtin]="fg=white"
+  ZSH_HIGHLIGHT_STYLES[function]="fg=white"
+  ZSH_HIGHLIGHT_STYLES[alias]="fg=white"
+  ZSH_HIGHLIGHT_STYLES[unknown-token]="fg=red"
+  ZSH_HIGHLIGHT_STYLES[single-quoted-argument]="fg=cyan"
+  ZSH_HIGHLIGHT_STYLES[double-quoted-argument]="fg=cyan"
+fi
+
 # User configuration
 
 # export MANPATH="/usr/local/man:$MANPATH"
@@ -241,3 +254,5 @@ if [[ "$STEEZ_THEME" == "vantarouge" ]]; then
 else
   zstyle ':completion:*' list-colors 'di=34'
 fi
+
+. "$HOME/.local/share/../bin/env"
