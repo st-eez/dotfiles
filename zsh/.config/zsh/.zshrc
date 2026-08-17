@@ -13,6 +13,13 @@ export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
 export USE_BUILTIN_RIPGREP=0          # Use system ripgrep (faster, compiled for this arch)
 export CLAUDE_CODE_NO_FLICKER=1       # Alt-screen rendering: no flicker, virtualized scrollback
 
+# herdr panes inherit TERM_PROGRAM from the server's launch shell (tmux); Claude
+# Code then assumes tmux and downgrades theme colors to 256-color. herdr itself
+# guarantees truecolor, so shed the leaked identity inside herdr panes.
+if [[ -n "$HERDR_ENV" && "$TERM_PROGRAM" == "tmux" ]]; then
+  unset TERM_PROGRAM TERM_PROGRAM_VERSION
+fi
+
 # Ensure cache directory exists for zcompdump (one-time creation)
 [[ ! -d "$XDG_CACHE_HOME/zsh" ]] && mkdir -p "$XDG_CACHE_HOME/zsh"
 
