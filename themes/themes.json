@@ -1,6 +1,24 @@
 {
   "themes": [
     {
+      "id": "captain",
+      "name": "Captain",
+      "colors": {
+        "bg0": "#050506",
+        "bg1": "#151518",
+        "bg2": "#222226",
+        "fg": "#f4f4f5",
+        "grey": "#a1a1aa",
+        "red": "#d06f82",
+        "green": "#7da876",
+        "yellow": "#f59e0b",
+        "blue": "#38bdf8",
+        "magenta": "#7c6faf",
+        "cyan": "#8ba888",
+        "orange": "#d4ad86"
+      }
+    },
+    {
       "id": "everforest",
       "name": "Everforest Dark",
       "colors": {

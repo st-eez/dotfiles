@@ -1,0 +1,134 @@
+:root {
+  --captain-sidebar: #050506;
+  --captain-editor: #151518;
+  --captain-fg: #f4f4f5;
+  --captain-muted: #a1a1aa;
+  --captain-folder: #38bdf8;
+  --captain-accent: #38bdf8;
+  --nav-item-color-active: var(--captain-fg);
+  --nav-item-weight-active: 600;
+}
+
+body,
+.app-container,
+.workspace {
+  background-color: var(--captain-sidebar) !important;
+}
+
+.workspace-split.mod-left-split,
+.workspace-split.mod-left-split .workspace-leaf-content,
+.workspace-split.mod-left-split .view-content,
+.workspace-drawer.mod-left,
+.nav-files-container,
+.workspace-ribbon.mod-left {
+  background-color: var(--captain-sidebar) !important;
+}
+
+.workspace-split.mod-root .workspace-leaf-content,
+.workspace-split.mod-root .view-content,
+.workspace-split.mod-root .view-header,
+.workspace-split.mod-root .markdown-source-view.mod-cm6 .cm-scroller,
+.workspace-split.mod-root .markdown-preview-view,
+.workspace-split.mod-root .empty-state,
+.workspace-split.mod-root .empty-state-container {
+  background-color: var(--captain-editor) !important;
+}
+
+.view-header-breadcrumb,
+.view-header-breadcrumb-separator,
+.view-header-title {
+  color: var(--captain-fg) !important;
+}
+
+.workspace-tab-header-container {
+  background-color: var(--captain-sidebar) !important;
+  border-bottom: none !important;
+}
+
+.workspace-tab-header {
+  color: var(--captain-muted) !important;
+  background-color: transparent !important;
+}
+
+.workspace-tab-header.is-active {
+  color: var(--captain-fg) !important;
+  background-color: var(--captain-editor) !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.workspace-tab-header.is-active::before,
+.workspace-tab-header.is-active::after {
+  display: none !important;
+}
+
+.nav-file-title,
+.nav-file-title-content {
+  color: var(--captain-fg) !important;
+}
+
+body:not(.is-grabbing) .nav-file-title.is-active,
+body:not(.is-grabbing) .nav-folder-title.is-active,
+.nav-file-title.is-active,
+.nav-folder-title.is-active {
+  color: var(--captain-fg) !important;
+  background-color: rgba(56, 189, 248, 0.15) !important;
+  font-weight: 600 !important;
+}
+
+.nav-file-title.is-active .nav-file-title-content::before,
+.nav-folder-title.is-active .nav-folder-title-content::before {
+  content: "\2726 ";
+  color: var(--captain-fg);
+  font-weight: 700;
+}
+
+.nav-folder-title .nav-folder-title-content {
+  color: var(--captain-folder);
+  font-weight: 800;
+}
+
+.nav-folder-title.is-active .nav-folder-title-content {
+  color: var(--captain-folder) !important;
+  font-weight: 800;
+}
+
+.nav-file-title.is-active .nav-file-title-content,
+.nav-folder-title.is-active .nav-folder-title-content {
+  color: var(--captain-fg) !important;
+  caret-color: var(--captain-fg);
+}
+
+.nav-folder.is-collapsed > .nav-folder-title .nav-folder-title-content::before {
+  content: "\f07b ";
+  font-family: "JetBrainsMono Nerd Font";
+  color: var(--captain-folder);
+  padding-right: 8px;
+}
+
+.nav-folder:not(.is-collapsed)
+  > .nav-folder-title
+  .nav-folder-title-content::before {
+  content: "\f07c ";
+  font-family: "JetBrainsMono Nerd Font";
+  color: var(--captain-folder);
+  padding-right: 8px;
+}
+
+.markdown-source-view.mod-cm6,
+.markdown-preview-view {
+  --checklist-done-decoration: none !important;
+  --checklist-done-color: var(--captain-muted) !important;
+}
+
+.markdown-source-view.mod-cm6 .HyperMD-task-line[data-task="x"],
+.markdown-source-view.mod-cm6 .HyperMD-task-line[data-task="X"],
+.markdown-source-view.mod-cm6 .task-list-item.is-checked,
+.markdown-source-view.mod-cm6 .task-list-item.is-checked .task-list-label,
+.markdown-preview-view .task-list-item.is-checked,
+.markdown-preview-view .task-list-item.is-checked .task-list-label {
+  text-decoration: none !important;
+  text-decoration-line: none !important;
+  color: var(--captain-muted) !important;
+  opacity: 1 !important;
+}

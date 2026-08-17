@@ -1,0 +1,65 @@
+# Captain theme for btop
+# Managed by theme-set - do not edit manually
+
+# Main
+theme[main_bg]=""
+theme[main_fg]="#f4f4f5"
+theme[title]="#f4f4f5"
+theme[hi_fg]="#38bdf8"
+theme[selected_bg]="#222226"
+theme[selected_fg]="#f4f4f5"
+theme[inactive_fg]="#a1a1aa"
+theme[graph_text]="#a1a1aa"
+theme[proc_misc]="#7da876"
+
+# Box outlines
+theme[cpu_box]="#7da876"
+theme[mem_box]="#7c6faf"
+theme[net_box]="#8ba888"
+theme[proc_box]="#38bdf8"
+theme[div_line]="#a1a1aa"
+
+# Temperature: green -> yellow -> red
+theme[temp_start]="#7da876"
+theme[temp_mid]="#f59e0b"
+theme[temp_end]="#d06f82"
+
+# CPU: green -> yellow -> red
+theme[cpu_start]="#7da876"
+theme[cpu_mid]="#f59e0b"
+theme[cpu_end]="#d06f82"
+
+# Mem/Disk used: red -> orange (warm = consumption)
+theme[used_start]="#d4ad86"
+theme[used_mid]=""
+theme[used_end]="#d06f82"
+
+# Mem/Disk available: green -> cyan (cool = headroom)
+theme[available_start]="#7da876"
+theme[available_mid]=""
+theme[available_end]="#8ba888"
+
+# Mem/Disk free: blue -> cyan
+theme[free_start]="#38bdf8"
+theme[free_mid]=""
+theme[free_end]="#8ba888"
+
+# Mem/Disk cached: magenta -> blue
+theme[cached_start]="#7c6faf"
+theme[cached_mid]=""
+theme[cached_end]="#38bdf8"
+
+# Download: cyan -> blue
+theme[download_start]="#8ba888"
+theme[download_mid]=""
+theme[download_end]="#38bdf8"
+
+# Upload: orange -> red
+theme[upload_start]="#d4ad86"
+theme[upload_mid]=""
+theme[upload_end]="#d06f82"
+
+# Process: green -> orange -> red
+theme[process_start]="#7da876"
+theme[process_mid]="#d4ad86"
+theme[process_end]="#d06f82"
