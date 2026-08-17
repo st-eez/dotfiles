@@ -9,7 +9,7 @@ local colors = {
   magenta = 0xff7c6faf,
   grey = 0xffa1a1aa,
   transparent = 0x00000000,
-  highlight = 0x3338bdf8,
+  highlight = 0x337c6faf,
   bg0 = 0xff050506,
   bg1 = 0xff151518,
   bg2 = 0xff222226,
@@ -17,12 +17,12 @@ local colors = {
 
 colors.bar = {
   bg = colors.bg0,
-  border = 0xff8ba888,
+  border = 0xff222226,
 }
 
 colors.popup = {
   bg = colors.bg0,
-  border = 0xff8ba888,
+  border = 0xff222226,
 }
 
 return colors
