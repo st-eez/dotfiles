@@ -140,7 +140,8 @@
   "skipDangerousModePermissionPrompt": true,
   "statusLine": {
     "command": "$HOME/.claude/statusline.sh",
-    "type": "command"
+    "type": "command",
+    "padding": 0
   },
   "syntaxHighlightingDisabled": false,
   "voiceEnabled": true
