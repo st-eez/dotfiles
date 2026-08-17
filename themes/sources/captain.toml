@@ -72,3 +72,17 @@ selection_foreground = "#f4f4f5"
 color0 = "#050506"
 color8 = "#52525b"
 color15 = "#ffffff"
+
+[overrides.starship]
+character_success_style = "bold #7c6faf"
+repo_root_style = "bold #f4f4f5"
+git_branch_style = "#a1a1aa"
+
+[overrides.eza]
+executable = "36;1"
+permission_execute = "90"
+permission_execute_other = "90"
+permission_group_execute = "90"
+permission_other_execute = "90"
+size_number = "37"
+size_unit = "90"
