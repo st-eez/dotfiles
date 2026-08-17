@@ -14,3 +14,14 @@ if [[ -n $SSH_CONNECTION ]]; then
 else
   export EDITOR='nvim'
 fi
+
+# ssh forwards TERM but not COLORTERM, and sshd would need AcceptEnv to allow it
+# through anyway. Without it, TUIs that probe COLORTERM (Claude Code, delta,
+# bat) fall back to the 256-color cube and quantize their palette — colors look
+# washed out over ssh but correct locally, where the terminal sets it natively.
+# tmux panes get this from `set-environment -g COLORTERM` in the tmux config;
+# this covers plain ssh sessions. Guarded on TERM so cron jobs and `zsh -c`
+# scripts running under dumb/unset TERM don't start emitting color escapes.
+if [[ -n $TERM && $TERM != dumb ]]; then
+  export COLORTERM=truecolor
+fi

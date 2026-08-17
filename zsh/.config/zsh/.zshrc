@@ -265,3 +265,9 @@ else
 fi
 
 . "$HOME/.local/share/../bin/env"
+
+# Herdr restores Captain with its canonical `pi --session` command. Keep native
+# Pi everywhere else while resolving Captain's pinned release in this session.
+if [[ $HERDR_SESSION == captain ]]; then
+  export PATH="$HOME/captain/state/pi/current:$PATH"
+fi
