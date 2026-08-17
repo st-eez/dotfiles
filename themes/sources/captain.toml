@@ -1,0 +1,59 @@
+schema_version = 1
+
+[theme]
+id = "captain"
+name = "Captain"
+variant = "dark-tinted"
+source = "https://github.com/st-eez/dotfiles"
+
+[identifiers]
+ghostty = "Captain"
+nvim_colorscheme = "vantablack"
+nvim_plugin = "bjarneo/vantablack.nvim"
+antigravity = "Vantablack"
+opencode = "captain"
+obsidian = "Vantablack"
+
+[palette]
+bg0 = "#050506"
+bg1 = "#151518"
+bg2 = "#222226"
+fg = "#f4f4f5"
+grey = "#a1a1aa"
+red = "#d06f82"
+orange = "#d4ad86"
+yellow = "#f59e0b"
+green = "#7da876"
+cyan = "#8ba888"
+blue = "#38bdf8"
+magenta = "#7c6faf"
+
+[overrides.neovim]
+config_lua = """
+require("vantablack").setup({
+  styles = {
+    comments = { italic = true },
+    keywords = { italic = true },
+    functions = {},
+    variables = {},
+  },
+  on_colors = function(colors)
+    colors.bg = "#050506"
+    colors.bg_dark = "#050506"
+    colors.bg_dark1 = "#050506"
+    colors.bg_highlight = "#151518"
+    colors.fg = "#f4f4f5"
+    colors.fg_dark = "#d4d4d8"
+    colors.comment = "#a1a1aa"
+
+    -- Vantablack mapping semantics, captain canonical palette.
+    colors.red = "#d06f82"
+    colors.orange = "#d4ad86"
+    colors.yellow = "#f59e0b"
+    colors.green = "#7da876"
+    colors.cyan = "#8ba888"
+    colors.blue = "#38bdf8"
+    colors.magenta = "#7c6faf"
+  end,
+})
+"""

@@ -1,0 +1,51 @@
+# Captain Starship theme
+# Managed by theme-set - do not edit manually
+add_newline = true
+command_timeout = 200
+format = "$os$hostname$directory$git_branch$git_status$character"
+
+[os]
+disabled = false
+style = "#f4f4f5"
+
+[os.symbols]
+Macos = "󰀵 "
+Arch = "󰣇 "
+Ubuntu = " "
+Mint = "󰣭 "
+Linux = " "
+
+[hostname]
+ssh_only = true
+format = "[$hostname](#f4f4f5):"
+
+[character]
+error_symbol = "[✘](bold #d06f82)"
+success_symbol = "[❯](bold #f4f4f5)"
+
+[directory]
+truncation_length = 3
+truncation_symbol = "…/"
+style = "#f4f4f5"
+before_repo_root_style = "#f4f4f5"
+repo_root_style = "bold #8ba888"
+repo_root_format = "[$before_root_path]($before_repo_root_style)[$repo_root]($repo_root_style)[$path]($style)[$read_only]($read_only_style) "
+
+[git_branch]
+format = "[$symbol$branch]($style) "
+symbol = " "
+style = "#7da876"
+
+[git_status]
+format = '$all_status$ahead_behind'
+ahead = "[⇡${count}](#7da876) "
+diverged = "[⇕⇡${ahead_count}⇣${behind_count}](#f59e0b) "
+behind = "[⇣${count}](#f59e0b) "
+conflicted = "[](#d06f82) "
+up_to_date = ""
+untracked = "[?](#f59e0b) "
+modified = "[](#f59e0b) "
+stashed = ""
+staged = "[](#f59e0b) "
+renamed = "[](#f59e0b) "
+deleted = "[](#f59e0b) "
