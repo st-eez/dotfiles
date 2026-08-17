@@ -91,3 +91,7 @@ permission_group_execute = "90"
 permission_other_execute = "90"
 size_number = "37"
 size_unit = "90"
+
+[overrides.sketchybar]
+highlight = "#7c6faf"
+border = "#222226"
