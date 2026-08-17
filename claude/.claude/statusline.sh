@@ -205,7 +205,7 @@ elif [ "$used" -gt 0 ] 2>/dev/null; then
 fi
 
 if [ -n "$right" ]; then
-  cols=${COLUMNS:-$(tput cols 2>/dev/null)}
+  cols=${COLUMNS:-}
   strip() { printf '%s' "$1" | sed -e $'s/\x1b\[[0-9;]*m//g' -e 's/\\033\[[0-9;]*m//g'; }
   lv=$(strip "$line"); rv=$(strip "$right")
   pad=0
