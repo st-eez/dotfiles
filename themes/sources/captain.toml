@@ -72,6 +72,8 @@ selection_foreground = "#f4f4f5"
 color0 = "#050506"
 color8 = "#52525b"
 color15 = "#ffffff"
+# Claude Code fullscreen paints its current-message highlight with indexed 59
+color59 = "#1a1a1f"
 
 [overrides.starship]
 character_success_style = "bold #7c6faf"
