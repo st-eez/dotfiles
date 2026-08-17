@@ -79,7 +79,7 @@ repo_root_style = "bold #f4f4f5"
 git_branch_style = "#a1a1aa"
 
 [overrides.eza]
-directory = "37;1"
+directory = "35;1"
 executable = "37"
 symlink = "35"
 source_code = "37"
