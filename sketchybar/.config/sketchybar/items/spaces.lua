@@ -8,18 +8,6 @@ local monitor_profiles = (settings.monitors and settings.monitors.profiles) or {
 local default_monitor_profile = (settings.monitors and settings.monitors.default_profile) or "home"
 local laptop_display = (settings.monitors and settings.monitors.laptop_display) or 1
 
--- Read the active aerospace profile from the sentinel written by set-profile.sh.
--- Missing/unreadable sentinel → nil (treated as non-laptop by callers).
-local function active_profile()
-  local home = os.getenv("HOME")
-  if not home then return nil end
-  local f = io.open(home .. "/.config/aerospace/.active-profile", "r")
-  if not f then return nil end
-  local s = f:read("*a") or ""
-  f:close()
-  return (s:gsub("%s+", ""))
-end
-
 local spaces = {}
 local current_workspace = nil
 local window_cache = {} -- Cache icon strings to skip redundant item:set() calls
@@ -38,6 +26,18 @@ local icon_padding_left = 12
 local icon_padding_right = 2
 local label_padding_left = 4
 local label_padding_right = 18
+
+-- Read the active aerospace profile from the sentinel written by set-profile.sh.
+-- Missing/unreadable sentinel → nil (treated as non-laptop by callers).
+local function active_profile()
+  local home = os.getenv("HOME")
+  if not home then return nil end
+  local f = io.open(home .. "/.config/aerospace/.active-profile", "r")
+  if not f then return nil end
+  local s = f:read("*a") or ""
+  f:close()
+  return (s:gsub("%s+", ""))
+end
 
 local function should_show_window_icon(app, title)
   -- cmux keeps helper dialogs in the AX window list after they are hidden.
@@ -77,6 +77,34 @@ local function update_all_windows()
   end)
 end
 
+-- Helper to apply style to a single item
+local function apply_style(sid, is_selected)
+  if not spaces[sid] then return end
+  local icon_font = {
+    style = is_selected and settings.font.style_map.bold or settings.font.style_map.regular,
+    size = settings.font.size.glyph,
+  }
+
+  spaces[sid]:set({
+    icon = {
+      highlight = is_selected,
+      font = icon_font,
+      padding_left = icon_padding_left,
+      padding_right = icon_padding_right,
+    },
+    label = {
+      highlight = is_selected,
+      color = is_selected and active_color or inactive_color,
+      padding_left = label_padding_left,
+      padding_right = label_padding_right,
+    },
+    background = {
+      border_color = transparent,
+      color = is_selected and highlight_tint or transparent
+    }
+  })
+end
+
 -- Function to update highlighting (Focus/Unfocus)
 -- Only touches the items whose selection state changed; layout/padding is
 -- fully established at creation and never depends on this running.
@@ -91,72 +119,40 @@ local function update_highlight(focused_sid)
   local prev_workspace = current_workspace
   current_workspace = focused_sid
 
-  -- Helper to apply style to a single item
-  local function apply_style(sid, is_selected)
-    if not spaces[sid] then return end
-    local icon_font = {
-      style = is_selected and settings.font.style_map.bold or settings.font.style_map.regular,
-      size = settings.font.size.glyph,
-    }
-
-    spaces[sid]:set({
-      icon = {
-        highlight = is_selected,
-        font = icon_font,
-        padding_left = icon_padding_left,
-        padding_right = icon_padding_right,
-      },
-      label = {
-        highlight = is_selected,
-        color = is_selected and active_color or inactive_color,
-        padding_left = label_padding_left,
-        padding_right = label_padding_right,
-      },
-      background = {
-        border_color = transparent,
-        color = is_selected and highlight_tint or transparent
-      }
-    })
-  end
-
   if prev_workspace and prev_workspace ~= focused_sid then
     apply_style(prev_workspace, false)
   end
   apply_style(focused_sid, true)
 end
 
--- Main Setup
--- 1. Get Monitor List to determine setup type.
--- Retry up to 5x at 1s intervals if aerospace hasn't published monitors yet
--- (cold boot race: sketchybar can start before aerospace is ready).
-local function bootstrap(attempt)
-sbar.exec("aerospace list-monitors", function(monitor_output)
-  if not monitor_output or monitor_output == "" then
-    if attempt < 5 then
-      sbar.exec("sleep 1", function() bootstrap(attempt + 1) end)
+-- aerospace can still be re-adopting monitors when the bar reloads right
+-- after a display change; retry briefly instead of dropping the initial
+-- highlight (mirrors the bootstrap retry for list-monitors above).
+local function query_focused_and_update(try)
+  sbar.exec("aerospace list-workspaces --focused", function(f)
+    local clean_f = f and f:gsub("%s+", "") or ""
+    if clean_f == "" then
+      if try < 5 then
+        sbar.exec("sleep 1", function() query_focused_and_update(try + 1) end)
+      end
       return
     end
-    -- aerospace never answered: proceed with an empty monitor list anyway so
-    -- items and event subscriptions exist (display assignment degrades to the
-    -- defaults); the profile-watcher's next reload corrects it. Bailing here
-    -- left a bar with no workspace items and no subscriber to ever fix that.
-    monitor_output = ""
-  end
-  local monitor_list = {}
-  for line in monitor_output:gmatch("[^\r\n]+") do
-    table.insert(monitor_list, line)
-  end
+    update_highlight(clean_f)
+    update_all_windows()
+  end)
+end
 
-  -- The profile sentinel is authoritative for BOTH the laptop decision and the
-  -- display-map choice: the profile-watcher rewrites it on every monitor
-  -- hotplug and reloads this bar. The live monitor sniff only decides when the
-  -- sentinel is missing/empty or names a profile this bar doesn't know about
-  -- (first boot before any profile apply, or a vocabulary mismatch).
+-- The profile sentinel is authoritative for BOTH the laptop decision and the
+-- display-map choice: the profile-watcher rewrites it on every monitor
+-- hotplug and reloads this bar. The live monitor sniff only decides when the
+-- sentinel is missing/empty or names a profile this bar doesn't know about
+-- (first boot before any profile apply, or a vocabulary mismatch).
+local function resolve_profile(monitor_output, monitor_list)
   local profile = active_profile()
   if profile == "" then profile = nil end
 
-  local is_laptop_only = #monitor_list == 1 and monitor_output:find("Built%-in") ~= nil
-  local laptop = profile == "laptop" or (profile == nil and is_laptop_only)
+  local laptop = profile == "laptop"
+    or (profile == nil and #monitor_list == 1 and monitor_output:find("Built%-in") ~= nil)
 
   -- `profile` may be a monitor-profile key (home/office) when the sentinel is
   -- authoritative; otherwise sniff the live monitor names, then fall back to
@@ -172,170 +168,156 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
     end
   end
 
-  -- 2. Map Workspaces to Monitors (Async chain)
-  -- We need to know which monitor each workspace is on to assign display_id correctly.
-  -- Since we can't do synchronous calls, we'll fetch all assignments first.
-  
-  local workspace_monitors = {} -- [sid] = monitor_id (1, 2, 3)
-  
-  local function setup_spaces()
-    local workspaces = laptop
-      and { "1", "2", "3", "4", "5" }
-      or { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0" }
+  return laptop, monitor_profile
+end
 
-    for _, sid in ipairs(workspaces) do
-      local monitor_id = workspace_monitors[sid] or 1
-      local display_id = laptop_display
+local function setup_spaces(laptop, monitor_profile, workspace_monitors)
+  local workspaces = laptop
+    and { "1", "2", "3", "4", "5" }
+    or { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0" }
 
-      if not laptop then
-        local map = (monitor_profile and monitor_profile.map) or {}
-        display_id = map[monitor_id] or laptop_display
-      end
+  for _, sid in ipairs(workspaces) do
+    local monitor_id = workspace_monitors[sid] or 1
+    local display_id = laptop_display
 
-      -- Create the Space Item, fully styled — rendering must be correct even
-      -- if no aerospace event ever arrives (e.g. right after a display change
-      -- while aerospace is still settling).
-      spaces[sid] = sbar.add("item", "space." .. sid, {
-        icon = {
-          string = sid,
-          color = inactive_color,
-          highlight_color = active_color,
-          padding_left = icon_padding_left,
-          padding_right = icon_padding_right,
-          font = { family = settings.font.family, style = settings.font.style_map.regular, size = settings.font.size.glyph },
-        },
-        label = {
-          string = "",
-          color = inactive_color,
-          highlight_color = active_color,
-          font = { family = "sketchybar-app-font", style = "Regular", size = settings.font.size.icon },
-          y_offset = -1,
-          padding_left = label_padding_left,
-          padding_right = label_padding_right,
-        },
-        background = {
-          color = transparent,
-          border_color = transparent,
-        },
-        display = display_id,
-        click_script = "aerospace workspace " .. sid,
-        position = "left",
-      })
-
-      -- Subscribe to mouse events (Hover)
-      spaces[sid]:subscribe("mouse.entered", function(env)
-        spaces[sid]:set({ background = { color = highlight_tint } })
-      end)
-
-      spaces[sid]:subscribe("mouse.exited", function(env)
-        if tostring(sid) ~= tostring(current_workspace) then
-          spaces[sid]:set({ background = { color = transparent } })
-        else
-          spaces[sid]:set({ background = { color = highlight_tint } })
-        end
-      end)
+    if not laptop then
+      local map = (monitor_profile and monitor_profile.map) or {}
+      display_id = map[monitor_id] or laptop_display
     end
 
-    -- Separator
-    sbar.add("item", "space_separator", {
+    -- Create the Space Item, fully styled — rendering must be correct even
+    -- if no aerospace event ever arrives (e.g. right after a display change
+    -- while aerospace is still settling).
+    spaces[sid] = sbar.add("item", "space." .. sid, {
       icon = {
-        string = icons.separator,
-        font = { size = settings.font.size.icon, style = "Black" },
-        color = colors.white,
-        padding_left = 10,
-        padding_right = 8,
+        string = sid,
+        color = inactive_color,
+        highlight_color = active_color,
+        padding_left = icon_padding_left,
+        padding_right = icon_padding_right,
+        font = { family = settings.font.family, style = settings.font.style_map.regular, size = settings.font.size.glyph },
       },
-      label = { drawing = false },
-      position = "left",
-      padding_left = 0,
-      padding_right = 0,
-    })
-
-    -- Front App (placed immediately after separator for deterministic ordering)
-    local front_app = sbar.add("item", "front_app", {
-      icon = { drawing = false },
       label = {
-        font = {
-          family = settings.font.family,
-          style = settings.font.style_map.bold,
-          size = settings.font.size.label,
-        },
+        string = "",
+        color = inactive_color,
+        highlight_color = active_color,
+        font = { family = "sketchybar-app-font", style = "Regular", size = settings.font.size.icon },
+        y_offset = -1,
+        padding_left = label_padding_left,
+        padding_right = label_padding_right,
       },
-      display = "active",
+      background = {
+        color = transparent,
+        border_color = transparent,
+      },
+      display = display_id,
+      click_script = "aerospace workspace " .. sid,
       position = "left",
-      updates = true,
     })
 
-    front_app:subscribe("front_app_switched", function(env)
-      front_app:set({ label = env.INFO })
+    -- Subscribe to mouse events (Hover)
+    spaces[sid]:subscribe("mouse.entered", function()
+      spaces[sid]:set({ background = { color = highlight_tint } })
     end)
 
-    front_app:subscribe("mouse.clicked", function(env)
-      sbar.exec("open -a '/System/Applications/Mission Control.app'")
-    end)
-
-    -- Initial label population
-    sbar.exec("aerospace list-windows --focused --format '%{app-name}'", function(app_name)
-      if app_name and app_name ~= "" then
-        front_app:set({ label = app_name:gsub("\n", "") })
-      end
-    end)
-    -- Controller / Observer
-    local spaces_observer = sbar.add("item", "spaces_observer", { drawing = false, updates = true })
-    
-    -- Initial window population (one fork, all spaces).
-    update_all_windows()
-
-    -- aerospace can still be re-adopting monitors when the bar reloads right
-    -- after a display change; retry briefly instead of dropping the initial
-    -- highlight (mirrors the bootstrap retry for list-monitors above).
-    local function query_focused_and_update(try)
-      sbar.exec("aerospace list-workspaces --focused", function(f)
-        local clean_f = f and f:gsub("%s+", "") or ""
-        if clean_f == "" then
-          if try < 5 then
-            sbar.exec("sleep 1", function() query_focused_and_update(try + 1) end)
-          end
-          return
-        end
-        update_highlight(clean_f)
-        update_all_windows()
-      end)
-    end
-
-    spaces_observer:subscribe("aerospace_workspace_change", function(env)
-      local focused_workspace = env.FOCUSED_WORKSPACE
-
-      if not focused_workspace or focused_workspace == "" then
-        query_focused_and_update(1)
+    spaces[sid]:subscribe("mouse.exited", function()
+      if tostring(sid) ~= tostring(current_workspace) then
+        spaces[sid]:set({ background = { color = transparent } })
       else
-        update_highlight(focused_workspace)
-        update_all_windows()
+        spaces[sid]:set({ background = { color = highlight_tint } })
       end
     end)
-
-    -- Refresh when windows are created/destroyed.
-    spaces_observer:subscribe("space_windows_change", function(env)
-      update_all_windows()
-    end)
-
-    -- After wake, cached strings may be stale if apps were quit while asleep.
-    -- Invalidate and re-fetch in one call.
-    spaces_observer:subscribe("system_woke", function(env)
-      for sid, _ in pairs(spaces) do window_cache[sid] = nil end
-      update_all_windows()
-    end)
-
-    -- Initial Trigger
-    if next(spaces) then
-      sbar.trigger("aerospace_workspace_change")
-    end
   end
+
+  -- Separator
+  sbar.add("item", "space_separator", {
+    icon = {
+      string = icons.separator,
+      font = { size = settings.font.size.icon, style = "Black" },
+      color = colors.white,
+      padding_left = 10,
+      padding_right = 8,
+    },
+    label = { drawing = false },
+    position = "left",
+    padding_left = 0,
+    padding_right = 0,
+  })
+
+  -- Front App (placed immediately after separator for deterministic ordering)
+  local front_app = sbar.add("item", "front_app", {
+    icon = { drawing = false },
+    label = {
+      font = {
+        family = settings.font.family,
+        style = settings.font.style_map.bold,
+        size = settings.font.size.label,
+      },
+    },
+    display = "active",
+    position = "left",
+    updates = true,
+  })
+
+  front_app:subscribe("front_app_switched", function(env)
+    front_app:set({ label = env.INFO })
+  end)
+
+  front_app:subscribe("mouse.clicked", function()
+    sbar.exec("open -a '/System/Applications/Mission Control.app'")
+  end)
+
+  -- Initial label population
+  sbar.exec("aerospace list-windows --focused --format '%{app-name}'", function(app_name)
+    if app_name and app_name ~= "" then
+      front_app:set({ label = app_name:gsub("\n", "") })
+    end
+  end)
+  -- Controller / Observer
+  local spaces_observer = sbar.add("item", "spaces_observer", { drawing = false, updates = true })
+
+  -- Initial window population (one fork, all spaces).
+  update_all_windows()
+
+  spaces_observer:subscribe("aerospace_workspace_change", function(env)
+    local focused_workspace = env.FOCUSED_WORKSPACE
+
+    if not focused_workspace or focused_workspace == "" then
+      query_focused_and_update(1)
+    else
+      update_highlight(focused_workspace)
+      update_all_windows()
+    end
+  end)
+
+  -- Refresh when windows are created/destroyed.
+  spaces_observer:subscribe("space_windows_change", function()
+    update_all_windows()
+  end)
+
+  -- After wake, cached strings may be stale if apps were quit while asleep.
+  -- Invalidate and re-fetch in one call.
+  spaces_observer:subscribe("system_woke", function()
+    for sid, _ in pairs(spaces) do window_cache[sid] = nil end
+    update_all_windows()
+  end)
+
+  -- Initial Trigger
+  if next(spaces) then
+    sbar.trigger("aerospace_workspace_change")
+  end
+end
+
+-- Map Workspaces to Monitors (Async chain)
+-- We need to know which monitor each workspace is on to assign display_id correctly.
+-- Since we can't do synchronous calls, we'll fetch all assignments first.
+local function fetch_workspace_monitors(monitor_count, on_done)
+  local workspace_monitors = {} -- [sid] = monitor_id (1, 2, 3)
 
   -- Chain calls to populate workspace_monitors (iterate actual monitors, not hard-coded 3)
   local function fetch_monitor_workspaces(mon_idx)
-    if mon_idx > #monitor_list then
-      setup_spaces() -- Done fetching, proceed to setup
+    if mon_idx > monitor_count then
+      on_done(workspace_monitors) -- Done fetching, proceed to setup
       return
     end
 
@@ -350,7 +332,36 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
   end
 
   fetch_monitor_workspaces(1) -- Start fetching for monitor 1
-end)
+end
+
+-- Main Setup
+-- 1. Get Monitor List to determine setup type.
+-- Retry up to 5x at 1s intervals if aerospace hasn't published monitors yet
+-- (cold boot race: sketchybar can start before aerospace is ready).
+local function bootstrap(attempt)
+  sbar.exec("aerospace list-monitors", function(monitor_output)
+    if not monitor_output or monitor_output == "" then
+      if attempt < 5 then
+        sbar.exec("sleep 1", function() bootstrap(attempt + 1) end)
+        return
+      end
+      -- aerospace never answered: proceed with an empty monitor list anyway so
+      -- items and event subscriptions exist (display assignment degrades to the
+      -- defaults); the profile-watcher's next reload corrects it. Bailing here
+      -- left a bar with no workspace items and no subscriber to ever fix that.
+      monitor_output = ""
+    end
+    local monitor_list = {}
+    for line in monitor_output:gmatch("[^\r\n]+") do
+      table.insert(monitor_list, line)
+    end
+
+    local laptop, monitor_profile = resolve_profile(monitor_output, monitor_list)
+
+    fetch_workspace_monitors(#monitor_list, function(workspace_monitors)
+      setup_spaces(laptop, monitor_profile, workspace_monitors)
+    end)
+  end)
 end
 
 bootstrap(1)
