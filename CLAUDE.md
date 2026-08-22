@@ -36,7 +36,7 @@ tail -20 ~/Library/Logs/AeroSpace/profile-watcher.log # reconciler activity
 - Zsh uses ZDOTDIR (`~/.config/zsh/`) — edit there, not `~/.zshrc`.
 - Do not edit files marked `Managed by theme-set`; edit `themes/configs/<theme>/`.
 - **MANDATORY**: When ANY keybinding changes in aerospace configs, Ghostty, or app shortcuts, you MUST ALSO update `raycast/extensions/keybinds/src/search-keybinds.tsx` in the SAME edit session — do NOT wait to be asked.
-- **MUST use `--no-folding` for the `claude` package** — steez symlinks require `~/.claude/skills/` to be a real directory, not a stow-folded symlink. Skills are managed by `steez` (see `~/Projects/Personal/steez`).
+- **MUST use `--no-folding` for the `claude` package** — steez symlinks require `~/.claude/skills/` to be a real directory, not a stow-folded symlink. Skills are managed by `steez` (see `~/Projects/Personal/steez-skills`).
 
 
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:ca08a54f -->
