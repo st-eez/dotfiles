@@ -207,7 +207,7 @@ sbar.exec("aerospace list-monitors", function(monitor_output)
         label = {
           string = "",
           color = inactive_color,
-          highlight_color = colors.white,
+          highlight_color = active_color,
           font = { family = "sketchybar-app-font", style = "Regular", size = settings.font.size.icon },
           y_offset = -1,
           padding_left = label_padding_left,
@@ -354,5 +354,3 @@ end)
 end
 
 bootstrap(1)
-
-return spaces
