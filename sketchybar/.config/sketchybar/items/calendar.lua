@@ -6,7 +6,7 @@ local calendar = sbar.add("item", "calendar", {
   label = {
     font = {
       family = settings.font.family,
-      style = settings.font.style_map.bold,
+      style = "Bold",
       size = settings.font.size.label,
     },
     padding_left = 5,
@@ -42,5 +42,3 @@ calendar:subscribe({ "routine", "system_woke" }, update_time)
 
 -- initial paint
 update_time()
-
-return calendar

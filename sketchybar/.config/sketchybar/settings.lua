@@ -1,12 +1,6 @@
-local colors = require("colors")
-
 local settings = {
 	font = {
 		family = "JetBrainsMono Nerd Font",
-		style_map = {
-			regular = "Regular",
-			bold = "Bold",
-		},
 		size = {
 			icon = 14.0,
 			label = 13.0,

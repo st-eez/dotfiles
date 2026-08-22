@@ -24,7 +24,7 @@ sbar.default({
 	icon = {
 		font = {
 			family = settings.font.family,
-			style = settings.font.style_map.bold,
+			style = "Bold",
 			size = settings.font.size.icon,
 		},
 		color = colors.white,
@@ -34,7 +34,7 @@ sbar.default({
 	label = {
 		font = {
 			family = settings.font.family,
-			style = settings.font.style_map.regular,
+			style = "Regular",
 			size = settings.font.size.label,
 		},
 		color = colors.white,

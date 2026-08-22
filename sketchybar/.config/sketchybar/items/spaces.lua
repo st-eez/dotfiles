@@ -81,7 +81,7 @@ end
 local function apply_style(sid, is_selected)
   if not spaces[sid] then return end
   local icon_font = {
-    style = is_selected and settings.font.style_map.bold or settings.font.style_map.regular,
+    style = is_selected and "Bold" or "Regular",
     size = settings.font.size.glyph,
   }
 
@@ -195,7 +195,7 @@ local function setup_spaces(laptop, monitor_profile, workspace_monitors)
         highlight_color = active_color,
         padding_left = icon_padding_left,
         padding_right = icon_padding_right,
-        font = { family = settings.font.family, style = settings.font.style_map.regular, size = settings.font.size.glyph },
+        font = { family = settings.font.family, style = "Regular", size = settings.font.size.glyph },
       },
       label = {
         string = "",
@@ -250,7 +250,7 @@ local function setup_spaces(laptop, monitor_profile, workspace_monitors)
     label = {
       font = {
         family = settings.font.family,
-        style = settings.font.style_map.bold,
+        style = "Bold",
         size = settings.font.size.label,
       },
     },

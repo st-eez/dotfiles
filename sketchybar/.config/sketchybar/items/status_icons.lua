@@ -3,29 +3,23 @@ local icons = require("icons")
 local settings = require("settings")
 local sbar = require("sketchybar")
 
-local function add_status_icon(name, icon, opts)
-  opts = opts or {}
-  local icon_padding_left = opts.icon_padding_left or 10
-  local icon_padding_right = opts.icon_padding_right or 10
-  local icon_size = opts.icon_size or settings.font.size.icon
+local function add_status_icon(name, icon, icon_padding_left)
   return sbar.add("item", name, {
     position = "right",
     icon = {
       string = icon,
       color = colors.white,
-      font = { size = icon_size },
-      padding_left = icon_padding_left,
-      padding_right = icon_padding_right,
+      font = { size = settings.font.size.glyph },
+      padding_left = icon_padding_left or 10,
+      padding_right = 10,
     },
-    label = opts.label or { drawing = false },
+    label = { drawing = false },
     padding_left = 0,
     padding_right = 0,
-    updates = opts.updates,
-    update_freq = opts.update_freq,
   })
 end
 
-local battery_icon = add_status_icon("status.battery", icons.battery, { icon_padding_left = 2, icon_size = settings.font.size.glyph })
+local battery_icon = add_status_icon("status.battery", icons.battery, 2)
 
 local battery_pct = sbar.add("item", "status.battery_pct", {
   position = "right",
@@ -62,7 +56,7 @@ update_battery()
 -- Volume: icon-only. Native volume_change drives live updates; glyph and color
 -- derive from effective volume (sketchybar collapses mute to 0, see src/volume.c).
 -- Trade-off: volume=0 unmuted renders as muted/grey — rare and harmless.
-local volume_icon = add_status_icon("status.volume", icons.volume.high, { icon_size = settings.font.size.glyph })
+local volume_icon = add_status_icon("status.volume", icons.volume.high)
 
 local function render_volume(n)
   local glyph, color

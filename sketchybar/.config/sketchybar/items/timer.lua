@@ -126,7 +126,7 @@ for _, dur in ipairs(durations) do
       string = dur.label,
       font = {
         family = settings.font.family,
-        style = settings.font.style_map.bold,
+        style = "Bold",
         size = settings.font.size.label,
       },
       padding_left = 12,
@@ -225,5 +225,3 @@ end
 
 timer:subscribe("routine", function() tick(false) end)
 timer:subscribe("system_woke", function() tick(true) end)
-
-return timer
