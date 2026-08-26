@@ -206,8 +206,13 @@ fi
 
 if [ -n "$right" ]; then
   cols=${COLUMNS:-}
-  # Display widths (wc -L honours wide glyphs), not byte/char counts
-  width() { printf '%s' "$1" | sed -e $'s/\x1b\[[0-9;]*m//g' -e 's/\\033\[[0-9;]*m//g' | LC_ALL=C.UTF-8 wc -L; }
+  # Display width: strip both escape forms (real ESC and literal \033), then
+  # count characters under UTF-8 (portable: macOS wc lacks -L)
+  width() {
+    local s
+    s=$(printf '%s' "$1" | sed -e $'s/\x1b\[[0-9;]*m//g' -e 's/\\033\[[0-9;]*m//g')
+    LC_ALL=C.UTF-8 bash -c 'printf %s "${#1}"' _ "$s"
+  }
   lw=$(width "$line"); rw=$(width "$right")
   pad=0
   # Claude Code truncates the row at COLUMNS-4 (2-col indent + margin); measured in Herdr
