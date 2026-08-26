@@ -195,7 +195,7 @@ else
   [ -n "$behind" ] && line+=" ${C_BEHIND}${behind}${RESET}"
 fi
 
-# Right block: 183k (67%), right-aligned when the terminal width is knowable
+# Right block: 183k (67%), right-aligned when COLUMNS is known
 right=""
 if [ -n "$ctx_tokens" ] && [ "$ctx_tokens" != "0" ] && [ "$ctx_tokens" != "null" ]; then
   right="${C_OS}$(format_tokens "$ctx_tokens")${RESET}"
@@ -206,10 +206,12 @@ fi
 
 if [ -n "$right" ]; then
   cols=${COLUMNS:-}
-  strip() { printf '%s' "$1" | sed -e $'s/\x1b\[[0-9;]*m//g' -e 's/\\033\[[0-9;]*m//g'; }
-  lv=$(strip "$line"); rv=$(strip "$right")
+  # Display widths (wc -L honours wide glyphs), not byte/char counts
+  width() { printf '%s' "$1" | sed -e $'s/\x1b\[[0-9;]*m//g' -e 's/\\033\[[0-9;]*m//g' | LC_ALL=C.UTF-8 wc -L; }
+  lw=$(width "$line"); rw=$(width "$right")
   pad=0
-  [ -n "$cols" ] && pad=$((cols - ${#lv} - ${#rv} - 3))
+  # Claude Code truncates the row at COLUMNS-4 (2-col indent + margin); measured in Herdr
+  [ -n "$cols" ] && pad=$((cols - lw - rw - 4))
   if [ "$pad" -gt 0 ] 2>/dev/null; then
     line+="$(printf '%*s' "$pad" '')${right}"
   else
