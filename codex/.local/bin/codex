@@ -1,0 +1,3 @@
+#!/bin/sh
+# CODEX_AUTO_TRUST_WRAPPER
+exec "$HOME/.local/libexec/codex-auto-trust" "$@"

@@ -1,0 +1,293 @@
+#!/usr/bin/env python3
+"""PATH wrapper: auto-trust the cwd and skip Codex hook-review overlays.
+
+Codex keys directory trust on exact [projects."<path>"] rows and hook trust on
+the absolute hooks.json path. This wrapper upserts cwd (and git roots) as
+trusted, then execs the real binary with --dangerously-bypass-hook-trust.
+"""
+
+from __future__ import annotations
+
+import fcntl
+import json
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+FLAG = "--dangerously-bypass-hook-trust"
+MARKER = "CODEX_AUTO_TRUST_WRAPPER"
+SKIP_MUTATION_COMMANDS = {
+    "completion",
+    "help",
+    "features",
+    "login",
+    "logout",
+    "plugin",
+    "mcp",
+    "doctor",
+    "sandbox",
+    "debug",
+    "apply",
+    "cloud",
+}
+
+
+def _codex_home() -> Path:
+    raw = os.environ.get("CODEX_HOME")
+    if raw:
+        return Path(raw).expanduser()
+    return Path.home() / ".codex"
+
+
+def _real_binary(wrapper: Path) -> Path:
+    env = os.environ.get("CODEX_REAL")
+    if env:
+        path = Path(env).expanduser()
+        if path.is_file() and os.access(path, os.X_OK) and path.resolve() != wrapper.resolve():
+            return path.resolve()
+    candidates = [
+        Path.home() / ".codex" / "packages" / "standalone" / "current" / "bin" / "codex",
+        _codex_home() / "packages" / "standalone" / "current" / "bin" / "codex",
+    ]
+    for standalone in candidates:
+        if _looks_like_real_binary(standalone):
+            resolved = standalone.resolve()
+            if resolved != wrapper.resolve():
+                return resolved
+    wrapper_resolved = wrapper.resolve()
+    for entry in os.environ.get("PATH", "").split(os.pathsep):
+        if not entry:
+            continue
+        candidate = Path(entry) / "codex"
+        if not _looks_like_real_binary(candidate):
+            continue
+        resolved = candidate.resolve()
+        if resolved == wrapper_resolved:
+            continue
+        return resolved
+    raise SystemExit("codex-auto-trust: could not find the real Codex binary")
+
+
+def _looks_like_real_binary(path: Path) -> bool:
+    try:
+        if not path.is_file() or not os.access(path, os.X_OK):
+            return False
+        if path.stat().st_size < 1024 * 1024:
+            return False
+        if _is_wrapper(path):
+            return False
+    except OSError:
+        return False
+    return True
+
+
+def _is_wrapper(path: Path) -> bool:
+    try:
+        with path.open("r", encoding="utf-8", errors="replace") as handle:
+            sample = handle.read(4096)
+    except OSError:
+        return False
+    return MARKER in sample
+
+
+def _first_command(argv: list[str]) -> str | None:
+    i = 0
+    while i < len(argv):
+        arg = argv[i]
+        if arg in {"-h", "--help"}:
+            return "help"
+        if arg in {"-V", "--version"}:
+            return "version"
+        if arg.startswith("-"):
+            if arg in {
+                "-c",
+                "--config",
+                "--enable",
+                "--disable",
+                "--remote",
+                "--remote-auth-token-env",
+                "-i",
+                "--image",
+                "-m",
+                "--model",
+                "-C",
+                "--cd",
+                "--profile",
+                "--sandbox",
+                "--ask-for-approval",
+            }:
+                i += 2
+                continue
+            i += 1
+            continue
+        return arg
+    return None
+
+
+def _launch_cwd(argv: list[str]) -> Path:
+    i = 0
+    while i < len(argv):
+        arg = argv[i]
+        if arg in {"-C", "--cd"} and i + 1 < len(argv):
+            return Path(argv[i + 1]).expanduser()
+        i += 1
+    return Path.cwd()
+
+
+def _trust_paths(cwd: Path) -> list[str]:
+    resolved = cwd.resolve()
+    paths: list[str] = []
+    if str(resolved) != "/":
+        paths.append(str(resolved))
+    try:
+        top = subprocess.check_output(
+            ["git", "rev-parse", "--show-toplevel"],
+            cwd=resolved,
+            stderr=subprocess.DEVNULL,
+            text=True,
+        ).strip()
+        if top:
+            paths.append(str(Path(top).resolve()))
+        common = subprocess.check_output(
+            ["git", "rev-parse", "--git-common-dir"],
+            cwd=resolved,
+            stderr=subprocess.DEVNULL,
+            text=True,
+        ).strip()
+        if common:
+            common_path = Path(common)
+            if not common_path.is_absolute():
+                common_path = (resolved / common_path).resolve()
+            else:
+                common_path = common_path.resolve()
+            if common_path.name == ".git":
+                paths.append(str(common_path.parent))
+    except (OSError, subprocess.CalledProcessError):
+        pass
+    unique: list[str] = []
+    seen: set[str] = set()
+    for path in paths:
+        if path in seen or path == "/":
+            continue
+        seen.add(path)
+        unique.append(path)
+    return unique
+
+
+def _table_header(path: str) -> str:
+    return f"[projects.{json.dumps(path)}]"
+
+
+def upsert_trust_text(text: str, paths: list[str]) -> str:
+    if not text.endswith("\n") and text:
+        text += "\n"
+    for path in paths:
+        header = _table_header(path)
+        start = text.find(header)
+        if start == -1:
+            if text and not text.endswith("\n\n"):
+                if not text.endswith("\n"):
+                    text += "\n"
+                text += "\n"
+            text += f'{header}\ntrust_level = "trusted"\n'
+            continue
+        rest = text[start + len(header) :]
+        if rest.startswith("\n"):
+            body_start = start + len(header) + 1
+        else:
+            body_start = start + len(header)
+        rel_end = 0
+        for line in text[body_start:].splitlines(keepends=True):
+            if line.startswith("[") and not line.startswith(header):
+                break
+            rel_end += len(line)
+        end = body_start + rel_end
+        table_body = text[body_start:end]
+        if 'trust_level = "trusted"' in table_body:
+            continue
+        if "trust_level" in table_body:
+            lines = []
+            replaced = False
+            for line in table_body.splitlines(keepends=True):
+                if line.lstrip().startswith("trust_level") and not replaced:
+                    nl = "\n" if line.endswith("\n") else ""
+                    lines.append(f'trust_level = "trusted"{nl}')
+                    replaced = True
+                else:
+                    lines.append(line)
+            table_body = "".join(lines)
+        else:
+            table_body = 'trust_level = "trusted"\n' + table_body
+        text = text[:body_start] + table_body + text[end:]
+    return text
+
+
+def upsert_trust(config_path: Path, paths: list[str]) -> None:
+    if not paths:
+        return
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    lock_path = config_path.with_name(config_path.name + ".lock")
+    with lock_path.open("a+b") as lock:
+        fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+        original = ""
+        if config_path.exists():
+            original = config_path.read_text(encoding="utf-8")
+        updated = upsert_trust_text(original, paths)
+        if updated == original:
+            return
+        tmp = config_path.with_name(config_path.name + f".tmp.{os.getpid()}")
+        tmp.write_text(updated, encoding="utf-8")
+        with tmp.open("r+b") as handle:
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(tmp, config_path)
+        try:
+            fd = os.open(str(config_path.parent), os.O_RDONLY)
+            try:
+                os.fsync(fd)
+            finally:
+                os.close(fd)
+        except OSError:
+            pass
+
+
+def _inject_flag(argv: list[str]) -> list[str]:
+    if FLAG in argv:
+        return argv
+    return [FLAG, *argv]
+
+
+def _restore_path_wrapper(wrapper_src: Path) -> None:
+    dest = Path.home() / ".local" / "bin" / "codex"
+    try:
+        if dest.exists() and not dest.is_symlink() and _is_wrapper(dest):
+            return
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        if dest.exists() or dest.is_symlink():
+            dest.unlink()
+        shutil.copy2(wrapper_src, dest)
+        dest.chmod(dest.stat().st_mode | 0o111)
+    except OSError:
+        pass
+
+
+def main(argv: list[str] | None = None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    wrapper = Path(__file__).resolve()
+    real = _real_binary(wrapper)
+    command = _first_command(argv)
+    if command not in SKIP_MUTATION_COMMANDS:
+        upsert_trust(_codex_home() / "config.toml", _trust_paths(_launch_cwd(argv)))
+        argv = _inject_flag(argv)
+    if command == "update":
+        result = subprocess.call([str(real), *argv])
+        _restore_path_wrapper(wrapper)
+        return result
+    os.execv(str(real), [str(real), *argv])
+    return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
