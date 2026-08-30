@@ -19,7 +19,7 @@
 
 ## Inter-agent messages
 
-- When messaging another agent (herdr prompt, dispatch brief, SendMessage), start with `[from: <your model> @ <herdr pane id>]`, like `[from: claude-fable-5 @ wY:p1C]`. Read the pane id from `HERDR_PANE_ID` (`env | grep HERDR_PANE_ID`). If it is unset, use `[from: <your model>]` and do not go hunting for one.
+- When messaging another agent (herdr prompt, dispatch brief, SendMessage), start with `[from: <your agent name or model> @ <herdr pane id>]`, like `[from: captain (gpt-5.6) @ wY:p1]` or `[from: claude-fable-5 @ wY:p1C]`. A named agent uses its name. Read the pane id from `HERDR_PANE_ID` (`env | grep HERDR_PANE_ID`). If it is unset, use `[from: <name>]` and do not go hunting for one.
 - A message without this prefix is from Steve.
 - Use the unslop skill before sending.
 
