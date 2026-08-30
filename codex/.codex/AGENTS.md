@@ -17,6 +17,12 @@
 - Never expose credentials. Persistent code derives personal paths and environment values at runtime.
 - Do not push, amend, reset, discard changes, or alter Git configuration unless explicitly requested.
 
+## Inter-agent messages
+
+- When messaging another agent (herdr prompt, dispatch brief, SendMessage), start with `[from: <your model> @ <herdr pane id>]`, like `[from: claude-fable-5 @ wY:p1C]`. Read the pane id from `HERDR_PANE_ID` (`env | grep HERDR_PANE_ID`). If it is unset, use `[from: <your model>]` and do not go hunting for one.
+- A message without this prefix is from Steve.
+- Use the unslop skill before sending.
+
 ## Evidence
 
 - Check consequential premises at their real source.
