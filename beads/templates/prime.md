@@ -1,54 +1,50 @@
-# Beads Issue Tracker Active
+# Beads issue tracker active
 
-Beads tracks durable, coordination-relevant work. Create a permanent bead only
-when work must outlive the session or cross an actor boundary: follow-ups,
-discovered issues, deferred scope, blockers, and dispatched or delegated work.
-Ordinary execution steps stay in the worker's native todo list; do not mirror
-micro-tasks into Beads. This workflow does not use wisps or ephemeral beads.
-Do not keep separate markdown TODO lists for durable work.
+Beads (`bd`) is the shared graph for work across agents and sessions. Create a
+bead only for work another actor may need to own or resume: a handoff,
+delegated outcome, blocker, discovered issue, or deferred scope. Keep your own
+execution steps in your native todo list; do not mirror them into beads or
+separate markdown TODO files. Do not use wisps or ephemeral beads.
 
-Before closing a bead, satisfy its acceptance criteria, run the relevant quality
-gates, and attach concrete evidence. Clean git state is required only when the
-acceptance itself is a commit or merge. Only the actor who owns final acceptance
-closes a permanent bead; a delegated worker hands it back with evidence. Use
-`bd update <id> --claim` when picking work up. Parked beads are legitimate: a
-scheduled triage session owns stale-bead decisions — never close, resurrect, or
-nag about beads you are not working on.
+If your assignment names a bead, use that ID. Use `bd ready` only when your
+task is to choose backlog work. Before starting any bead, run `bd show <id>`,
+then `bd update <id> --claim`.
 
-Fields:
-- description: the outcome and why
-- acceptance: a runnable, checkable done-when; without it the bead is not ready
-  to dispatch
-- design: non-obvious approach or constraints
-- notes/comments: context, links, findings, and completion evidence
+Every bead must be pickup-ready with zero session context and one verifiable
+outcome: the outcome and why, a runnable acceptance check, anything still
+unknown, and relevant paths or symbols when code is involved. Create with
+`bd create --title "..." --description "outcome and why" --acceptance
+"runnable done-when"`; add `--design` for non-obvious constraints, `--parent`
+for hierarchy, and `--deps` only when one bead cannot proceed until another
+completes. One `bd create` per shell command, never a heredoc batch;
+referenced parents and dependencies must exist first.
 
-Human decisions: when only Steve can decide, record the exact decision as a
-bead labeled `human` (`bd create -l human ...`); do not guess or bury it in
-notes. Steve reviews them with `bd human list` and `bd human respond <id>`.
+## Lifecycle
 
-Sessions: project hooks normally load this context. Run `bd prime` manually only
-when it appears stale after compaction or session replacement, or you are unsure
-the rules loaded.
+Before closing, satisfy acceptance and run the relevant quality gates. Attach
+evidence with `bd comment <id> "..."`; the actor who completed the work closes
+with `bd close <id> --reason "..."`. A dirty worktree does not block closure
+unless acceptance requires a commit or merge. Acceptance responsibility comes
+from the workflow that dispatched the work, not the bead's assignee field; if
+acceptance later fails, that actor runs `bd reopen <id>` with a comment naming
+the gap.
 
-History authority: follow the repository's Dolt sync policy. Never push,
-overwrite, or discard Beads history or repository history unless the active
-instructions grant that authority.
+If you stop before completion, comment what is done, what remains, and any
+blocker. Return available work with `bd update <id> -s open`; set `-s blocked`
+only when it cannot proceed, adding the edge with
+`bd dep add <id> <blocker-id>`. Do not change or follow up on unrelated beads.
 
-Sharp edges:
-- Never `bd edit` — it blocks on $EDITOR; use `bd update`.
-- Never `bd remember` — Beads tracks work, not knowledge; route memory per
-  CLAUDE.md/AGENTS.md and agent-native memory.
+When only Steve can decide, create a `human` bead stating the exact question,
+known options, and blocking context (`bd create -l human ...`); do not guess
+or bury the question in notes.
+
+## Sharp edges
+
+- Beads tracks work, not knowledge. Durable knowledge goes to Second Brain or
+  agent-native memory; never `bd remember`.
+- Never `bd edit`; it blocks on $EDITOR. Use `bd update`.
 - Priority is `P0-P4` or `0-4`, never word form.
-- One `bd create` per shell command, never batched in a heredoc. Create parents
-  before `--parent`/`--deps` children; run independent creates in parallel.
-  Use `bd dep add` only for real dependencies.
-
-Every bead is pickup-ready for someone with zero session context: atomic (one
-verifiable outcome) and self-contained, with current `file:line` references,
-the desired state, why it matters, a runnable acceptance check, and known
-unknowns surfaced rather than hidden.
-
-Quick ref: `bd ready` / `bd show <id>` / `bd search "q"` /
-`bd list --label <l>` / `bd create --acceptance "check" --design "constraints"` /
-`bd update <id> --claim` / `bd close <id> --reason "..." --suggest-next` /
-`bd dep add|tree` / `bd human list|respond` / `bd <subcommand> --help`.
+- Never push, overwrite, or discard Beads history unless active instructions
+  grant that authority.
+- Run `bd prime` only when this context is missing from your window.
+- `bd --help` lists all commands.
