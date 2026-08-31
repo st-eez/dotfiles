@@ -39,8 +39,6 @@ Sharp edges:
 - Never `bd remember` — Beads tracks work, not knowledge; route memory per
   CLAUDE.md/AGENTS.md and agent-native memory.
 - Priority is `P0-P4` or `0-4`, never word form.
-- Default to `--brief` on `bd ready`/`bd list` and `--brief-deps` on `bd show`;
-  they cut output roughly 90%. Fetch full text only for the bead being worked.
 - One `bd create` per shell command, never batched in a heredoc. Create parents
   before `--parent`/`--deps` children; run independent creates in parallel.
   Use `bd dep add` only for real dependencies.
@@ -50,7 +48,7 @@ verifiable outcome) and self-contained, with current `file:line` references,
 the desired state, why it matters, a runnable acceptance check, and known
 unknowns surfaced rather than hidden.
 
-Quick ref: `bd ready --brief` / `bd show <id> --brief-deps` / `bd search "q"` /
+Quick ref: `bd ready` / `bd show <id>` / `bd search "q"` /
 `bd list --label <l>` / `bd create --acceptance "check" --design "constraints"` /
 `bd update <id> --claim` / `bd close <id> --reason "..." --suggest-next` /
 `bd dep add|tree` / `bd human list|respond` / `bd <subcommand> --help`.
