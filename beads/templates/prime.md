@@ -22,8 +22,9 @@ Fields:
 - design: non-obvious approach or constraints
 - notes/comments: context, links, findings, and completion evidence
 
-Human decisions: when only Steve can decide, record the exact decision with
-`bd human`; do not guess or bury it in notes.
+Human decisions: when only Steve can decide, record the exact decision as a
+bead labeled `human` (`bd create -l human ...`); do not guess or bury it in
+notes. Steve reviews them with `bd human list` and `bd human respond <id>`.
 
 Sessions: project hooks normally load this context. Run `bd prime` manually only
 when it appears stale after compaction or session replacement, or you are unsure
@@ -52,4 +53,4 @@ unknowns surfaced rather than hidden.
 Quick ref: `bd ready --brief` / `bd show <id> --brief-deps` / `bd search "q"` /
 `bd list --label <l>` / `bd create --acceptance "check" --design "constraints"` /
 `bd update <id> --claim` / `bd close <id> --reason "..." --suggest-next` /
-`bd dep add|tree` / `bd human` / `bd <subcommand> --help`.
+`bd dep add|tree` / `bd human list|respond` / `bd <subcommand> --help`.
