@@ -5,6 +5,6 @@ alwaysApply: true
 
 # Inter-agent messages
 
-- When messaging another agent (herdr prompt, dispatch brief, SendMessage), start with `[from: <your agent name or model> @ <herdr pane id>]`, like `[from: captain (gpt-5.6) @ wY:p1]` or `[from: claude-fable-5 @ wY:p1C]`. A named agent uses its name. Read the pane id from `HERDR_PANE_ID` (`env | grep HERDR_PANE_ID`). If it is unset, use `[from: <name>]` and do not go hunting for one.
+- When messaging another agent across sessions (herdr prompt, dispatch brief to a separate session, SendMessage to an external agent), start with `[from: <your agent name or model> @ <herdr pane id>]`, like `[from: captain (gpt-5.6) @ wY:p1]` or `[from: claude-fable-5 @ wY:p1C]`. A named agent uses its name. Read the pane id from `HERDR_PANE_ID` (`env | grep HERDR_PANE_ID`). If it is unset, use `[from: <name>]` and do not go hunting for one.
+- Native subagents you spawn in the same session through the harness's own primitive (Claude Code's Agent tool and forks, Codex or Cursor spawned subagents) need no prefix; they already know who spawned them.
 - A message without this prefix is from Steve.
-- Use the unslop skill before sending.
