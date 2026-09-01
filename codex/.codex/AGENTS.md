@@ -15,8 +15,8 @@
 Global principles live in `~/.steez/repo/principles/`. A repo may have its own `principles/` folder; it wins on conflict.
 
 - Before substantive or multi-step code work, make a todolist: the host's native todo tool, or else `.todos/<session-id>.md` at the repo root (gitignored, deleted when the work ends). First item: read `principles/README.md`, global and repo. Read the full file for each principle that matches the task, then apply it.
+- Second item: read `~/.steez/repo/runbooks/README.md` and any `<repo>/runbooks/README.md`. Open a runbook whose trigger matches the task and copy its steps into the todolist as items. Steps are suggestions, not gates.
 - At the end of that work, list each principle that changed a decision and what it changed. Applied nothing, list nothing.
-- Before writing code, read `~/.steez/repo/skills/ponytail/SKILL.md` and apply it.
 - All prose follows `~/.steez/repo/skills/unslop/SKILL.md`; read it once per session.
 - When the user corrects how you work, read global `principles/encode-lessons-in-structure.md`.
 
