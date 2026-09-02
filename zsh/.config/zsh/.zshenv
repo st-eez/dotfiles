@@ -25,3 +25,4 @@ fi
 if [[ -n $TERM && $TERM != dumb ]]; then
   export COLORTERM=truecolor
 fi
+. "$HOME/.cargo/env"

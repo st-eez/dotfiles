@@ -2,7 +2,7 @@
 
 Claude Code, Codex, Cursor, and Pi share one checkout at `~/.steez/repo`: a skills catalog linked into each harness, runbooks for repeatable task shapes, and principles for judgment. This file is the map. Everything it points at opens only when its trigger matches.
 
-Every task, code or not:
+Every piece of work, code or not. A question whose answer is in hand just gets the answer:
 
 1. Say in one line what done looks like. Scan `~/.steez/repo/runbooks/README.md` and the repo's own `runbooks/` for a trigger that matches; a match supplies your todolist. Scan again when the task changes shape, such as research that turns into a code change.
 2. Do the work in this session. Probe before you ask; carry a question into the handback only if no probe could answer it.

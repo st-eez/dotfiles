@@ -183,7 +183,7 @@ fi
 
 
 # PATH setup (before tools that depend on it)
-export PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"
+export PATH="$HOME/.local/bin:$HOME/go/bin:$HOME/.local/go/bin:$PATH"
 
 codex-comms() {
   command codex --profile-v2 comms "$@"
