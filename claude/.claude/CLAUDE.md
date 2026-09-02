@@ -1,6 +1,6 @@
 # Steve's agents
 
-Claude Code, Codex, Cursor, and Pi share one checkout at `~/.steez/repo`: a skills catalog linked into each harness, runbooks for repeatable task shapes, and docs for judgment. This file is the map. Everything it points at opens only when its trigger matches.
+Claude Code, Codex, Cursor, and Pi share one checkout at `~/.steez/repo`: a skills catalog linked into each harness, runbooks for repeatable task shapes, and principles for judgment. This file is the map. Everything it points at opens only when its trigger matches.
 
 Every task, code or not:
 
@@ -12,8 +12,9 @@ Every task, code or not:
 Where things are:
 
 - Runbooks, one per task shape, at `~/.steez/repo/runbooks/`. A repo's `runbooks/` adds shapes and wins on conflict.
+- Principles, what good looks like for one category of change, at `~/.steez/repo/principles/` and a repo's own `principles/`. A runbook stage or a repo's AGENTS.md names the one that applies.
 - Skills live in this harness's skills directory and describe themselves.
-- Repo guidance is `<repo>/AGENTS.md`: what the repo is, the command that proves a change, and the docs each kind of change opens.
+- Repo guidance is `<repo>/AGENTS.md`: what the repo is, the command that proves a change, and the principles each kind of change opens.
 - Where new guidance goes: `~/.steez/repo/MAP.md`.
 
 Requirements:
