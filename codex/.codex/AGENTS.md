@@ -1,6 +1,6 @@
 # Steve's agents
 
-Claude Code, Codex, Cursor, and Pi share one checkout at `~/.steez/repo`: a skills catalog linked into each harness and a `docs/` knowledge base that says what good work of each kind looks like. This file is the map. Everything it points at opens only when its row matches.
+Claude Code, Codex, Cursor, and Pi share one checkout at `~/.steez/repo`: a skills catalog linked into each harness and a small `docs/` of what is the same in every repo. This file is the map. Everything it points at opens only when its row matches.
 
 Every piece of work, code or not. A question whose answer is in hand just gets the answer:
 
@@ -14,7 +14,6 @@ Where things are:
 - Docs, one per kind of work, at `~/.steez/repo/docs/`. A repo's `docs/` adds to them and wins on conflict.
 - Skills live in this harness's skills directory and describe themselves.
 - Repo guidance is `<repo>/AGENTS.md`: what the repo is, the command that proves a change, and the docs each kind of task opens.
-- Where new guidance goes: `~/.steez/repo/MAP.md`.
 
 Requirements:
 
