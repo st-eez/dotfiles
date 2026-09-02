@@ -1,3 +1,8 @@
+---
+description: Steve's agents. The map, the loop, and the requirements.
+alwaysApply: true
+---
+
 # Steve's agents
 
 Claude Code, Codex, Cursor, and Pi share one checkout at `~/.steez/repo`: a skills catalog linked into each harness, runbooks for repeatable task shapes, and docs for judgment. This file is the map. Everything it points at opens only when its trigger matches.
