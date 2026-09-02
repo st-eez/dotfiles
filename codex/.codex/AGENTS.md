@@ -12,7 +12,7 @@ Every task, code or not:
 Where things are:
 
 - Runbooks, one per task shape, at `~/.steez/repo/runbooks/`. A repo's `runbooks/` adds shapes and wins on conflict.
-- Skills live in this harness's skills directory and describe themselves. Ponytail is the bias for code, unslop for prose.
+- Skills live in this harness's skills directory and describe themselves.
 - Repo guidance is `<repo>/AGENTS.md`: what the repo is, the command that proves a change, and the docs each kind of change opens.
 - Where new guidance goes: `~/.steez/repo/MAP.md`.
 
