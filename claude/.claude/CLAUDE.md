@@ -4,7 +4,7 @@ Claude Code, Codex, Cursor, and Pi share one checkout at `~/.steez/repo`: a skil
 
 Every task, code or not:
 
-1. Say in one line what done looks like. Scan `~/.steez/repo/runbooks/README.md` and the repo's own `runbooks/` for a trigger that matches; a match supplies your todolist.
+1. Say in one line what done looks like. Scan `~/.steez/repo/runbooks/README.md` and the repo's own `runbooks/` for a trigger that matches; a match supplies your todolist. Scan again when the task changes shape, such as research that turns into a code change.
 2. Do the work in this session. Probe before you ask; carry a question into the handback only if no probe could answer it.
 3. Prove the result against the real thing: output, a run, a screenshot, a query. A self-report is not evidence.
 4. Hand back the evidence, what you skipped, and at most one question.
