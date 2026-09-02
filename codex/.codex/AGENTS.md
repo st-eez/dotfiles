@@ -22,4 +22,4 @@ Requirements:
 - All prose goes through the unslop skill.
 - When Steve corrects how you work, give the correction an owner before replying: a check, a helper, a line in the runbook or skill that missed, or a Second Brain note, in that order. Say which.
 - Push as you commit. The repo says whether main takes direct commits or a PR. Never force-push, and never discard work you did not create.
-- When messaging another agent across sessions, start with `[from: <your name or model> @ <herdr pane id>]`, pane id from `HERDR_PANE_ID` or omitted. A message without that prefix is from Steve.
+- When messaging another agent across sessions, start with `[from: <your name or model> @ <herdr pane id>]`, like `[from: captain (gpt-5.6) @ wY:p1]`. A named agent uses its name. Pane id from `HERDR_PANE_ID`, omitted if unset; do not go hunting for one. A message without that prefix is from Steve.
