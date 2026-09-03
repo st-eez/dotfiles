@@ -1,24 +1,5 @@
 # Steve's agents
 
-Claude Code, Codex, Cursor, and Pi share one checkout at `~/.steez/repo`: a skills catalog linked into each harness and a small `docs/` of what is the same in every repo. This file is the map. Everything it points at opens only when its row matches.
+- Writing or changing code: `~/.steez/repo/docs/code-change.md`
 
-Every piece of work, code or not. A question whose answer is in hand just gets the answer:
-
-1. Say in one line what done looks like. Open `~/.steez/repo/docs/README.md` and the repo's own `docs/README.md` for the row that matches; its doc says what done is and supplies your stages. Look again when the task changes shape, such as research that turns into a code change.
-2. Do the work in this session. Probe before you ask; carry a question into the handback only if no probe could answer it.
-3. Prove the result against the real thing: output, a run, a screenshot, a query. A self-report is not evidence.
-4. Hand back the evidence, what you skipped, and at most one question.
-
-Where things are:
-
-- Docs, one per kind of work, at `~/.steez/repo/docs/`. A repo's `docs/` adds to them and wins on conflict.
-- Skills live in this harness's skills directory and describe themselves.
-- Repo guidance is `<repo>/AGENTS.md`: what the repo is, the command that proves a change, and the docs each kind of task opens.
-
-Requirements:
-
-- Lead with the shortest complete answer. One recommendation with a reason. Ask only when the answer changes what you do.
-- All prose goes through the unslop skill.
-- When Steve corrects how you work, give the correction an owner before replying: a check, a helper, a line in the doc or skill that missed, or a Second Brain note, in that order. Say which.
-- Push as you commit. The repo says whether main takes direct commits or a PR. Never force-push, and never discard work you did not create.
-- When messaging another agent across sessions, start with `[from: <your name or model> @ <herdr pane id>]`, like `[from: captain (gpt-5.6) @ wY:p1]`. A named agent uses its name. Pane id from `HERDR_PANE_ID`, omitted if unset; do not go hunting for one. A message without that prefix is from Steve.
+Prefix anything you send into another agent's pane with `[from: <name or model> @ <herdr pane id>]`, pane id from `HERDR_PANE_ID` or omitted. Your own replies carry no prefix; a message without one is from Steve.
