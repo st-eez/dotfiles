@@ -1,6 +1,7 @@
 # Steve's agents
 
 - Writing or changing code: `~/.steez/repo/docs/code-change.md`
+- Handing work to another agent: `~/.steez/repo/docs/brief.md`
 
 Prefix anything you send into another agent's pane with `[from: <name or model> @ <herdr pane id>]`, pane id from `HERDR_PANE_ID` or omitted. Your own replies carry no prefix; a message without one is from Steve.
 
