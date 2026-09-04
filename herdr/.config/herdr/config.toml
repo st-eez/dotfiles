@@ -15,16 +15,19 @@ split_vertical = "prefix+backslash"
 # Herdr has no named custom themes; this block IS the captain theme here.
 # Status dots draw from these tokens: working=yellow (captain purple),
 # done=green (solid), idle=green (hollow), blocked=red.
+# Neutrals are Captain's Pi ramp; these hexes match captain/.pi/themes/captain.json
+# verbatim, and captain/docs/prime-theme.md carries the roles and contrast ratios.
 [theme.custom]
 accent = "#7c6faf"
-panel_bg = "#0d0d10"
-surface0 = "#222226"
+active_row_bg = "#242639"
+panel_bg = "#1a1b26"
+surface0 = "#242639"
 surface1 = "#151518"
-surface_dim = "#1a1a1f"
-overlay0 = "#71717a"
-overlay1 = "#a1a1aa"
-text = "#f4f4f5"
-subtext0 = "#a1a1aa"
+surface_dim = "#222334"
+overlay0 = "#9093a3"
+overlay1 = "#a9abba"
+text = "#d2d3de"
+subtext0 = "#a9abba"
 mauve = "#8d7fc0"
 green = "#7da876"
 red = "#d06f82"
